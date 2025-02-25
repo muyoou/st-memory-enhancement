@@ -1,3 +1,4 @@
+<!-- setting.html -->
 <div class="wide100p padding5 dataBankAttachments">
     <h2 class="marginBot5">
         <span>
@@ -23,5 +24,17 @@
         <textarea id="dataTable_tableSetting_updateNode" class="wide100p" rows="2"></textarea>
         <label>删除提示词</label><small> (解释什么时候应该删除行)</small>
         <textarea id="dataTable_tableSetting_deleteNode" class="wide100p" rows="2"></textarea>
+        <div class="checkbox flex-container" style="margin-bottom: 10px;">
+            <input type="checkbox" id="dataTable_tableSetting_toChat">
+            <span>推送至对话</span>
+            <small> (开启时将该表格推送至对话)</small>
+        </div><!-- +.开启时将该表格推送至对话 -->
+        <div class="checkbox flex-container">
+            <label>推送样式</label><small> (编辑推送至对话的表格样式)</small>
+            <i class="menu_button menu_button_icon fa-solid fa-bug fa-sm tableEditor_renderButton" data-index="${tableIndex}">
+                测试模式
+            </i><!-- +.编辑推送至对话的表格样式 -->
+        </div>
+        <textarea id="dataTable_tableSetting_tableRender" class="wide100p" rows="2"></textarea>
     </div>
 </div>

@@ -1,11 +1,8 @@
-import {
-    eventSource,
-    event_types,
-    saveSettingsDebounced,
-} from '../../../../script.js';
+import {eventSource, event_types, saveSettingsDebounced,} from '../../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../../extensions.js';
 import { POPUP_TYPE, Popup, callGenericPopup } from '../../../popup.js';
 import JSON5 from './index.min.mjs'
+
 const VERSION = '1.2.0'
 
 let waitingTable = null
@@ -68,7 +65,7 @@ updateRow(tableIndex:number, rowIndex:number, data:{[colIndex:number]:string|num
 -使用 insertRow 函数插入行时，请为所有已知的列提供对应的数据。且检查data:{[colIndex:number]:string|number}参数是否包含所有的colIndex。
 -单元格中禁止使用逗号，语义分割应使用 / 。
 -string中，禁止出现双引号。
--社交表格(tableIndex: 2)中禁止出现对<user>的态度。反例 (禁止)：insertRow(2, {"0":"<user>","1":"未知","2":"无","3":"低"}) 
+-社交表格(tableIndex: 2)中禁止出现对<user>的态度。反例 (禁止)：insertRow(2, {"0":"<user>","1":"未知","2":"无","3":"低"})
 -<tableEdit>标签内必须使用<!-- -->标记进行注释
 
 # 输出示例：
@@ -87,27 +84,27 @@ insertRow(5, {"0":"<user>","1":"社团赛奖品","2":"奖杯","3":"比赛第一�
 `,
     tableStructure: [
         {
-            tableName: "时空表格", tableIndex: 0, columns: ['日期', '时间', '地点（当前描写）', '此地角色'], columnsIndex: [0, 1, 2, 3], enable: true, Required: true, note: "记录时空信息的表格，应保持在一行",
+            tableName: "时空表格", tableIndex: 0, columns: ['日期', '时间', '地点（当前描写）', '此地角色'], columnsIndex: [0, 1, 2, 3], enable: true, Required: true, asStatus: true, toChat: true, note: "记录时空信息的表格，应保持在一行",
             initNode: '本轮需要记录当前时间、地点、人物信息，使用insertRow函数', updateNode: "当描写的场景，时间，人物变更时", deleteNode: "此表大于一行时应删除多余行"
         },
         {
-            tableName: '角色特征表格', tableIndex: 1, columns: ['角色名', '身体特征', '性格', '职业', '爱好', '喜欢的事物（作品、虚拟人物、物品等）', '住所', '其他重要信息'], enable: true, Required: true, columnsIndex: [0, 1, 2, 3, 4, 5, 6, 7], note: '角色天生或不易改变的特征csv表格，思考本轮有否有其中的角色，他应作出什么反应',
+            tableName: '角色特征表格', tableIndex: 1, columns: ['角色名', '身体特征', '性格', '职业', '爱好', '喜欢的事物（作品、虚拟人物、物品等）', '住所', '其他重要信息'], enable: true, Required: true, asStatus: true, toChat: true, columnsIndex: [0, 1, 2, 3, 4, 5, 6, 7], note: '角色天生或不易改变的特征csv表格，思考本轮有否有其中的角色，他应作出什么反应',
             initNode: '本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空', insertNode: '当本轮出现表中没有的新角色时，应插入', updateNode: "当角色的身体出现持久性变化时，例如伤痕/当角色有新的爱好，职业，喜欢的事物时/当角色更换住所时/当角色提到重要信息时", deleteNode: ""
         },
         {
-            tableName: '角色与<user>社交表格', tableIndex: 2, columns: ['角色名', '对<user>关系', '对<user>态度', '对<user>好感'], columnsIndex: [0, 1, 2, 3], enable: true, Required: true, note: '思考如果有角色和<user>互动，应什么态度',
+            tableName: '角色与<user>社交表格', tableIndex: 2, columns: ['角色名', '对<user>关系', '对<user>态度', '对<user>好感'], columnsIndex: [0, 1, 2, 3], enable: true, Required: true, asStatus: true, toChat: true, note: '思考如果有角色和<user>互动，应什么态度',
             initNode: '本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空', insertNode: '当本轮出现表中没有的新角色时，应插入', updateNode: "当角色和<user>的交互不再符合原有的记录时/当角色和<user>的关系改变时", deleteNode: ""
         },
         {
-            tableName: '任务、命令或者约定表格', tableIndex: 3, columns: ['角色', '任务', '地点', '持续时间'], columnsIndex: [0, 1, 2, 3], enable: true, Required: false, note: '思考本轮是否应该执行任务/赴约',
+            tableName: '任务、命令或者约定表格', tableIndex: 3, columns: ['角色', '任务', '地点', '持续时间'], columnsIndex: [0, 1, 2, 3], enable: true, Required: false, asStatus: true, toChat: true, note: '思考本轮是否应该执行任务/赴约',
             insertNode: '当特定时间约定一起去做某事时/某角色收到做某事的命令或任务时', updateNode: "", deleteNode: "当大家赴约时/任务或命令完成时/任务，命令或约定被取消时"
         },
         {
-            tableName: '重要事件历史表格', tableIndex: 4, columns: ['角色', '事件简述', '日期', '地点', '情绪'], columnsIndex: [0, 1, 2, 3, 4], enable: true, Required: true, note: '记录<user>或角色经历的重要事件',
+            tableName: '重要事件历史表格', tableIndex: 4, columns: ['角色', '事件简述', '日期', '地点', '情绪'], columnsIndex: [0, 1, 2, 3, 4], enable: true, Required: true, asStatus: true, toChat: true, note: '记录<user>或角色经历的重要事件',
             initNode: '本轮必须从上文寻找可以插入的事件并使用insertRow插入', insertNode: '当某个角色经历让自己印象深刻的事件时，比如表白、分手等', updateNode: "", deleteNode: ""
         },
         {
-            tableName: '重要物品表格', tableIndex: 5, columns: ['拥有人', '物品描述', '物品名', '重要原因'], columnsIndex: [0, 1, 2, 3], enable: true, Required: false, note: '对某人很贵重或有特殊纪念意义的物品',
+            tableName: '重要物品表格', tableIndex: 5, columns: ['拥有人', '物品描述', '物品名', '重要原因'], columnsIndex: [0, 1, 2, 3], enable: true, Required: false, asStatus: true, toChat: true, note: '对某人很贵重或有特殊纪念意义的物品',
             insertNode: '当某人获得了贵重或有特殊意义的物品时/当某个已有物品有了特殊意义时', updateNode: "", deleteNode: ""
         },
     ],
@@ -352,7 +349,7 @@ function copyTableList(tableList) {
 
 /**
  * 将单元格中的逗号替换为/符号
- * @param {string | number} cell 
+ * @param {string | number} cell
  * @returns 处理后的单元格值
  */
 function handleCellValue(cell) {
@@ -368,7 +365,7 @@ function handleCellValue(cell) {
  * 获取表格为空时的提示词
  * @param {boolean} Required 此表格是否为必填表格
  * @param {string} node 此表格的初始化提示词
- * @returns 
+ * @returns
  */
 function getEmptyTablePrompt(Required, node) {
     return '（此表格为空' + (Required ? (node ? ('，' + node) : '') : '') + '）\n'
@@ -378,7 +375,7 @@ function getEmptyTablePrompt(Required, node) {
  * 获取表格编辑规则提示词
  * @param {Structure} structure 表格结构信息
  * @param {boolean} isEmpty 表格是否为空
- * @returns 
+ * @returns
  */
 function getTableEditRules(structure, isEmpty) {
     if (structure.Required && isEmpty) return '【增删改触发条件】\n插入：' + replaceUserTag(structure.initNode) + '\n'
@@ -480,7 +477,7 @@ class Table {
 
     /**
      * 插入一行数据
-     * @param {object} data 
+     * @param {object} data
      */
     insert(data) {
         const newRow = new Array(this.columns.length).fill("");
@@ -808,7 +805,7 @@ function handleTableEditTag(matches) {
  * 检查表格编辑字符串是否改变
  * @param {Chat} chat 单个聊天对象
  * @param {string[]} matches 新的匹配对象
- * @returns 
+ * @returns
  */
 function isTableEditStrChanged(chat, matches) {
     if (chat.tableEditMatches != null && chat.tableEditMatches.join('') === matches.join('')) {
@@ -924,11 +921,13 @@ function handleJsonStr(str) {
  * @param {Chat} chat 单个聊天对象
  * @param {number} mesIndex 修改的消息索引
  * @param {boolean} ignoreCheck 是否跳过重复性检查
- * @returns 
+ * @returns
  */
 function handleEditStrInMessage(chat, mesIndex = -1, ignoreCheck = false) {
     if (!parseTableEditTag(chat, mesIndex, ignoreCheck)) return
     executeTableEditTag(chat, mesIndex)
+
+    updateSystemMessageTableStatus();   // +.新增代码，将表格数据状态更新到系统消息中
 }
 
 /**
@@ -1010,9 +1009,9 @@ function replaceTableEditTag(chat, newContent) {
 
 /**
  * 获取在干运行中collection中排序的真实消息索引（未使用）
- * @param {*} identifier 
- * @param {*} collection 
- * @returns 
+ * @param {*} identifier
+ * @param {*} collection
+ * @returns
  */
 function getRealIndexInCollectionInDryRun(identifier, collection) {
     const newCollection = collection.filter(Boolean).filter(item => item.collection && item.collection.length !== 0)
@@ -1027,9 +1026,9 @@ function getRealIndexInCollectionInDryRun(identifier, collection) {
 
 /**
  * 获取在collection中排序的真实消息索引（未使用）
- * @param {*} identifier 
- * @param {*} collection 
- * @returns 
+ * @param {*} identifier
+ * @param {*} collection
+ * @returns
  */
 function getRealIndexInCollection(identifier, collection) {
     const excludeList = ['newMainChat', 'newChat', 'groupNudge'];
@@ -1061,8 +1060,8 @@ function getMesRole() {
 
 /**
  * 注入表格总体提示词
- * @param {*} eventData 
- * @returns 
+ * @param {*} eventData
+ * @returns
  */
 async function onChatCompletionPromptReady(eventData) {
     try {
@@ -1101,7 +1100,7 @@ function formatDeep() {
 /**
  * 去掉编辑指令两端的空格和注释标签
  * @param {string} str 输入的编辑指令字符串
- * @returns 
+ * @returns
  */
 function trimString(str) {
     const str1 = str.trim()
@@ -1158,6 +1157,37 @@ async function onMessageReceived(chat_id) {
     }
 }
 
+let _currentTableIndex = -1;    // +.
+let _currentTablePD = null;     // +.
+/**
+ * +.新增代码，打开自定义表格推送渲染器弹窗
+ * @returns {Promise<void>}
+ */
+async function openTableRendererPopup() {
+    const manager = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'renderer');
+    const tableRendererPopup = new Popup(manager, POPUP_TYPE.TEXT, '', { large: true, wide: true, allowVerticalScrolling: true });
+    const tableStructure = findTableStructureByIndex(_currentTableIndex);
+    const table = findLastestTableData().tables[_currentTableIndex];
+    const $dlg = $(tableRendererPopup.dlg);
+    const $htmlEditor = $dlg.find('#htmlEditor');
+    const $tableRendererDisplay = $dlg.find('#tableRendererDisplay');
+
+    const tableRenderContent = tableStructure?.tableRender || "";
+    // $tablePreview.html(tablePreview.render().outerHTML);
+    $htmlEditor.val(tableRenderContent);
+
+    // 修改中实时渲染
+    const renderHTML = () => {
+        $tableRendererDisplay.html(parseTableRender($htmlEditor.val(), table));
+    };
+    renderHTML();
+    $htmlEditor.on('input', renderHTML); // 监听 input 事件，实时渲染
+
+    await tableRendererPopup.show();
+    tableStructure.tableRender = $htmlEditor.val();
+    _currentTablePD.find('#dataTable_tableSetting_tableRender').val($htmlEditor.val());
+}
+
 /**
  * 打开表格设置弹窗
  * @param {number} tableIndex 表格索引
@@ -1165,36 +1195,44 @@ async function onMessageReceived(chat_id) {
 async function openTableSettingPopup(tableIndex) {
     const manager = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'setting');
     const tableSettingPopup = new Popup(manager, POPUP_TYPE.TEXT, '', { large: true, allowVerticalScrolling: true });
-    const tableStructure = findTableStructureByIndex(tableIndex)
-    const $dlg = $(tableSettingPopup.dlg)
-    const $tableName = $dlg.find('#dataTable_tableSetting_tableName')
-    const $note = $dlg.find('#dataTable_tableSetting_note')
-    const $initNote = $dlg.find('#dataTable_tableSetting_initNode')
-    const $updateNode = $dlg.find('#dataTable_tableSetting_updateNode')
-    const $insertNode = $dlg.find('#dataTable_tableSetting_insertNode')
-    const $deleteNode = $dlg.find('#dataTable_tableSetting_deleteNode')
-    const $required = $dlg.find('#dataTable_tableSetting_required')
-    $tableName.val(tableStructure.tableName)
-    $note.val(tableStructure.note)
-    $initNote.val(tableStructure.initNode)
-    $updateNode.val(tableStructure.updateNode)
-    $insertNode.val(tableStructure.insertNode)
-    $deleteNode.val(tableStructure.deleteNode)
+    const tableStructure = findTableStructureByIndex(tableIndex);
+    const $dlg = $(tableSettingPopup.dlg);
+    const $tableName = $dlg.find('#dataTable_tableSetting_tableName');
+    const $note = $dlg.find('#dataTable_tableSetting_note');
+    const $initNote = $dlg.find('#dataTable_tableSetting_initNode');
+    const $updateNode = $dlg.find('#dataTable_tableSetting_updateNode');
+    const $insertNode = $dlg.find('#dataTable_tableSetting_insertNode');
+    const $deleteNode = $dlg.find('#dataTable_tableSetting_deleteNode');
+    const $required = $dlg.find('#dataTable_tableSetting_required');
+    const $toChat = $dlg.find('#dataTable_tableSetting_toChat');        // +.新增发送到聊天，当开启时该表格发送到聊天
+    const $tableRender = $dlg.find('#dataTable_tableSetting_tableRender');  // +.新增该表格的自定义html渲染
+    _currentTablePD = $dlg;     // +.新增，保存当前弹窗
+    $tableName.val(tableStructure.tableName);
+    $note.val(tableStructure.note);
+    $initNote.val(tableStructure.initNode);
+    $updateNode.val(tableStructure.updateNode);
+    $insertNode.val(tableStructure.insertNode);
+    $deleteNode.val(tableStructure.deleteNode);
     $required.prop('checked', tableStructure.Required);
+    $toChat.prop('checked', tableStructure.toChat);     // +.
+    $tableRender.val(tableStructure.tableRender);       // +.
+    _currentTableIndex = tableIndex;    // +.
     const changeEvent = (name, value) => {
-        tableStructure[name] = value.trim()
-    }
-    $tableName.on('change', function () { changeEvent("tableName", $(this).val()) })
-    $note.on('change', function () { changeEvent("note", $(this).val()) })
-    $initNote.on('change', function () { changeEvent("initNode", $(this).val()) })
-    $updateNode.on('change', function () { changeEvent("updateNode", $(this).val()) })
-    $insertNode.on('change', function () { changeEvent("insertNode", $(this).val()) })
-    $deleteNode.on('change', function () { changeEvent("deleteNode", $(this).val()) })
-    $required.on('change', function () { tableStructure.Required = $(this).prop('checked') })
-    await tableSettingPopup.show()
-    console.log("保持", extension_settings.muyoo_dataTable.tableStructure)
-    saveSettingsDebounced()
-    renderSetting()
+        tableStructure[name] = value.trim();
+    };
+    $tableName.on('change', function () { changeEvent("tableName", $(this).val()); });
+    $note.on('change', function () { changeEvent("note", $(this).val()); });
+    $initNote.on('change', function () { changeEvent("initNode", $(this).val()); });
+    $updateNode.on('change', function () { changeEvent("updateNode", $(this).val()); });
+    $insertNode.on('change', function () { changeEvent("insertNode", $(this).val()); });
+    $deleteNode.on('change', function () { changeEvent("deleteNode", $(this).val()); });
+    $required.on('change', function () { tableStructure.Required = $(this).prop('checked'); });
+    $toChat.on('change', function () { tableStructure.toChat = $(this).prop('checked'); });         // +.
+    $tableRender.on('change', function () { changeEvent("tableRender", $(this).val()); });      // +.
+    await tableSettingPopup.show();
+    console.log("保持", extension_settings.muyoo_dataTable.tableStructure);
+    saveSettingsDebounced();
+    renderSetting();
 }
 
 /**
@@ -1504,6 +1542,63 @@ async function clearTable(mesId, tableContainer) {
 }
 
 /**
+ * +.解析html，将其中代表表格单元格的\$\w\d+字符串替换为对应的表格单元格内容
+ * 对于任意\$\w\d+字符串，其中\w为表格的列数，\d+为表格的行数，例如$B3表示表格第二列第三行的内容，行数从header行开始计数，header行为0
+ * */
+function parseTableRender(html, table) {
+    if (!html) {
+        return table.render(); // 如果html为空，则直接返回
+    }
+    let r = html;
+    if (!table || !table.content || !table.columns) {
+        return r; // 如果表格数据无效，则直接返回原始html
+    }
+    r = r.replace(/\$(\w)(\d+)/g, function(match, colLetter, rowNumber) {
+        const colIndex = colLetter.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0); // 将列字母转换为列索引 (A=0, B=1, ...)
+        const rowIndex = parseInt(rowNumber);
+
+        if (rowIndex === 0) {
+            return table.columns[colIndex] || ''; // 如果是header行，则返回对应列的标题
+        }
+        if (rowIndex > 0 && rowIndex <= table.content.length) {
+            return table.content[rowIndex - 1][colIndex] || ''; // 如果是数据行，则返回对应单元格的内容
+        }
+        return ''; // 如果索引超出范围或单元格内容不存在，则返回空字符串
+    });
+    return r;
+}
+
+/**
+ * +.将table数据推送至聊天内容中显示
+ * @param {*} chat 聊天对象
+ */
+function replaceTableToStatusTag(chat, tableStatusHTML) {
+    // 处理 mes
+    if (/<tableStatus>.*?<\/tableStatus>/gs.test(chat.mes)) {
+        chat.mes = chat.mes.replace(/<tableStatus>(.*?)<\/tableStatus>/gs, `<tableStatus>${tableStatusHTML}</tableStatus>`);
+    } else {
+        chat.mes += `\n<tableStatus>${tableStatusHTML}</tableStatus>`;
+    }
+    getContext().saveChat();
+}
+
+/**
+ * +.更新最后一条 System 消息的 <tableStatus> 标签内容
+ */
+function updateSystemMessageTableStatus() {
+    const tables = findLastestTableData().tables;
+    let tableStatusHTML = '';
+    for (let i = 0; i < tables.length; i++) {
+        const structure = findTableStructureByIndex(i);
+        if (!structure.toChat) continue; // 如果不需要发送到聊天，则跳过
+
+        const table = tables[i];
+        tableStatusHTML += structure.tableRender ? parseTableRender(structure.tableRender, table) : table.render().outerHTML;
+    }
+    replaceTableToStatusTag(getContext().chat[getContext().chat.length - 1], tableStatusHTML);
+}
+
+/**
  * 表格编辑浮窗
  */
 const tableEditToolbarDom = `<div class="tableToolbar" id="tableToolbar">
@@ -1621,8 +1716,11 @@ jQuery(async () => {
     // 设置表格编辑按钮
     $(document).on('click', '.tableEditor_editButton', function () {
         let index = $(this).data('index'); // 获取当前点击的索引
-        openTableSettingPopup(index)
+        openTableSettingPopup(index);
     })
+    $(document).on('click', '.tableEditor_renderButton', function () {
+        openTableRendererPopup();
+    })  // +.新增代码，点击表格渲染样式设置按钮
     // 设置表格开启开关
     $(document).on('change', '.tableEditor_switch', function () {
         let index = $(this).data('index'); // 获取当前点击的索引
