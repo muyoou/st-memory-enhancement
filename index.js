@@ -11,7 +11,7 @@ let tablePopup = null
 let copyTableData = null
 let selectedCell = null
 let tableEditActions = []
-let tableEditHistory = []
+// let tableEditHistory = []
 const userTableEditInfo = {
     chatIndex: null,
     editAble: false,
@@ -35,6 +35,7 @@ const defaultSettings = {
     isAiReadTable: true,
     isAiWriteTable: true,
     isTableToChat: false,
+    enableHistory: true,
     tableStructure: [
         {
             tableName: "时空表格", tableIndex: 0, columns: ['日期', '时间', '地点（当前描写）', '此地角色'], columnsIndex: [0, 1, 2, 3], enable: true, Required: true, asStatus: true, toChat: true, note: "记录时空信息的表格，应保持在一行",
@@ -1094,7 +1095,7 @@ function getMesRole() {
  */
 async function onChatCompletionPromptReady(eventData) {
     try {
-        updateSystemMessageTableStatus();   // +.新增代码，将表格数据状态更新到系统消息中
+        updateSystemMessageTableStatus(eventData);   // +.新增代码，将表格数据状态更新到系统消息中
         if (eventData.dryRun === true || extension_settings.muyoo_dataTable.isExtensionAble === false || extension_settings.muyoo_dataTable.isAiReadTable === false) return
 
         const promptContent = initTableData()
@@ -1187,6 +1188,281 @@ async function onMessageReceived(chat_id) {
         toastr.error("记忆插件：表格自动更改失败\n原因：", error.message)
     }
 }
+
+/**
+ * 打开表格编辑历史记录弹窗
+ * */
+async function openTableHistoryPopup(){
+    const manager = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'history');
+    const tableHistoryPopup = new Popup(manager, POPUP_TYPE.TEXT, '', { large: true, wide: true, allowVerticalScrolling: true });
+    const tableEditHistory = getContext().chat;
+    const $dlg = $(tableHistoryPopup.dlg);
+    const $tableHistory = $dlg.find('#tableHistory');
+    $tableHistory.empty();
+    console.log(tableEditHistory);
+
+    if (tableEditHistory && tableEditHistory.length > 0) {
+        // 倒序遍历聊天记录，从最新的消息开始处理
+        for (let i = tableEditHistory.length - 1; i >= 0; i--) {
+            const item = tableEditHistory[i];
+            if (!item.is_user) {
+                const mesContent = item.mes;
+                if (mesContent) {
+                    const tableEditMatch = mesContent.match(/<tableEdit>(.*?)<\/tableEdit>/s);
+                    if (tableEditMatch) {
+                        const tableEditBlock = tableEditMatch[1].trim();
+                        const commentMatch = tableEditBlock.match(/<!--(.*?)-->/s);
+                        if (commentMatch) {
+                            const commentContent = commentMatch[1].trim();
+                            const functions = commentContent.split('\n')
+                                .map(line => line.trim())
+                                .filter(line => line.startsWith('insertRow') || line.startsWith('updateRow') || line.startsWith('deleteRow'));
+                            if (functions.length > 0) {
+                                const $historyGroup = $('<div>').addClass('history-group');
+                                // 如果不是最后一条消息，添加可折叠 class
+                                if (i < tableEditHistory.length - 1) {
+                                    $historyGroup.addClass('collapsible-history-group');
+                                }
+
+                                // 在 history-group 级别创建原始消息按钮 和 折叠按钮
+                                const $buttonGroup = $('<div>').addClass('history-button-group'); // 创建按钮组容器
+                                const $originalButton = $('<button><i class="fa-solid fa-quote-left"></i>')
+                                    .addClass('original-message-button')
+                                    .on('click', function(e) {
+                                        e.stopPropagation(); // 阻止事件冒泡
+                                        const $currentHistoryGroup = $(this).closest('.history-group');
+                                        const $originalMessageDisplay = $currentHistoryGroup.find('.original-message-display');
+
+                                        if ($originalMessageDisplay.is(':visible')) {
+                                            // 如果原始消息当前是显示的，切换回表格视图
+                                            $originalMessageDisplay.hide();
+                                            $currentHistoryGroup.find('.history-item').show();
+                                            $currentHistoryGroup.find('.params-table').show(); // 确保参数表格也显示出来
+                                        } else {
+                                            // 如果原始消息当前是隐藏的，显示原始消息
+                                            $currentHistoryGroup.find('.history-item').hide();
+                                            $currentHistoryGroup.find('.params-table').hide();
+                                            if ($originalMessageDisplay.length === 0) { // 避免重复添加
+                                                const $newMessageDisplay = $('<div>').addClass('original-message-display').text(`原始消息内容:\n\n${mesContent}`);
+                                                $currentHistoryGroup.append($newMessageDisplay); // 添加原始消息展示
+                                            } else {
+                                                $originalMessageDisplay.show(); // 如果已存在则显示
+                                            }
+                                        }
+                                    });
+                                $buttonGroup.append($originalButton); // 将原始消息按钮添加到按钮组
+
+                                const $collapseButton = $('<button><i class="fa-solid fa-square-caret-down"></i></button>')
+                                    .addClass('collapse-button')
+                                    .on('click', function(e) {
+                                        e.stopPropagation(); // 阻止事件冒泡
+                                        const $currentHistoryGroup = $(this).closest('.history-group');
+                                        const $paramsTable = $currentHistoryGroup.find('.params-table');
+                                        $paramsTable.slideToggle();
+                                    });
+                                $buttonGroup.append($collapseButton); // 将折叠按钮添加到按钮组
+                                $historyGroup.append($buttonGroup); // 将按钮组添加到 history-group
+
+                                functions.forEach(func => {
+                                    const funcDetails = parseFunctionDetails(func);
+                                    const $funcItem = $('<div>').addClass('history-item');
+                                    $funcItem.append($('<div>').addClass('function-name').text(funcDetails.name));
+
+                                    const $paramsTable = renderParamsTable(funcDetails.name, funcDetails.params);
+                                    $funcItem.append($paramsTable);
+
+                                    // 如果是可折叠的 history-group，初始隐藏参数表格
+                                    if (i < tableEditHistory.length - 1) {
+                                        $paramsTable.hide();
+                                    }
+
+                                    // 根据函数类型添加不同的背景色 class
+                                    if (func.startsWith('insertRow')) {
+                                        $funcItem.addClass('insert-item');
+                                    } else if (func.startsWith('updateRow')) {
+                                        $funcItem.addClass('update-item');
+                                    } else if (func.startsWith('deleteRow')) {
+                                        $funcItem.addClass('delete-item');
+                                    }
+
+                                    $historyGroup.append($funcItem);
+                                });
+                                $tableHistory.prepend($historyGroup);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if ($tableHistory.is(':empty')) {
+            $tableHistory.append($('<p>').text('没有找到数据表编辑历史。'));
+        }
+    } else {
+        $tableHistory.append($('<p>').text('聊天记录为空，无法查看数据表编辑历史。'));
+    }
+    setTimeout(() => {
+        // 确保在 DOM 更新后执行滚动到底部
+        $tableHistory.scrollTop($tableHistory[0].scrollHeight);
+    }, 0);
+
+    await tableHistoryPopup.show();
+}
+
+/**
+ * 解析函数调用字符串，提取函数名和参数 (JSON 感知)
+ * @param {string} funcStr 函数调用字符串
+ * @returns {object} 包含函数名和参数的对象，参数为数组
+ */
+function parseFunctionDetails(funcStr) {
+    const nameMatch = funcStr.match(/^(insertRow|updateRow|deleteRow)\(/);
+    const name = nameMatch ? nameMatch[1] : funcStr.split('(')[0];
+    let paramsStr = funcStr.substring(funcStr.indexOf('(') + 1, funcStr.lastIndexOf(')'));
+    let params = [];
+
+    if (paramsStr) {
+        let currentParam = '';
+        let bracketLevel = 0;
+        let quoteLevel = 0;
+
+        for (let i = 0; i < paramsStr.length; i++) {
+            const char = paramsStr[i];
+
+            if (quoteLevel === 0 && char === '{') {
+                bracketLevel++;
+                currentParam += char;
+            } else if (quoteLevel === 0 && char === '}') {
+                bracketLevel--;
+                currentParam += char;
+            } else if (quoteLevel === 0 && char === ',' && bracketLevel === 0) {
+                params.push(parseParamValue(currentParam.trim()));
+                currentParam = '';
+            } else if (quoteLevel === 0 && (char === '"' || char === "'")) {
+                quoteLevel = (char === '"' ? 2 : 1);
+                currentParam += char;
+            } else if (quoteLevel !== 0 && char === (quoteLevel === 2 ? '"' : "'") && paramsStr[i-1] !== '\\') {
+                quoteLevel = 0;
+                currentParam += char;
+            }
+            else {
+                currentParam += char;
+            }
+        }
+        if (currentParam.trim()) {
+            params.push(parseParamValue(currentParam.trim()));
+        }
+    }
+    return { name, params };
+}
+
+/**
+ * 解析参数值，尝试解析为数字或 JSON，否则作为字符串返回
+ * @param {string} paramStr 参数字符串
+ * @returns {any} 解析后的参数值
+ */
+function parseParamValue(paramStr) {
+    const trimmedParam = paramStr.trim();
+    const num = Number(trimmedParam);
+    if (!isNaN(num)) {
+        return num;
+    }
+    if (trimmedParam.startsWith('{') && trimmedParam.endsWith('}')) {
+        try {
+            return JSON5.parse(trimmedParam);
+        } catch (e) {
+            // JSON 解析失败，返回原始字符串 (可能不是有效的 JSON 字符串)
+        }
+    }
+    if (trimmedParam.startsWith('"') && trimmedParam.endsWith('"') || trimmedParam.startsWith("'") && trimmedParam.endsWith("'")) {
+        return trimmedParam.slice(1, -1);
+    }
+    return trimmedParam;
+}
+
+/**
+ * 渲染参数表格，根据函数类型进行优化显示
+ * @param {string} functionName 函数名 (insertRow, updateRow, deleteRow)
+ * @param {array} params 参数数组
+ * @returns {JQuery<HTMLElement>} 参数表格的 jQuery 对象
+ */
+function renderParamsTable(functionName, params) {
+    const $table = $('<table>').addClass('params-table');
+    const $tbody = $('<tbody>');
+
+    // 提取公共的 Table Index 和 Row Index 添加逻辑
+    const addIndexRows = (tableIndex, rowIndex) => {
+        if (typeof tableIndex === 'number') {
+            $tbody.append($('<tr>').append($('<th style="color: #82e8ff; font-weight: bold;">').text('#')).append($('<td>').text(tableIndex))); // 加粗
+        }
+        if (typeof rowIndex === 'number') {
+            $tbody.append($('<tr>').append($('<th style="color: #82e8ff; font-weight: bold;">').text('^')).append($('<td>').text(rowIndex))); // 加粗
+        }
+    };
+
+    if (functionName === 'insertRow') {
+        // insertRow(tableIndex:number, data:{[colIndex:number]:string|number})
+        const tableIndex = params[0];
+        const data = params[1];
+
+        if (typeof tableIndex === 'number' && data && typeof data === 'object') {
+            addIndexRows(tableIndex, undefined); // 仅添加 Table Index
+            for (const colIndex in data) {
+                if (data.hasOwnProperty(colIndex)) {
+                    const value = data[colIndex];
+                    $tbody.append($('<tr>').append($('<th>').text(`${colIndex}`)).append($('<td>').text(value)));
+                }
+            }
+        } else {
+            $tbody.append(createRawParamsRow(params));
+        }
+    } else if (functionName === 'updateRow') {
+        // updateRow(tableIndex:number, rowIndex:number, data:{[colIndex:number]:string|number})
+        const tableIndex = params[0];
+        const rowIndex = params[1];
+        const data = params[2];
+
+        if (typeof tableIndex === 'number' && typeof rowIndex === 'number' && data && typeof data === 'object') {
+            addIndexRows(tableIndex, rowIndex); // 添加 Table Index 和 Row Index
+            for (const colIndex in data) {
+                if (data.hasOwnProperty(colIndex)) {
+                    const value = data[colIndex];
+                    $tbody.append($('<tr>').append($('<th>').text(`${colIndex}`)).append($('<td>').text(value)));
+                }
+            }
+        } else {
+            $tbody.append(createRawParamsRow(params));
+        }
+    } else if (functionName === 'deleteRow') {
+        // deleteRow(tableIndex:number, rowIndex:number)
+        const tableIndex = params[0];
+        const rowIndex = params[1];
+
+        if (typeof tableIndex === 'number' && typeof rowIndex === 'number') {
+            addIndexRows(tableIndex, rowIndex); // 添加 Table Index 和 Row Index
+        } else {
+            $tbody.append(createRawParamsRow(params));
+        }
+    } else {
+        $tbody.append(createRawParamsRow(params));
+    }
+
+    $table.append($tbody);
+    return $table;
+}
+
+/**
+ * 创建显示原始参数的表格行
+ * @param {object} params 参数对象
+ * @returns {JQuery<HTMLElement>} 包含原始参数的表格行
+ */
+function createRawParamsRow(params) {
+    const $tr = $('<tr>');
+    $tr.append($('<th>').text('Raw Parameters'));
+    $tr.append($('<td>').text(JSON.stringify(params)));
+    return $tr;
+}
+
+
+
 
 let _currentTableIndex = -1;    // +.
 let _currentTablePD = null;     // +.
@@ -1649,7 +1925,10 @@ function replaceTableToStatusTag(tableStatusHTML) {
 /**
  * +.更新最后一条 System 消息的 <tableStatus> 标签内容
  */
-function updateSystemMessageTableStatus() {
+function updateSystemMessageTableStatus(eventData) {
+    // if (extension_settings.muyoo_dataTable.enableHistory === true) {
+    //     currentChatHistory = eventData.chat;
+    // }
     if (extension_settings.muyoo_dataTable.isTableToChat === false) {
         window.document.querySelector('#tableStatusContainer')?.remove();
         return;
@@ -1832,7 +2111,10 @@ jQuery(async () => {
     })
     $(document).on('click', '.tableEditor_renderButton', function () {
         openTableRendererPopup();
-    })  // +.新增代码，点击表格渲染样式设置按钮
+    })  // 点击表格渲染样式设置按钮
+    $(document).on('click', '.dataTable_history_button', function () {
+        openTableHistoryPopup();
+    })  // 点击打开查看表格历史按钮
     // 设置表格开启开关
     $(document).on('change', '.tableEditor_switch', function () {
         let index = $(this).data('index'); // 获取当前点击的索引
