@@ -341,6 +341,8 @@ function loadSettings() {
     extension_settings.muyoo_dataTable.custom_temperature = extension_settings.muyoo_dataTable.custom_temperature || 1.0;
     $('#custom_temperature').val(extension_settings.muyoo_dataTable.custom_temperature);
     $('#custom_temperature_value').text(extension_settings.muyoo_dataTable.custom_temperature);
+    $('#bool_force_refresh').prop('checked', extension_settings.muyoo_dataTable.bool_force_refresh || false);
+    $('#bool_silent_refresh').prop('checked', extension_settings.muyoo_dataTable.bool_silent_refresh || false);
 }
 
 
@@ -3096,7 +3098,21 @@ jQuery(async () => {
         saveSettingsDebounced();
     });
     // 开始整理表格
-    $("#table_clear_up").on('click', () => refreshTableActions());
+    $("#table_clear_up").on('click', () => refreshTableActions(
+        extension_settings.muyoo_dataTable.bool_force_refresh,
+        extension_settings.muyoo_dataTable.bool_silent_refresh));
+
+    $('#bool_force_refresh').on('change', function() {
+        extension_settings.muyoo_dataTable.bool_force_refresh = $(this).prop('checked');
+        console.log('bool_force_refresh:',extension_settings.muyoo_dataTable.bool_force_refresh)
+        saveSettingsDebounced();
+    });
+
+    $('#bool_silent_refresh').on('change', function() {
+        extension_settings.muyoo_dataTable.bool_silent_refresh = $(this).prop('checked');
+        console.log('bool_silent_refresh:',extension_settings.muyoo_dataTable.bool_silent_refresh)
+        saveSettingsDebounced();
+    });
 
     // 应用程序启动时加载设置
     loadSettings();
