@@ -2576,6 +2576,7 @@ async function refreshTableActions() {
             // 清洗响应内容
             cleanContent = response
                 .replace(/```json|```/g, '')
+                .replace(/^[^[]*(\[.*\])[^]]*$/s, '$1') // 避免各种预设在外面加一堆东西，只提取JSON部分
                 .trim();
         } else {
             // 自定义API
@@ -2583,7 +2584,7 @@ async function refreshTableActions() {
             const USER_API_KEY = await getDecryptedApiKey(); // 使用解密后的密钥
             const USER_API_MODEL = extension_settings.IMPORTANT_USER_PRIVACY_DATA.custom_model_name;
 
-            if (!USER_API_URL || !USER_API_KEY || !USER_API_MODEL) {
+            if (!USER_API_URL || !USER_API_MODEL) { //去掉了!USER_API_KEY的检测，因为本地模型和部分渠道不需要API KEY
                 toastr.error('请填写完整的自定义API配置');
                 return;
             }
@@ -2620,6 +2621,7 @@ async function refreshTableActions() {
             // 清洗响应内容
             cleanContent = rawContent
                 .replace(/```json|```/g, '') // 移除JSON代码块标记
+                .replace(/^[^[]*(\[.*\])[^]]*$/s, '$1') // 避免各种预设在外面加一堆东西，只提取JSON部分
                 .replace(/([{,]\s*)(?:"?([a-zA-Z_]\w*)"?\s*:)/g, '$1"$2":') // 严格限定键名格式
                 .replace(/'/g, '"') // 单引号转双引号
                 .replace(/\/\*.*?\*\//g, '') // 移除块注释
