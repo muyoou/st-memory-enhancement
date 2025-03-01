@@ -2585,7 +2585,7 @@ async function refreshTableActions() {
             const USER_API_MODEL = extension_settings.IMPORTANT_USER_PRIVACY_DATA.custom_model_name;
 
             if (!USER_API_URL || !USER_API_MODEL) { //去掉了!USER_API_KEY的检测，因为本地模型和部分渠道不需要API KEY
-                EDITOR.error('请填写完整的自定义API配置');
+                toastr.error('请填写完整的自定义API配置');
                 return;
             }
             const apiUrl = new URL(USER_API_URL);
