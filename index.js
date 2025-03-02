@@ -560,12 +560,7 @@ function getAllPrompt(tables) {
  * @returns 拷贝后的表格对象数组
  */
 function copyTableList(tableList) {
-    return tableList.map(table => {
-        const newTable = new Table(table.tableName, table.tableIndex, table.columns, JSON.parse(JSON.stringify(table.content)));
-        newTable.insertedRows = [...table.insertedRows];
-        newTable.updatedRows = [...table.updatedRows];
-        return newTable;
-    });
+    return tableList.map(table => new Table(table.tableName, table.tableIndex, table.columns, JSON.parse(JSON.stringify(table.content))))
 }
 
 /**
