@@ -555,6 +555,15 @@ function getAllPrompt(tables) {
 }
 
 /**
+ * 单独只获得表格提示词
+ * @returns 表格提示词
+ */
+export function getTablePrompt() {
+    const { tables } = findLastestTableData(true)
+    return tables.map(table => table.getTableText()).join('\n')
+}
+
+/**
  * 深拷贝所有表格数据，拷贝时保留 Table 类的原型链
  * @param {Table[]} tableList 要拷贝的表格对象数组
  * @returns 拷贝后的表格对象数组
@@ -1325,8 +1334,7 @@ function getMacroPrompt() {
     try {
         //updateSystemMessageTableStatus(eventData);
         if (extension_settings.muyoo_dataTable.isExtensionAble === false || extension_settings.muyoo_dataTable.isAiReadTable === false) return ""
-        const promptContent = initTableData()
-        console.log("提示词：",promptContent)
+        const promptContent = getTablePrompt()
         return promptContent
     }catch (error) {
         // 获取堆栈信息
