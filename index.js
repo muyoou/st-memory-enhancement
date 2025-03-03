@@ -4,7 +4,7 @@ import { POPUP_TYPE, Popup, callGenericPopup } from '../../../popup.js';
 import JSON5 from './index.min.mjs'
 import { generateRaw } from '../../../../../../script.js';
 
-const VERSION = '1.3.0'
+const VERSION = '1.3.1'
 
 let clearUpButton = null;
 let clearUpButtonManager = null;
