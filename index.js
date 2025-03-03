@@ -64,7 +64,7 @@ const defaultSettings = {
     custom_top_p: 1,
     tableBackups: {}, // 新增表格备份存储
     bool_ignore_del: true,
-    clear_up_stairs:3,//有几层聊天记录纳入范围
+    clear_up_stairs: 3,//有几层聊天记录纳入范围
 
     tableStructure: [
         {
@@ -275,7 +275,7 @@ function findTableStructureByIndex(index) {
 /**
  * 导入表格数据文件
  * */
-async function importTableDataFile(){
+async function importTableDataFile() {
     const importFileElement = document.querySelector('#table-set-importFile'); // 获取文件输入元素
 
     // 定义一个具名的事件处理函数
@@ -424,7 +424,7 @@ async function resetSettings() {
     if (confirmation) {
         // 千万不要简化以下的三元表达式和赋值顺序！！！，否则会导致重置设置无法正确运行
         // 判断是否重置所有基础设置(这条判断语句必须放在第一行)
-        let newSettings = tableInitPopup.find('#table_init_basic').prop('checked') ? {...extension_settings.muyoo_dataTable, ...defaultSettings} : {...extension_settings.muyoo_dataTable};
+        let newSettings = tableInitPopup.find('#table_init_basic').prop('checked') ? { ...extension_settings.muyoo_dataTable, ...defaultSettings } : { ...extension_settings.muyoo_dataTable };
 
         // 以下的赋值顺序可以改变
         // 判断是否重置消息模板
@@ -1313,6 +1313,37 @@ function getMesRole() {
             return 'user'
         case 'deep_assistant':
             return 'assistant'
+        case 'injection_off':
+            return 'off'
+    }
+}
+
+/**
+ * 宏获取提示词
+ */
+function getMacroPrompt() {
+    try {
+        //updateSystemMessageTableStatus(eventData);
+        if (extension_settings.muyoo_dataTable.isExtensionAble === false || extension_settings.muyoo_dataTable.isAiReadTable === false) return ""
+        const promptContent = initTableData()
+        console.log("提示词：",promptContent)
+        return promptContent
+    }catch (error) {
+        // 获取堆栈信息
+        const stack = error.stack;
+        let lineNumber = '未知行';
+        if (stack) {
+            // 尝试从堆栈信息中提取行号，这里假设堆栈信息格式是常见的格式，例如 "at functionName (http://localhost:8080/file.js:12:34)"
+            const match = stack.match(/:(\d+):/); // 匹配冒号和数字，例如 ":12:"
+            if (match && match[1]) {
+                lineNumber = match[1] + '行';
+            } else {
+                // 如果无法提取到行号，则显示完整的堆栈信息，方便调试
+                lineNumber = '行号信息提取失败，堆栈信息：' + stack;
+            }
+        }
+        toastr.error(`记忆插件：表格数据注入失败\n原因：${error.message}\n位置：第${lineNumber}`);
+        return ""
     }
 }
 
@@ -1324,7 +1355,10 @@ function getMesRole() {
 async function onChatCompletionPromptReady(eventData) {
     try {
         updateSystemMessageTableStatus(eventData);   // 将表格数据状态更新到系统消息中
-        if (eventData.dryRun === true || extension_settings.muyoo_dataTable.isExtensionAble === false || extension_settings.muyoo_dataTable.isAiReadTable === false) return
+        if (eventData.dryRun === true ||
+            extension_settings.muyoo_dataTable.isExtensionAble === false ||
+            extension_settings.muyoo_dataTable.isAiReadTable === false || 
+            extension_settings.muyoo_dataTable.injection_mode === "injection_off") return
 
         const promptContent = initTableData()
         if (extension_settings.muyoo_dataTable.deep === 0)
@@ -1434,7 +1468,7 @@ async function onMessageReceived(chat_id) {
 /**
  * 打开表格编辑历史记录弹窗
  * */
-async function openTableHistoryPopup(){
+async function openTableHistoryPopup() {
     const manager = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'history');
     const tableHistoryPopup = new Popup(manager, POPUP_TYPE.TEXT, '', { large: true, wide: true, allowVerticalScrolling: true });
     const tableEditHistory = getContext().chat;
@@ -1474,7 +1508,7 @@ async function openTableHistoryPopup(){
                                 const $buttonGroup = $('<div>').addClass('history-button-group'); // 创建按钮组容器
                                 const $originalButton = $('<button><i class="fa-solid fa-quote-left"></i>')
                                     .addClass('original-message-button')
-                                    .on('click', function(e) {
+                                    .on('click', function (e) {
                                         e.stopPropagation(); // 阻止事件冒泡
                                         const $currentHistoryGroup = $(this).closest('.history-group');
                                         const $originalMessageDisplay = $currentHistoryGroup.find('.original-message-display');
@@ -1498,7 +1532,7 @@ async function openTableHistoryPopup(){
                                     });
                                 const $collapseButton = $('<button><i class="fa-solid fa-square-caret-down"></i></button>')
                                     .addClass('collapse-button')
-                                    .on('click', function(e) {
+                                    .on('click', function (e) {
                                         e.stopPropagation(); // 阻止事件冒泡
                                         const $currentHistoryGroup = $(this).closest('.history-group');
                                         const $paramsTable = $currentHistoryGroup.find('.params-table');
@@ -1657,7 +1691,7 @@ function parseFunctionDetails(funcStr) {
             } else if (quoteLevel === 0 && (char === '"' || char === "'")) {
                 quoteLevel = (char === '"' ? 2 : 1);
                 currentParam += char;
-            } else if (quoteLevel !== 0 && char === (quoteLevel === 2 ? '"' : "'") && paramsStr[i-1] !== '\\') {
+            } else if (quoteLevel !== 0 && char === (quoteLevel === 2 ? '"' : "'") && paramsStr[i - 1] !== '\\') {
                 quoteLevel = 0;
                 currentParam += char;
             }
@@ -1710,7 +1744,7 @@ function renderParamsTable(functionName, params) {
     // 提取公共的 Table Index 和 Row Index 添加逻辑
     const addIndexRows = (tableIndex, rowIndex) => {
         if (typeof tableIndex === 'number') {
-            $tbody.append($('<tr>').append($('<th style="color: #82e8ff; font-weight: bold;">').text('#')).append($('<td>').text(tableIndex, ))); // 加粗
+            $tbody.append($('<tr>').append($('<th style="color: #82e8ff; font-weight: bold;">').text('#')).append($('<td>').text(tableIndex,))); // 加粗
             indexData.tableIndex = tableIndex; // 存储 tableIndex
         }
         if (typeof rowIndex === 'number') {
@@ -2184,7 +2218,7 @@ async function importTable(mesId, tableContainer) {
     fileInput.accept = '.json';
 
     // 2. 添加事件监听器，监听文件选择的变化 (change 事件)
-    fileInput.addEventListener('change', function(event) {
+    fileInput.addEventListener('change', function (event) {
         // 获取用户选择的文件列表 (FileList 对象)
         const files = event.target.files;
 
@@ -2198,7 +2232,7 @@ async function importTable(mesId, tableContainer) {
 
             // 4. 定义 FileReader 的 onload 事件处理函数
             // 当文件读取成功后，会触发 onload 事件
-            reader.onload = function(loadEvent) {
+            reader.onload = function (loadEvent) {
                 // loadEvent.target.result 包含了读取到的文件内容 (文本格式)
                 const fileContent = loadEvent.target.result;
 
@@ -2300,13 +2334,13 @@ function replaceTableToStatusTag(tableStatusHTML) {
     let tableStatusContainer = chatContainer?.querySelector('#tableStatusContainer');
 
     // 定义具名的事件监听器函数
-    const touchstartHandler = function(event) {
+    const touchstartHandler = function (event) {
         event.stopPropagation();
     };
-    const touchmoveHandler = function(event) {
+    const touchmoveHandler = function (event) {
         event.stopPropagation();
     };
-    const touchendHandler = function(event) {
+    const touchendHandler = function (event) {
         event.stopPropagation();
     };
 
@@ -2368,7 +2402,7 @@ async function decryptXor(encrypted, deviceId) {
         return String.fromCharCode(...bytes.map((b, i) =>
             b ^ deviceId.charCodeAt(i % deviceId.length)
         ));
-    } catch(e) {
+    } catch (e) {
         console.error('解密失败:', e);
         return null;
     }
@@ -2450,7 +2484,8 @@ function getRefreshTableConfigStatus() {
                     </table>
                 </div>
             </div>
-`;}
+`;
+}
 
 function confirmTheOperationPerformed(content) {
     return `
@@ -2464,8 +2499,8 @@ function confirmTheOperationPerformed(content) {
     <div id="tableRefresh" class="refresh-scroll-content">
         <div>
             <div class="operation-list-container"> ${content.map(action => {
-                const { action: type, tableIndex, rowIndex, data } = action;
-                return `<div class="operation-item">
+        const { action: type, tableIndex, rowIndex, data } = action;
+        return `<div class="operation-item">
                         <div class="operation-detail">
                             <span class="detail-label">操作类型:</span>
                             <span class="detail-value">${type}</span>
@@ -2482,18 +2517,18 @@ function confirmTheOperationPerformed(content) {
                             <span class="detail-label">数据:</span>
                             <div class="detail-value data-json">
                                 ${typeof data === 'object' && data !== null ?
-        Object.entries(data).map(([key, value]) => {
-            return `<div class="json-item">
+                Object.entries(data).map(([key, value]) => {
+                    return `<div class="json-item">
                         <span class="json-key">"${key}":</span>
                         <span class="json-value">"${value}"</span>
                     </div>`;
-        }).join('')
-        : `<span class="json-fallback">${JSON.stringify(data, null, 2)}</span>`
-    }
+                }).join('')
+                : `<span class="json-fallback">${JSON.stringify(data, null, 2)}</span>`
+            }
                             </div>
                         </div>
                     </div>`;
-}).join('')}
+    }).join('')}
             </div>
         </div>
     </div>
@@ -2510,8 +2545,8 @@ async function refreshTableActions() {
     let response;
     const isUseMainAPI = $('#use_main_api').prop('checked');
     const loadingToast = toastr.info(isUseMainAPI
-            ? '正在使用【主API】整理表格...'
-            : '正在使用【自定义API】整理表格...',
+        ? '正在使用【主API】整理表格...'
+        : '正在使用【自定义API】整理表格...',
         '',
         { timeOut: 0 }
     );
@@ -2702,10 +2737,10 @@ async function refreshTableActions() {
         // 去重删除操作并按 rowIndex 降序排序
         const uniqueDeleteActions = deleteActions
             .filter((action, index, self) =>
-                    index === self.findIndex(a => (
-                        a.tableIndex === action.tableIndex &&
-                        a.rowIndex === action.rowIndex
-                    ))
+                index === self.findIndex(a => (
+                    a.tableIndex === action.tableIndex &&
+                    a.rowIndex === action.rowIndex
+                ))
             )
             .sort((a, b) => b.rowIndex - a.rowIndex); // 降序排序，确保大 rowIndex 先执行
 
@@ -2777,7 +2812,7 @@ async function refreshTableActions() {
     }
 }
 
-async function updateModelList(){
+async function updateModelList() {
     const apiUrl = $('#custom_api_url').val().trim();
     const apiKey = await getDecryptedApiKey();// 使用解密后的API密钥
 
@@ -2883,7 +2918,7 @@ jQuery(async () => {
     })
     const html = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'index');
     const buttonHtml = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'buttons');
-
+    getContext().registerMacro("tableData", () =>getMacroPrompt())
     // 开始添加各部分的根DOM
     // 添加表格编辑工具栏
     $('#translation_container').append(html);
@@ -2959,26 +2994,26 @@ jQuery(async () => {
         updateSystemMessageTableStatus();   // 将表格数据状态更新到系统消息中
     });
     //整理表格相关高级设置
-    $('#advanced_settings').on('change', function() {
+    $('#advanced_settings').on('change', function () {
         $('#advanced_options').toggle(this.checked);
         extension_settings.muyoo_dataTable.advanced_settings = this.checked;
         saveSettingsDebounced();
     });
     // 忽略删除
-    $('#ignore_del').on('change', function() {
+    $('#ignore_del').on('change', function () {
         extension_settings.muyoo_dataTable.bool_ignore_del = $(this).prop('checked');
         saveSettingsDebounced();
         console.log('bool_ignore_del:' + extension_settings.muyoo_dataTable.bool_ignore_del);
     });
     // 清理聊天记录楼层
-    $('#clear_up_stairs').on('input', function() {
+    $('#clear_up_stairs').on('input', function () {
         const value = $(this).val();
         $('#clear_up_stairs_value').text(value);
         extension_settings.muyoo_dataTable.clear_up_stairs = Number(value);
         saveSettingsDebounced();
     });
     // 模型温度设定
-    $('#custom_temperature').on('input', function() {
+    $('#custom_temperature').on('input', function () {
         const value = $(this).val();
         $('#custom_temperature_value').text(value);
         extension_settings.muyoo_dataTable.custom_temperature = Number(value);
@@ -2988,18 +3023,18 @@ jQuery(async () => {
 
     // API设置
     // 初始化API设置显示状态
-    $('#use_main_api').on('change', function() {
+    $('#use_main_api').on('change', function () {
         $('#custom_api_settings').toggle(!this.checked);
         extension_settings.muyoo_dataTable.use_main_api = this.checked;
         saveSettingsDebounced();
     });
     // API URL
-    $('#custom_api_url').on('input', function() {
+    $('#custom_api_url').on('input', function () {
         extension_settings.IMPORTANT_USER_PRIVACY_DATA.custom_api_url = $(this).val();
         saveSettingsDebounced();
     });
     // API KEY
-    $('#custom_api_key').on('input', async function() {
+    $('#custom_api_key').on('input', async function () {
         try {
             const rawKey = $(this).val();
 
@@ -3025,14 +3060,14 @@ jQuery(async () => {
     })
 
     // 模型名称
-    $('#custom_model_name').on('input', function() {
+    $('#custom_model_name').on('input', function () {
         extension_settings.IMPORTANT_USER_PRIVACY_DATA.custom_model_name = $(this).val();
         saveSettingsDebounced();
     });
     // 获取模型列表
     $('#fetch_models_button').on('click', updateModelList);
     // 根据下拉列表选择的模型更新自定义模型名称
-    $('#model_selector').on('change', function() {
+    $('#model_selector').on('change', function () {
         const selectedModel = $(this).val();
         $('#custom_model_name').val(selectedModel);
         extension_settings.IMPORTANT_USER_PRIVACY_DATA.custom_model_name = selectedModel;
