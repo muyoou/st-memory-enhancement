@@ -2,7 +2,7 @@ import { eventSource, event_types, saveSettingsDebounced, } from '../../../../sc
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../../extensions.js';
 import { POPUP_TYPE, Popup, callGenericPopup } from '../../../popup.js';
 import JSON5 from './index.min.mjs'
-import { generateRaw } from '../../../../../../script.js';
+import { generateRaw, messageFormatting } from '../../../../../../script.js';
 
 const VERSION = '1.3.1'
 
@@ -2544,6 +2544,22 @@ function confirmTheOperationPerformed(content) {
 `;
 }
 
+/**
+ * 将HTML内容转换为纯文本，保留换行符
+ * @param {string} html HTML内容
+ * @returns {string} 转换后的纯文本
+ */
+function htmlToText(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    
+    // 获取纯文本内容
+    const text = div.textContent || div.innerText || '';
+    
+    // 清理多余的换行符，但保留段落之间的换行
+    return text.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+}
+
 async function refreshTableActions() {
     const tableRefreshPopup = (getRefreshTableConfigStatus());
     const confirmation = await callGenericPopup(tableRefreshPopup, POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
@@ -2576,13 +2592,19 @@ async function refreshTableActions() {
         if (chat.length < extension_settings.muyoo_dataTable.clear_up_stairs) {
             toastr.success(`当前聊天记录只有${chat.length}条，小于设置的${extension_settings.muyoo_dataTable.clear_up_stairs}条`);
             for (let i = 0; i < chat.length; i++) {  // 从0开始遍历所有现有消息
-                let currentChat = `${chat[i].name}: ${chat[i].mes}`.replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
-                lastChats += `\n${currentChat}`;
+                let currentChat = chat[i];
+                let formattedMessage = messageFormatting(currentChat.mes, currentChat.name, currentChat.is_system, currentChat.is_user, i);
+                formattedMessage = htmlToText(formattedMessage);
+                formattedMessage = formattedMessage.replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
+                lastChats += `\n${currentChat.name}: ${formattedMessage}`;
             }
         } else {
             for (let i = Math.max(0, chat.length - extension_settings.muyoo_dataTable.clear_up_stairs); i < chat.length; i++) {
-                let currentChat = `${chat[i].name}: ${chat[i].mes}`.replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
-                lastChats += `\n${currentChat}`;
+                let currentChat = chat[i];
+                let formattedMessage = messageFormatting(currentChat.mes, currentChat.name, currentChat.is_system, currentChat.is_user, i);
+                formattedMessage = htmlToText(formattedMessage);
+                formattedMessage = formattedMessage.replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
+                lastChats += `\n${currentChat.name}: ${formattedMessage}`;
             }
         }
 
