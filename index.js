@@ -2939,8 +2939,12 @@ jQuery(async () => {
     // 开始绑定事件
     // 表格弹出窗
     $(document).on('click', '.open_table_by_id', function () {
-        const messageId = $(this).closest('.mes').attr('mesid');
-        openTablePopup(parseInt(messageId));
+        const messageId = parseInt($(this).closest('.mes').attr('mesid'))
+        if(getContext().chat[messageId].is_user === true){
+            toastr.warning('用户消息不支持表格编辑')
+            return
+        }
+        openTablePopup(messageId)
     })
     // 表格插入模式
     $('#dataTable_injection_mode').on('change', (event) => {
