@@ -538,7 +538,9 @@ function findNextChatWhitTableData(startIndex, isIncludeStartIndex = false) {
  * @returns 生成的完整提示词
  */
 export function initTableData() {
-    const { tables } = findLastestTableData(true)
+    const chats = getContext().chat
+    const isIncludeEndIndex = (!chats.at(-1)) || chats.at(-1).is_user === true
+    const { tables } = findLastestTableData(isIncludeEndIndex)
     const promptContent = getAllPrompt(tables)
     console.log("完整提示", promptContent)
     return promptContent
@@ -1367,7 +1369,6 @@ async function onChatCompletionPromptReady(eventData) {
             extension_settings.muyoo_dataTable.isExtensionAble === false ||
             extension_settings.muyoo_dataTable.isAiReadTable === false || 
             extension_settings.muyoo_dataTable.injection_mode === "injection_off") return
-
         const promptContent = initTableData()
         if (extension_settings.muyoo_dataTable.deep === 0)
             eventData.chat.push({ role: getMesRole(), content: promptContent })
