@@ -1230,7 +1230,7 @@ function executeTableEditTag(chat, mesIndex = -1, ignoreCheck = false) {
     waitingTable.forEach(table => table.clearInsertAndUpdate())
     tableEditActions.filter(action => action.able && action.type !== 'Comment').forEach(tableEditAction => tableEditAction.execute())
     clearEmpty()
-    replaceTableEditTag(chat, getTableEditActionsStr())
+    replaceOrAddTableEditTag(chat, getTableEditActionsStr())
     chat.dataTable = waitingTable
     // 如果不是最新的消息，则更新接下来的表格
     if (mesIndex !== -1) {
@@ -1256,24 +1256,62 @@ function getTableEditActionsStr() {
 }
 
 /**
- * 替换聊天中的TableEdit标签内的内容
+ * 替换最内层TableEdit标签内容
+ */
+function replaceTableEditTag(mes, newContent) {
+    const matchList = findTableEditTags(mes)
+    let startTag = null, endTag = null
+    for (const matchIndex in matchList) {
+        if (matchList[matchIndex].isStartTag === true) {
+            startTag = matchList[matchIndex]
+        } else if (matchList[matchIndex].isStartTag === false) {
+            endTag = matchList[matchIndex]
+        }
+        if (startTag !== null && endTag !== null) break
+    }
+    return replaceSubstring(mes, startTag.end, endTag.start, newContent)
+}
+
+function replaceSubstring(text, startIndex, endIndex, replacement) {
+    return text.slice(0, startIndex) + replacement + text.slice(endIndex);
+}
+
+
+/**
+ * 替换或者添加聊天中的TableEdit标签内的内容
  * @param {*} chat 聊天对象
  */
-function replaceTableEditTag(chat, newContent) {
+function replaceOrAddTableEditTag(chat, newContent) {
     // 处理 mes
     if (/<tableEdit>.*?<\/tableEdit>/gs.test(chat.mes)) {
-        chat.mes = chat.mes.replace(/<tableEdit>(.*?)<\/tableEdit>/gs, `<tableEdit>${newContent}</tableEdit>`);
+        chat.mes = replaceTableEditTag(chat.mes, newContent)
     } else {
         chat.mes += `\n<tableEdit>${newContent}</tableEdit>`;
     }
     // 处理 swipes
     if (chat.swipes != null && chat.swipe_id != null)
         if (/<tableEdit>.*?<\/tableEdit>/gs.test(chat.swipes[chat.swipe_id])) {
-            chat.swipes[chat.swipe_id] = chat.swipes[chat.swipe_id].replace(/<tableEdit>(.*?)<\/tableEdit>/gs, `<tableEdit>\n${newContent}\n</tableEdit>`);
+            chat.swipes[chat.swipe_id] = replaceTableEditTag(chat.swipes[chat.swipe_id], newContent)
         } else {
             chat.swipes[chat.swipe_id] += `\n<tableEdit>${newContent}</tableEdit>`;
         }
     getContext().saveChat();
+}
+
+function findTableEditTags(text) {
+    let regex = /<tableEdit>|<\/tableEdit>/g; // 匹配 <tableEdit> 或 </tableEdit>
+    let tags = [];
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        tags.push({
+            isStartTag: match[0] === "<tableEdit>",
+            start: match.index,  // 起始索引
+            end: match.index + match[0].length // 结束索引
+        });
+    }
+
+    return tags;
 }
 
 /**
@@ -1338,7 +1376,7 @@ function getMacroPrompt() {
         if (extension_settings.muyoo_dataTable.isExtensionAble === false || extension_settings.muyoo_dataTable.isAiReadTable === false) return ""
         const promptContent = getTablePrompt()
         return promptContent
-    }catch (error) {
+    } catch (error) {
         // 获取堆栈信息
         const stack = error.stack;
         let lineNumber = '未知行';
@@ -1367,7 +1405,7 @@ async function onChatCompletionPromptReady(eventData) {
         updateSystemMessageTableStatus(eventData);   // 将表格数据状态更新到系统消息中
         if (eventData.dryRun === true ||
             extension_settings.muyoo_dataTable.isExtensionAble === false ||
-            extension_settings.muyoo_dataTable.isAiReadTable === false || 
+            extension_settings.muyoo_dataTable.isAiReadTable === false ||
             extension_settings.muyoo_dataTable.injection_mode === "injection_off") return
         const promptContent = initTableData()
         if (extension_settings.muyoo_dataTable.deep === 0)
@@ -2008,7 +2046,7 @@ async function onDeleteRow() {
                 return toastr.error("由于旧数据兼容性问题，请再聊一次后再使用此功能")
             findAndDeleteActionsForDelete()
             const chat = getContext().chat[userTableEditInfo.chatIndex]
-            replaceTableEditTag(chat, getTableEditActionsStr())
+            replaceOrAddTableEditTag(chat, getTableEditActionsStr())
             handleEditStrInMessage(getContext().chat[userTableEditInfo.chatIndex], -1)
             userTableEditInfo.tables = waitingTable
         } else {
@@ -2037,7 +2075,7 @@ async function onModifyCell() {
         if (tableEditPopup.result !== 3) {
             findAndEditOrAddActionsForUpdate(newValue)
             const chat = getContext().chat[userTableEditInfo.chatIndex]
-            replaceTableEditTag(chat, getTableEditActionsStr())
+            replaceOrAddTableEditTag(chat, getTableEditActionsStr())
             handleEditStrInMessage(getContext().chat[userTableEditInfo.chatIndex], -1)
             userTableEditInfo.tables = waitingTable
         } else {
@@ -2119,7 +2157,7 @@ async function onInsertRow() {
         if (result !== 3) {
             addActionForInsert()
             const chat = getContext().chat[userTableEditInfo.chatIndex]
-            replaceTableEditTag(chat, getTableEditActionsStr())
+            replaceOrAddTableEditTag(chat, getTableEditActionsStr())
             handleEditStrInMessage(getContext().chat[userTableEditInfo.chatIndex], -1)
             userTableEditInfo.tables = waitingTable
         } else {
@@ -2145,7 +2183,7 @@ async function onInsertFirstRow() {
         if (result !== 3) {
             addActionForInsert()
             const chat = getContext().chat[userTableEditInfo.chatIndex]
-            replaceTableEditTag(chat, getTableEditActionsStr())
+            replaceOrAddTableEditTag(chat, getTableEditActionsStr())
             handleEditStrInMessage(getContext().chat[userTableEditInfo.chatIndex], -1)
             userTableEditInfo.tables = waitingTable
         } else {
@@ -2553,10 +2591,10 @@ function confirmTheOperationPerformed(content) {
 function htmlToText(html) {
     const div = document.createElement('div');
     div.innerHTML = html;
-    
+
     // 获取纯文本内容
     const text = div.textContent || div.innerText || '';
-    
+
     // 清理多余的换行符，但保留段落之间的换行
     return text.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
 }
@@ -2949,7 +2987,7 @@ jQuery(async () => {
     })
     const html = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'index');
     const buttonHtml = await renderExtensionTemplateAsync('third-party/st-memory-enhancement', 'buttons');
-    getContext().registerMacro("tableData", () =>getMacroPrompt())
+    getContext().registerMacro("tableData", () => getMacroPrompt())
     // 开始添加各部分的根DOM
     // 添加表格编辑工具栏
     $('#translation_container').append(html);
@@ -2962,7 +3000,7 @@ jQuery(async () => {
     // 表格弹出窗
     $(document).on('click', '.open_table_by_id', function () {
         const messageId = parseInt($(this).closest('.mes').attr('mesid'))
-        if(getContext().chat[messageId].is_user === true){
+        if (getContext().chat[messageId].is_user === true) {
             toastr.warning('用户消息不支持表格编辑')
             return
         }
