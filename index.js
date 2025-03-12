@@ -1498,6 +1498,21 @@ async function onMessageEdited(this_edit_mes_id) {
 }
 
 /**
+ * 消息删除时触发
+ * @param mes_id 删除后的消息长度
+ */
+async function onMessageDeleted() {
+    const {index} = findLastestTableData(true)
+    const chat = getContext().chat[index]
+    if (extension_settings.muyoo_dataTable.isExtensionAble === false) return
+    try {
+        handleEditStrInMessage(chat, -1, true)
+    } catch (error) {
+        toastr.error("记忆插件：消息删除时表格更新失败\n原因：", error.message)
+    }
+}
+
+/**
  * 消息接收时触发
  * @param {number} chat_id 此消息的ID
  */
@@ -3178,4 +3193,5 @@ jQuery(async () => {
     eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
     eventSource.on(event_types.MESSAGE_EDITED, onMessageEdited);
     eventSource.on(event_types.MESSAGE_SWIPED, onMessageSwiped);
+    eventSource.on(event_types.MESSAGE_DELETED, onMessageDeleted);
 });
