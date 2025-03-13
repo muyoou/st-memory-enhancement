@@ -52,6 +52,19 @@
 
 如果因为网络问题报错可以使用国内源`https://gitee.com/muyoou/st-memory-enhancement`
 
+## 👥 贡献者名单
+<a href="https://github.com/muyoou/st-memory-enhancement/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=muyoou/st-memory-enhancement" />
+</a>
+
+**##Master**
+
+![Alt](https://repobeats.axiom.co/api/embed/ece4e039de7cf89ed5ccc9fba2e9b432e44dfaaa.svg "Repobeats analytics image")
+
+**##Dev**
+
+![Alt](https://repobeats.axiom.co/api/embed/eb3c2af1bcdb84704bb9ff8f61379fe38d634884.svg "Repobeats analytics image")
+
 ## 支持
 
 **为项目做贡献：** 有兴趣做贡献吗？请阅读我们的[贡献指南](https://github.com/muyoou/st-memory-enhancement/blob/dev/README.md)
