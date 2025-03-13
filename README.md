@@ -3,11 +3,6 @@
 
 <p>
     <b>🧠 记忆增强插件</b> - 专为 <a href="https://github.com/SillyTavern/SillyTavern">SillyTavern酒馆</a> 设计，旨在显著提升角色扮演中 AI 的长期记忆能力！
-</p>
-
-<b>
-    🚀 最新版本: v1.3.2 🚀  🧪 开发中版本: v2.0.0 🧪
-</b>
 
 <p>
     <a href="https://muyoo.com.cn/2025/01/26/SillyTavern%E9%85%92%E9%86%86%E8%AE%B0%E5%BF%86%E5%A2%9E%E5%BC%BA%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85/">⚙️ 安装教程</a>
@@ -40,9 +35,14 @@
 
 <hr>
 
-> [!IMPORTANT] ❗ **🚧 项目重构进行中 🚧**
+<p align="center">
+    <b>🚀 最新版本: v1.3.2 🚀</b> <b>🧪 开发中版本: v2.0.0 🧪</b>
+</p>
+
+> \[!IMPORTANT]
+> **🚧 项目重构进行中 🚧**
 >
-> 我们正在<a href="https://github.com/muyoou/st-memory-enhancement/tree/dev"> (DEV) </a>分支对项目进行全面的重构，以带来更强大的功能和更优异的性能！
+> 我们正在<a href="https://github.com/muyoou/st-memory-enhancement/tree/dev"> DEV 分支</a> 对项目进行全面的重构，以在未来的更新中带来更强大的功能和更优异的性能！
 >
 > <div style="font-size:0.9em;">
 > 重构进度：70%
@@ -55,8 +55,6 @@
 > - 🕑 全新的分步节点编辑器
 > - 🕑 代码整合及测试
 > </div>
-
-<hr>
 
 ## 🌟 插件简介
 
@@ -82,8 +80,8 @@
 
 ## 🚀 快速上手指南
 
-> [!WARNING]
-> **重要提示：⚠️** 本插件仅在 SillyTavern 的 **聊天补全模式** 下工作。
+> \[!WARNING]
+> **重要提示：** 本插件仅在 SillyTavern 的 **聊天补全模式** 下工作。
 
 1. **安装插件：** 在 SillyTavern 页面，点击 `扩展` > `安装拓展`。
 
@@ -91,7 +89,7 @@
        <img src="https://github.com/user-attachments/assets/67904e14-dc8d-4d7c-a1a8-d24253b72621" alt="安装插件步骤 1" style="max-width:70%; border-radius: 5px;">
    </p>
 
-2. **输入插件地址：** 在弹出的窗口中，输入插件的 GitHub 地址 `https://github.com/muyoou/st-memory-enhancement` ，然后选择 `Install for all users`。
+2. **输入插件地址：** 在弹出的窗口中，输入插件的 GitHub 地址 `https://github.com/muyoou/st-memory-enhancement` ，然后选择 `Install for all users`
 
    <p align="center">
        <img src="https://github.com/user-attachments/assets/9f39015f-63bb-4741-bb7f-740c02f1de17" alt="安装插件步骤 2" style="max-width:70%; border-radius: 5px;">
@@ -122,4 +120,4 @@
     <img src="https://repobeats.axiom.co/api/embed/ece4e039de7cf89ed5ccc9fba2e9b432e44dfaaa.svg" alt="Master 分支代码分析" style="max-width: 80%; border-radius: 5px;">
 </p>
 
-## 🤗 感谢您的使用与支持！
+## 🤗 感谢所有人的使用与支持
