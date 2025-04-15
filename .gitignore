@@ -1,2 +1,6 @@
 # 忽略 .idea 文件夹
 .idea/
+.tmp/
+assets/
+README.pdf
+README.md~
