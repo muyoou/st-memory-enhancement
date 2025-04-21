@@ -2362,27 +2362,53 @@ async function clearTable(mesId, tableContainer) {
 }
 
 /**
- * +.解析html，将其中代表表格单元格的\$\w\d+字符串替换为对应的表格单元格内容
- * 对于任意\$\w\d+字符串，其中\w为表格的列数，\d+为表格的行数，例如$B3表示表格第二列第三行的内容，行数从header行开始计数，header行为0
- * */
+ * 解析HTML并替换表格渲染逻辑（支持表头批量替换和列占位符循环渲染）
+ * 规则：
+ * 1. $字母0 形式为表头（如 $A0 代表第一列标题）
+ * 2. <$字母> 作为列占位符，自动循环所有数据行生成内容
+ * 3.原始HTML只需包含表头和一行的美化模板，多行自动拼接
+ */
 function parseTableRender(html, table) {
-    if (!html) {
-        return table.render(); // 如果html为空，则直接返回
-    }
-    if (!table || !table.content || !table.columns) return html;
-    html = html.replace(/\$(\w)(\d+)/g, function (match, colLetter, rowNumber) {
-        const colIndex = colLetter.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0); // 将列字母转换为列索引 (A=0, B=1, ...)
-        const rowIndex = parseInt(rowNumber);
-        const r = `<span style="color: red">无单元格</span>`;
-        try {
-            return rowIndex === 0
-                ? table.columns[colIndex]                   // 行数从header行开始计数，header行为0
-                : table.content[rowIndex - 1][colIndex];    // content的行数从1开始
-        } catch (error) {
-            console.error(`Error parsing cell ${match}:`, error);
-            return r;
-        }
+    if (!html) return table?.render() || "";
+    if (!table?.columns || !table?.content) return html;
+
+    // 阶段1：替换表头 $A0 格式
+    html = html.replace(/\$(\w)0/g, (_, colLetter) => {
+        const colIndex = colLetter.toUpperCase().charCodeAt(0) - 65;
+        return table.columns[colIndex] || `<span style="color:red">[无效表头]</span>`;
     });
+
+    // 阶段2：智能处理数据行模板
+    let renderedRows = [];
+
+    // 情况1：存在<tr>标签时按表格处理
+    const rowTemplateMatch = html.match(/(<tr\b[^>]*>)([\s\S]*?)(<\/tr>)/i);
+    if (rowTemplateMatch) {
+        const [fullMatch, trStart, innerTemplate, trEnd] = rowTemplateMatch;
+        table.content.forEach(rowData => {
+            let rowHtml = innerTemplate;
+            // 列循环替换(支持表头二次替换)
+            rowHtml = rowHtml
+                .replace(/\$(\w)0/g, (_, l) => table.columns[l.charCodeAt(0) - 65] || '') // 再次处理表头
+                .replace(/<\$(\w)>/gi, (_, l) => rowData[l.charCodeAt(0) - 65] || '');
+            renderedRows.push(`${trStart}${rowHtml}${trEnd}`);
+        });
+        html = html.replace(fullMatch, renderedRows.join('\n'));
+    }
+    // 情况2：无<tr>标签时按自由格式处理
+    else {
+        const templateHasPlaceholder = /<\$\w>/.test(html);
+        table.content.forEach(rowData => {
+            let rowHtml = html
+                // 表头动态循环(支持同模板内混用)
+                .replace(/\$(\w)0/g, (_, l) => table.columns[l.charCodeAt(0) - 65] || '')
+                // 数据动态替换
+                .replace(/<\$(\w)>/gi, (_, l) => rowData[l.charCodeAt(0) - 65] || '');
+            renderedRows.push(templateHasPlaceholder ? rowHtml : html);
+        });
+        html = renderedRows.join(templateHasPlaceholder ? '\n' : '');
+    }
+
     return html;
 }
 
