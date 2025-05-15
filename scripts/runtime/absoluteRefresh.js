@@ -953,9 +953,11 @@ function cleanApiResponse(rawContent, options = {}) {
     const {
         removeCodeBlock = true,       // 移除代码块标记
         extractJson = true,           // 提取JSON部分
+        convertFullWidthPunctuation = true, // 全角标点转半角`
         normalizeKeys = true,         // 统一键名格式
         convertSingleQuotes = true,   // 单引号转双引号
         removeBlockComments = true    // 移除块注释
+
     } = options;
 
     let content = rawContent;
@@ -969,6 +971,14 @@ function cleanApiResponse(rawContent, options = {}) {
     if (extractJson) {
         // 提取第一个完整的JSON数组/对象（支持跨行匹配）
         content = content.replace(/^[^[]*(\[.*\])[^]]*$/s, '$1');
+    }
+
+    if (convertFullWidthPunctuation) {
+        // 全角标点符号转为半角标点符号
+        content = content.replace(/[，]/g, ',')         // 全角逗号转半角
+                        .replace(/[：]/g, ':')         // 全角冒号转半角
+                        .replace(/[“”]/g, '"')        // 全角引号转半角
+                        .replace(/[‘’]/g, "'") ;       // 全角单引号转半角
     }
 
     if (normalizeKeys) {
