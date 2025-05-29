@@ -937,6 +937,11 @@ async function getRecentChatHistory(chat, chatStairs, ignoreUserSent = false, to
     return chatHistory;
 }
 
+// 测试清理效果
+window.testFuncClean = function(strTest) {
+    strTest = ``
+    cleanApiResponse(strTest)
+};
 
 /**
  * 清洗API返回的原始内容
@@ -956,6 +961,8 @@ function cleanApiResponse(rawContent, options = {}) {
         convertFullWidthPunctuation = true, // 全角标点转半角`
         normalizeKeys = true,         // 统一键名格式
         convertSingleQuotes = true,   // 单引号转双引号
+        normalizeTableStructure = true, // 标准化表格结构，处理tablename到columns部分，中文引号改为英文引号
+        normalizeAndValidateColumnsContentPairs = true, // 标准化表格结构，处理content部分，中文引号改为英文引号，然后检查列数和行数是否匹配以及格式问题，否则回退到原始内容
         removeBlockComments = true    // 移除块注释
 
     } = options;
@@ -991,9 +998,111 @@ function cleanApiResponse(rawContent, options = {}) {
         content = content.replace(/'/g, '"');
     }
 
+    if (normalizeTableStructure) {
+        // 标准化表格结构，处理tablename到columns部分，中文引号改为英文引号
+        const regex = /([\"“”])tableName\1\s*:\s*([\"“”])(.+?)\2\s*,\s*([\"“”])tableIndex\4\s*:\s*(\d+)\s*,\s*([\"“”])columns(?:[\"“”]?)/g;
+        content =  content.replace(regex, (match, g1QuoteKeyTable, g2QuoteValueTable, g3TableName, g4QuoteKeyIndex, g5TableIndex, g6QuoteKeyColumns) => {
+            return `"tableName":"${g3TableName}","tableIndex":${g5TableIndex},"columns"`;
+        });
+    }
+
+    function replaceQuotesInContext(text) {
+        if (typeof text !== 'string') return text;
+        return text.replace(/[“”]/g, (match, offset, fullString) => {
+            const charBefore = offset > 0 ? fullString[offset - 1] : null;
+            const charAfter = offset + match.length < fullString.length ? fullString[offset + match.length] : null;
+            const contextChars = ['[', ']', ','];
+
+            if ((charBefore && contextChars.includes(charBefore)) || (charAfter && contextChars.includes(charAfter))) {
+                return '"';
+            }
+            return match;
+        });
+    }
+
+    if (normalizeAndValidateColumnsContentPairs) {
+        // 标准化表格结构，处理content部分，中文引号改为英文引号，然后检查列数和行数是否匹配以及格式问题，否则回退到原始内容
+        const regex = /([\"“”])columns\1\s*:\s*(\[.*?\])\s*,\s*([\"“”])content\3\s*:\s*(\[(?:\[.*?\](?:,\s*\[.*?\])*)?\])/g;
+        content = content.replace(regex, (match, _quoteKeyColumns, columnsArrayStr, _quoteKeyContent, contentArrayStr) => {
+            let normalizedColumnsArrayStr = replaceQuotesInContext(columnsArrayStr);
+            let normalizedContentArrayStr = replaceQuotesInContext(contentArrayStr);
+
+            let columns;
+            try {
+              columns = JSON.parse(normalizedColumnsArrayStr);
+              if (!Array.isArray(columns) || !columns.every(col => typeof col === 'string')) {
+                console.warn("警告: 'columns' 部分解析后不是一个有效的字符串数组。原始片段:", columnsArrayStr, "处理后尝试解析:", normalizedColumnsArrayStr, "解析结果:", columns);
+                return match;
+              }
+            } catch (e) {
+              console.warn("警告: 解析 'columns' 数组失败。错误:", e, "原始片段:", columnsArrayStr, "处理后尝试解析:", normalizedColumnsArrayStr);
+              return match;
+            }
+
+            let contentRows;
+            try {
+              contentRows = JSON.parse(normalizedContentArrayStr);
+              if (!Array.isArray(contentRows)) {
+                console.warn("警告: 'content' 部分解析后不是一个有效的数组。原始片段:", contentArrayStr, "处理后尝试解析:", normalizedContentArrayStr, "解析结果:", contentRows);
+                return match;
+              }
+            } catch (e) {
+              console.warn("警告: 解析 'content' 数组失败。错误:", e, "原始片段:", contentArrayStr, "处理后尝试解析:", normalizedContentArrayStr);
+              return match;
+            }
+
+            const numColumns = columns.length;
+            const validatedContentRows = [];
+            let allRowsValid = true;
+
+            for (const row of contentRows) {
+              if (!Array.isArray(row) || row.length !== numColumns) {
+                console.warn(`警告: 内容行与列数 (${numColumns}) 不匹配或行本身不是数组。行数据:`, row);
+                allRowsValid = false;
+                break;
+              }
+              if (!row.every(cell => typeof cell === 'string')) {
+                console.warn("警告: 内容行中并非所有单元格都是字符串。行数据:", row);
+                allRowsValid = false;
+                break;
+              }
+              validatedContentRows.push(row);
+            }
+
+            if (!allRowsValid) {
+              console.warn("警告: 'content' 数组的某些行未通过验证，该 'columns'-'content' 片段将不会被修改。");
+              return match;
+            }
+
+            const finalColumnsStr = JSON.stringify(columns);
+            const finalContentStr = JSON.stringify(validatedContentRows);
+
+            return `"columns":${finalColumnsStr},"content":${finalContentStr}`;
+          });
+    }
+
     if (removeBlockComments) {
         // 移除 /* ... */ 形式的块注释
         content = content.replace(/\/\*.*?\*\//g, '');
+    }
+
+    // 通过括号配平来确定JSON的结束位置
+    const openChar = content[0];
+    const closeChar = (openChar === '[') ? ']' : '}';
+    let balance = 0;
+    let lastCharIndex = -1;
+
+    for (let i = 0; i < content.length; i++) {
+        if (content[i] === openChar) {
+            balance++;
+        } else if (content[i] === closeChar) {
+            balance--;
+        }
+        if (balance === 0) {
+            lastCharIndex = i;
+            content = content.substring(0, lastCharIndex + 1);
+            break;
+        }
     }
 
     // 去除首尾空白
