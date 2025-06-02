@@ -244,6 +244,11 @@ export const BASE = {
             }else sheet.initHashSheet()
         })
     },
+    getLastestSheets(){
+        const { piece, deep } = BASE.getLastSheetsPiece();
+        if (!piece || !piece.hash_sheets) return
+        return BASE.hashSheetsToSheets(piece.hash_sheets);
+    },
     initHashSheet() {
         if (BASE.sheetsData.context.length === 0) {
             console.log("尝试从模板中构建表格数据")

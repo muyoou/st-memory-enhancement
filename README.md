@@ -5,13 +5,11 @@
     <b>🧠 记忆增强插件</b> - 专为 <a href="https://github.com/SillyTavern/SillyTavern">SillyTavern酒馆</a> 设计，旨在显著提升角色扮演中 AI 的长期记忆能力！
 
 <p>
-    <a href="https://muyoo.com.cn/2025/01/26/SillyTavern%E9%85%92%E9%86%86%E8%AE%B0%E5%BF%86%E5%A2%9E%E5%BC%BA%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85/">⚙️ 安装教程</a>
+    <a href="https://muyoo.com.cn/wiki/memory/">⚙️ 快速安装/更新</a>
     |
-    <a href="https://muyoo.com.cn/2025/01/30/SillyTavern%E9%85%92%E9%86%86%E8%AE%B0%EE%BF%86%E5%A2%9E%E5%BC%BA%E6%8F%92%A2%A2%E4%BB%B6%E6%9B%B4%E6%96%B0/">🔄 更新教程</a>
+    <a href="https://muyoo.com.cn/wiki/memory/start.html">🔄 使用教程</a>
     |
-    <a href="https://muyoo.com.cn/2025/01/27/SillyTavern%E9%85%92%E9%86%86%E8%AE%B0%EE%BF%86%E5%A2%9E%E5%BC%BA%E6%8F%92%A2%A2%E4%BB%B6%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97/">📜 更新日志</a>
-    |
-    <a href="https://muyoo.com.cn/2025/02/09/SillyTavern%E9%85%92%E9%86%92%E9%A6%86%E8%AE%B0%EE%BF%86%E5%A2%9E%E5%BC%BA%E6%8F%92%A2%A2%E4%BB%B6%E9%97%AE%E9%A2%98%E8%87%AA%E6%9F%A5/">🔍 问题自查</a>
+    <a href="https://muyoo.com.cn/wiki/memory/installFaq.html">🔍 问题自查</a>
 </p>
 
 <p>
@@ -33,7 +31,7 @@
 </p>
 
 <p>
-    <b>🚀 最新版本: v2.0.2 🚀</b>
+    <b>🚀 最新版本: v2.0.3 🚀</b>
 </p>
 </div>
 

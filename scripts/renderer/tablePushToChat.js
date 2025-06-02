@@ -52,9 +52,9 @@ function insertCustomRender(tableRole, insertMark, cycleMark, indexForTableRole,
     for (let i = 0; i < tableRole.length; i++) {
         index = indexForTableRole[i]
         // console.log("穿插及嵌入渲染表格角色索引：" + index);
-        // console.log("穿插及嵌入渲染表格角色：" + tableRole[i]);
+        // console.log(_sheets[index].name, "穿插及嵌入渲染表格角色：" + tableRole[i]);
         _sheets[index].tableSheet = tableRole[i];
-        console.log("穿插及嵌入渲染表格角色赋值给sheet：" , _sheets[index].tableSheet);
+        // console.log("穿插及嵌入渲染表格角色赋值给sheet：", _sheets[index].name, _sheets[index].tableSheet);
         const customContent = parseSheetRender(_sheets[index]);
         // console.log("穿插及嵌入渲染表格返回文本customContentt：" + customContent);
         const placeholderPattern = `<replaceHolder${index}([^>]*)><\\/replaceHolder${index}>`;
@@ -205,32 +205,38 @@ async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer) {
         let cycleMark = [];     //临时辅助数组临时标记
         let indexForTableRole = [];
         let j = 0;              //标记用变量
-
+        // console.log("排序后的表格：", tableAlternate);
         // 穿插+合并表格的渲染
         for (let i = 0; i < tableAlternate.length; i++) {
+            // console.log('当前行：', i, tableAlternate[i][1])
             if (i === tableAlternate.length - 1) {
-                tableRole.push([tableAlternate[i]]);
-                indexForTableRole[j] = indexForRowAlternate[i];
-                insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
-                cycleMark[j] = false;
+                if (cycleJudge(cycleDivideMark, indexForRowAlternate, i - 1) || cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {
+                    tableRole[j].push(tableAlternate[i]);
+                } else {
+                    tableRole.push([tableAlternate[i]]);
+                    indexForTableRole[j] = indexForRowAlternate[i];
+                    insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
+                    cycleMark[j] = false;
+                }
                 // console.log('最后一行提取结束：', j, tableAlternate[i][1])
                 // console.log('最后一行提取结束tableRole', tableRole);
                 insertCustomRender(tableRole, insertMark, cycleMark, indexForTableRole, _sheets, _viewSheetsContainer)
             } else if (tableAlternate[i][1] === tableAlternate[i + 1][1]) {
-                if (cycleJudge(cycleDivideMark, indexForRowAlternate, i - 1) || cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {
-                    if (!tableRole[j]) {
+                if (cycleJudge(cycleDivideMark, indexForRowAlternate, i - 1) || cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {  //标记循环的行输入同一个嵌套数组
+                    if (!tableRole[j]) {   //判定是否标记循环开始
                         tableRole[j] = [];
                         indexForTableRole[j] = indexForRowAlternate[i];
                         insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
                         cycleMark[j] = true;
                         // console.log('循环标记开始', j, i);
+                        // console.log('循环标记开始的tableRole：', tableRole);
                     }
-                    tableRole[j].push([tableAlternate[i]]);
-                    if (!cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {
+                    tableRole[j].push(tableAlternate[i]);
+                    if (!cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {  //判定标记循环结束
                         j++;
                         // console.log('循环标记结束', j, i);
                     }
-                } else {
+                } else {                                                        //非循环标记的行输入单独的嵌套数组
                     tableRole.push([tableAlternate[i]]);
                     indexForTableRole[j] = indexForRowAlternate[i];
                     insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
@@ -240,9 +246,17 @@ async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer) {
                 }
 
             } else {
-                tableRole.push([tableAlternate[i]]);
-                indexForTableRole[j] = indexForRowAlternate[i];
-                insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
+                if (cycleJudge(cycleDivideMark, indexForRowAlternate, i - 1) || cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {
+                    tableRole[j].push(tableAlternate[i]);
+                    if (!cycleJudge(cycleDivideMark, indexForRowAlternate, i)) {  //判定标记循环结束
+                        j++;
+                        // console.log('循环标记结束', j, i);
+                    }
+                } else {
+                    tableRole.push([tableAlternate[i]]);
+                    indexForTableRole[j] = indexForRowAlternate[i];
+                    insertMark[j] = _sheets[indexForRowAlternate[i]].config.insertTable;
+                }
                 // console.log('同名行提取结束：', j, tableAlternate[i][1])
                 // console.log('同名行提取结束tableRole', tableRole);
                 insertCustomRender(tableRole, insertMark, cycleMark, indexForTableRole, _sheets, _viewSheetsContainer)
@@ -250,13 +264,6 @@ async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer) {
                 j = 0;
             }
         }
-        // 对穿插表格的所有行进行渲染
-        // for (let i = 0; i < tableAlternate.length; i++) {
-        //     let sheet = _sheets[indexForRowAlternate[i]];
-        //     sheet.tableSheet = [tableAlternate[i]];  //注意将铺平后的数组转回嵌套数组
-        //     // console.log('当前穿插渲染的表格内容：',sheet.tableSheet,'\n是否跳过首行',sheet.config.skipTop);
-        //     ordinarycustomStyleRender(sheet, _viewSheetsContainer);
-        // }
 
         // 对普通表格进行渲染
         // console.log('普通表格的索引:', indexOriginary, '普通表格的长度', indexOriginary.length);

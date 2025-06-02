@@ -149,7 +149,7 @@ function getTableJson(mate) {
         EDITOR.warning('当前表格没有数据，无法导出');
         return;
     }
-    const sheets = DERIVED.any.renderingSheets
+    const sheets = DERIVED.any.renderingSheets.filter(sheet => sheet.enable)
     // const csvTables = sheets.map(sheet => "SHEET-START" + sheet.uid + "\n" + sheet.getSheetCSV(false) + "SHEET-END").join('\n')
     const jsonTables = {}
     sheets.forEach(sheet => {
@@ -381,6 +381,9 @@ function cellClickEvent(cell) {
     cell.on('click', async (event) => {
         event.stopPropagation();
         event.preventDefault();
+
+        // 重新获取hash
+        BASE.getLastestSheets()
 
         if (cell.parent.currentPopupMenu) {
             cell.parent.currentPopupMenu.destroy();

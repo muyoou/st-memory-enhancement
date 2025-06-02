@@ -119,7 +119,7 @@ function regexReplacePipeline(text) {
     // Get regex and replace strings from the configuration
     const regexString = selectedCustomStyle.regex || '';
     const replaceString = selectedCustomStyle.replaceDivide || '';
-
+    // console.log("分离后的替换文本：", replaceString)
     // If either regex or replace is empty, return the original text
     if (!regexString || regexString === '') return text;
 
@@ -147,7 +147,6 @@ function regexReplacePipeline(text) {
             .replace(/\\f/g, '\f')   // Convert \f to actual form feed
             .replace(/\\v/g, '\v')   // Convert \v to actual vertical tab
             .replace(/\\\\/g, '\\'); // Convert \\ to actual backslash
-
         // Apply the regex replacement first，增加特定标签包裹的循环替换功能
         let result = "";
         let cycleReplace = processedReplaceString.match(/<cycleDivide>([\s\S]*?)<\/cycleDivide>/);  //获取循环替换字符串
@@ -163,7 +162,6 @@ function regexReplacePipeline(text) {
         } else {
             result = text.replace(regex, processedReplaceString);
             // }
-
             // Now convert newlines to HTML <br> tags to ensure they display properly in HTML
             if (selectedCustomStyle.basedOn !== 'html' && selectedCustomStyle.basedOn !== 'csv') {  //增加条件不是CSV格式的文本，目前测试出CSV使用该代码会出现渲染错误
                 result = result.replace(/\n/g, '<br>');
@@ -225,7 +223,7 @@ export function initializeText(target, selectedStyle) {
     let initialize = '';
     // console.log("瞅瞅target是："+target.config.triggerSendToChat); //调试用，正常不开启
     let valueSheet = target.tableSheet;  // 获取表格数据，二维数组
-    console.log("初始化文本：" , valueSheet);
+    // console.log(target.name,"初始化文本表格：" , valueSheet);
     // 新增，判断是否需要触发sendToChat
     if (target.config.triggerSendToChat) {
         // console.log(target.name + "开启触发推送" + valueSheet);
@@ -264,8 +262,11 @@ export function initializeText(target, selectedStyle) {
  */
 function regexPipeline(target, selectedStyle = selectedCustomStyle) {
     const initText = initializeText(target, selectedStyle);  //初始化文本
+    // console.log(target.name,"初始化文本：", initText);
     let result = selectedStyle.replace || '';
+    // console.log("初始化文本的长度", result.length);
     const r = result ? regexReplacePipeline(initText) : initText;  //没有替换内容则显示初始化内容，有则进行正则替换
+    // console.log("替换后的结果：",r)
     return r
 }
 /** 根据不同的自定义样式模式来渲染目标元素的函数

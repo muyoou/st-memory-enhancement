@@ -142,6 +142,7 @@ export class SheetBase {
         Object.assign(this, JSON.parse(JSON.stringify(json)));
         if(this.cellHistory.length > 0) this.loadCells()
         if(this.content) this.rebuildHashSheetByValueSheet(this.content)
+        if(this.sourceData) this.source.data = this.sourceData
 
         this.markPositionCacheDirty();
     }
