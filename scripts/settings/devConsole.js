@@ -5,7 +5,7 @@ import JSON5 from '../../utils/json5.min.mjs'
 let isPopupOpening = false; // 防止在弹窗打开时推送日志导致循环
 let debugEventHistory = [];
 
-function updateTableDebugLog(type, message, detail, timeout, stack) {
+function updateTableDebugLog(type, message, detail = "", timeout, stack) {
     const newLog = {
         time: new Date().toLocaleTimeString(),
         type: type,

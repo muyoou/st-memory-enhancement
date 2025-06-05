@@ -172,51 +172,57 @@
 
                         <div class="flex1 wide50p" style="min-width: 300px">
                             <!-- 重新整理表格 -->
-                            <div>
-                                <h4 class="standoutHeader" data-i18n="Reorganize tables">重新整理表格</h4>
-                                <!--                            <b class="table_setting_category_header">重新整理表格</b><div style="height: 10px;"></div>-->
-                                <!-- 自定义API -->
-                                <div class="checkbox_label">
-                                    <input type="checkbox" id="use_main_api" checked><span data-i18n="Use main API">使用主API</span>
+                            <div  class="inline-drawer wide100p">
+                                <div class="standoutHeader inline-drawer-toggle inline-drawer-header">
+                                    <b><span data-i18n="Reorganize tables">重新整理表格</span></b>
+                                    <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                 </div>
-
-                                <!-- 高级设置 -->
-                                <div class="inline-drawer wide100p">
-                                    <div class="inline-drawer-toggle inline-drawer-header">
-                                        <h4 data-i18n="Custom table organization">自定义整理表格</h4>
-                                        <div class="fa-solid inline-drawer-icon interactable up fa-circle-chevron-up" tabindex="0"></div>
+                                <div class="inline-drawer-content" style="display: none; ">
+                                    <div class="checkbox_label">
+                                        <input type="checkbox" id="use_main_api" checked><span data-i18n="Use main API">使用主API</span>
                                     </div>
-                                    <div class="inline-drawer-content" style="display: none; padding-left: 20px; width: calc(100% - 20px)">
-                                        <!-- 高级设置选项 -->
-                                        <div class="flex-container slider-container" style="margin: 5px; padding-bottom: 10px; display: none;" id="clear_up_stairs_container">
-                                            <label><span data-i18n="Reference recent chat history">参考最近聊天记录：</span><code id="clear_up_stairs_value">9条</code></label>
-                                            <input type="range" id="clear_up_stairs" min="1" max="99" step="1" value="9" style="width: calc(100% - 20px);">
-                                        </div>
-                                        <div class="flex-container slider-container" style="margin: 5px; padding-bottom: 10px" id="token_limit_container">
-                                            <label><span data-i18n="Token limit">Token限制：</span><code id="rebuild_token_limit_value">10000</code></label>
-                                            <input type="range" id="rebuild_token_limit" min="1000" max="100000" step="1000" value="10000" style="width: calc(100% - 20px);">
-                                        </div>
-                                        <!-- 屏蔽选项，改为默认token限制 -->
-                                        <!-- <div class="checkbox_label">
-                                            <input type="checkbox" id="use_token_limit"><span data-i18n="Use token limit instead of chat history limit">用token代替聊天记录限制</span>
-                                        </div> -->
-                                        <div class="checkbox_label">
-                                            <input type="checkbox" id="ignore_user_sent" checked><span data-i18n="Only reference AI replies">只参考AI回复的消息</span>
-                                        </div>
-                                        <!-- 先屏蔽refresh相关，等后面确认没有用了就删了 -->
-                                        <!-- <div class="checkbox_label range-block justifyLeft">
-                                            <input type="checkbox" id="ignore_del" checked><span data-i18n="When reorganizing, don't delete, only modify and add">整理时不删除，只修改和添加</span>
-                                            <small class="toggle-description justifyLeft" data-i18n="When reorganizing, don't delete description">(仅标记为<code>**旧**</code>的整理类型生效)</small>
-                                        </div> -->
-                                        <div class="checkbox_label">
-                                            <input type="checkbox" id="bool_silent_refresh"><span data-i18n="Skip confirmation dialog after reorganizing">跳过整理后的确认弹窗</span>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div style="display: flex; width: calc(100% - 20px);">
-                                    <div class="menu_button menu_button_icon" id="table_clear_up">
-                                        <i class="fa-solid fa-repeat"></i><a data-i18n="Reorganize tables now">立即整理表格</a>
+                                    <!-- 高级设置选项 -->
+                                    <!-- <div class="flex-container slider-container" style="margin: 5px; padding-bottom: 10px;" id="clear_up_stairs_container">
+                                        <label><span data-i18n="Reference recent chat history">参考最近聊天记录：</span><code id="clear_up_stairs_value">9条</code></label>
+                                        <input type="range" id="clear_up_stairs" min="1" max="99" step="1" value="9" style="width: calc(100% - 20px);">
+                                    </div> -->
+                                    <div class="flex-container slider-container" style="margin: 5px; padding-bottom: 10px" id="token_limit_container">
+                                        <label><span data-i18n="Token limit">Token限制：</span><code id="rebuild_token_limit_value">10000</code></label>
+                                        <input type="range" id="rebuild_token_limit" min="1000" max="100000" step="1000" value="10000" style="width: calc(100% - 20px);">
+                                    </div>
+                                    <!-- 屏蔽选项，改为默认token限制 -->
+                                    <!-- <div class="checkbox_label">
+                                        <input type="checkbox" id="use_token_limit"><span data-i18n="Use token limit instead of chat history limit">用token代替聊天记录限制</span>
+                                    </div> -->
+                                    <div class="checkbox_label">
+                                        <input type="checkbox" id="ignore_user_sent" checked><span data-i18n="Only reference AI replies">只参考AI回复的消息</span>
+                                    </div>
+                                    <!-- 先屏蔽refresh相关，等后面确认没有用了就删了 -->
+                                    <!-- <div class="checkbox_label range-block justifyLeft">
+                                        <input type="checkbox" id="ignore_del" checked><span data-i18n="When reorganizing, don't delete, only modify and add">整理时不删除，只修改和添加</span>
+                                        <small class="toggle-description justifyLeft" data-i18n="When reorganizing, don't delete description">(仅标记为<code>**旧**</code>的整理类型生效)</small>
+                                    </div> -->
+                                    <div class="checkbox_label">
+                                        <input type="checkbox" id="bool_silent_refresh"><span data-i18n="Skip confirmation dialog after reorganizing">跳过整理后的确认弹窗</span>
+                                    </div>
+
+                                    <div class="flex-container" style="flex-wrap: nowrap; padding-top: 10px;">
+                                        <b style="width: 170px;">重整理模板</b>
+                                        <select id="rebuild--select">
+                                        </select>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-pencil" id="rebuild--set-rename" title="编辑重整理模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-plus" id="rebuild--set-new" title="创建重整理模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-import" id="rebuild--set-import" title="导入重整理模板"></div>
+                                        <input type="file" id="rebuild--set-importFile" accept=".json" hidden>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-export" id="rebuild--set-export" title="导出重整理模板"></div>
+                                        <div class="rebuild--del menu_button menu_button_icon fa-solid fa-trash redWarningBG" id="rebuild--set-delete" title="删除此模板"></div>
+                                    </div>
+
+                                    <div style="display: flex; width: calc(100% - 20px);">
+                                        <div class="menu_button menu_button_icon" id="table_clear_up">
+                                            <i class="fa-solid fa-repeat"></i><a data-i18n="Reorganize tables now">立即整理表格</a>
+                                        </div>
                                     </div>
                                 </div>
 

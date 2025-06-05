@@ -8,6 +8,8 @@ import { estimateTokenCount, handleCustomAPIRequest, handleMainAPIRequest } from
 import { profile_prompts } from "../../data/profile_prompts.js";
 import { refreshContextView } from "../editor/chatSheetsDataView.js";
 import { PopupConfirm } from "../../components/popupConfirm.js";
+import { Form } from '../../components/formManager.js';
+import {refreshRebuildTemplate} from "../settings/userExtensionSetting.js"
 
 // 在解析响应后添加验证
 function validateActions(actions) {
@@ -190,66 +192,12 @@ export function initRefreshTypeSelector() {
  * @returns {Promise<void>}
  */
 export async function getPromptAndRebuildTable(templateName = '', additionalPrompt ,force, isSilentUpdate, chatToBeUsed = '') {
-    let systemPrompt = '';
-    let userPrompt = '';
     let r='';
-
     try {
-        // 根据刷新类型获取对应的提示模板
-        const selectedPrompt = profile_prompts[templateName];
-        if (!selectedPrompt) {
-            // 提供更详细的错误信息
-            const availablePrompts = Object.keys(profile_prompts).join(', ');
-            const errorMsg = `未找到对应的提示模板: ${refreshType}。可用的模板有: ${availablePrompts}`;
-            throw new Error(errorMsg);
-        }
-        console.log('选择的提示模板名称:', selectedPrompt.name, '附加的提示内容:', additionalPrompt);
-
-        systemPrompt = selectedPrompt.system_prompt;
-
-        // 构建userPrompt，由四部分组成：user_prompt_begin、history、last_table和core_rules
-        userPrompt = selectedPrompt.user_prompt_begin || '';
-        // 根据include_history决定是否包含聊天记录部分
-        if (selectedPrompt.include_history) {
-            userPrompt += `\n<聊天记录>\n    $1\n</聊天记录>\n`;
-        }
-        // 根据include_last_table决定是否包含当前表格部分
-        if (selectedPrompt.include_last_table) {
-            userPrompt += `\n<当前表格>\n    $0\n</当前表格>\n`;
-        }
-
-        // 添加core_rules部分
-        if (selectedPrompt.core_rules) {
-            userPrompt += `\n${selectedPrompt.core_rules}`;
-        }
-        // 仅当additionalPrompt非空时才添加用户附加需求部分
-        if (additionalPrompt) {
-            userPrompt += `\n<用户附加需求>\n${additionalPrompt}\n</用户附加需求>\n`;
-        }
-
-        // 如果不是默认表格，则根据当前表格，生成一份空表格作为格式示例
-        if (selectedPrompt.name !== 'rebuild_base') {
-            userPrompt += `\n回复格式示例。再次强调，直接按以下格式回复，不要思考过程，不要解释，不要多余内容：\n<新的表格>\n    $2\n</新的表格>\n`;
-        }
-
-
-        // 将获取到的提示模板设置到USER.tableBaseSetting中
-        USER.tableBaseSetting.rebuild_system_message_template = systemPrompt;
-        USER.tableBaseSetting.rebuild_user_message_template = userPrompt;
-
-        console.log('获取到的提示模板:', systemPrompt, userPrompt);
-
         // 根据提示模板类型选择不同的表格处理函数
         // const force = $('#bool_force_refresh').prop('checked');
         const silentUpdate = isSilentUpdate !== undefined ? isSilentUpdate : $('#bool_silent_refresh').prop('checked');
-        if (selectedPrompt.type === 'rebuild') {
-            r = await rebuildTableActions(force || true, silentUpdate, chatToBeUsed);
-        } else if (selectedPrompt.type === 'refresh') {
-            r = await refreshTableActions(force || true, silentUpdate);
-        } else {
-            // 默认使用rebuildTableActions
-            r = await rebuildTableActions(force || true, silentUpdate, chatToBeUsed);
-        }
+        r = await rebuildTableActions(force || true, silentUpdate, chatToBeUsed);
         return r;
     } catch (error) {
         console.error('获取提示模板失败:', error);
@@ -289,7 +237,7 @@ export async function rebuildTableActions(force = false, silentUpdate = false, c
         DERIVED.any.waitingTable = latestTables;
 
         const oldTable = sheetsToTables(latestTables)
-        let originText = JSON.stringify(tablesToString(latestTables));
+        let originText = tablesToString(latestTables);
 
         // 提取表头信息
         const tableHeadersOnly = oldTable.map((table, index) => {
@@ -323,8 +271,19 @@ export async function rebuildTableActions(force = false, silentUpdate = false, c
         ) : chatToBeUsed;
 
         // 构建AI提示
-        let systemPrompt = USER.tableBaseSetting.rebuild_system_message_template || USER.tableBaseSetting.rebuild_system_message;
-        let userPrompt = USER.tableBaseSetting.rebuild_user_message_template;
+        const select = USER.tableBaseSetting.lastSelectedTemplate ?? "rebuild_base"
+        const template = select === "rebuild_base"? {
+            name: "rebuild_base",
+            system_prompt: USER.tableBaseSetting.rebuild_default_system_message_template,
+            user_prompt_begin: USER.tableBaseSetting.rebuild_default_message_template,
+        } : USER.tableBaseSetting.rebuild_message_template_list[select]
+        if(!template) {
+            console.error('未找到对应的提示模板，请检查配置',select, template);
+            EDITOR.error('未找到对应的提示模板，请检查配置');
+            return;
+        }
+        let systemPrompt = template.system_prompt
+        let userPrompt = template.user_prompt_begin;
         // 搜索systemPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
         systemPrompt = systemPrompt.replace(/\$0/g, originText);
         systemPrompt = systemPrompt.replace(/\$1/g, lastChats);
@@ -732,7 +691,7 @@ export async function rebuildSheets() {
     const hr = document.createElement('hr');
     container.appendChild(hr);
 
-    // 创建选择器容器
+    /* // 创建选择器容器
     const selectorContainer = document.createElement('div');
     container.appendChild(selectorContainer);
 
@@ -746,9 +705,9 @@ export async function rebuildSheets() {
         <span class="rebuild-preview-text" style="margin-top: 10px">模板末尾补充提示词：</span>
         <textarea id="rebuild_additional_prompt" class="rebuild-preview-text text_pole" style="width: 100%; height: 80px;"></textarea>
     `;
-    selectorContainer.appendChild(selectorContent);
+    selectorContainer.appendChild(selectorContent); */
 
-    // 初始化选择器选项
+    /* // 初始化选择器选项
     const $selector = $(selectorContent.querySelector('#rebuild_template_selector'))
     const $additionalPrompt = $(selectorContent.querySelector('#rebuild_additional_prompt'))
     $selector.empty(); // 清空加载中状态
@@ -771,7 +730,7 @@ export async function rebuildSheets() {
     $selector.val(USER.tableBaseSetting?.lastSelectedTemplate || 'rebuild_base');
     // 保存当前选择到USER中
     USER.tableBaseSetting.lastSelectedTemplate = $selector.val();
-    $additionalPrompt.val('');
+    $additionalPrompt.val(''); */
 
     const confirmation = new EDITOR.Popup(container, EDITOR.POPUP_TYPE.CONFIRM, '', {
         okButton: "继续",
@@ -780,14 +739,7 @@ export async function rebuildSheets() {
 
     await confirmation.show();
     if (confirmation.result) {
-        // 获取当前选中的模板
-        const selectedTemplate = $selector.val();
-        const additionalPrompt = $additionalPrompt.value;
-        if (!selectedTemplate) {
-            EDITOR.error('请选择一个有效的提示模板');
-            return;
-        }
-        getPromptAndRebuildTable(selectedTemplate, additionalPrompt);
+        getPromptAndRebuildTable();
     }
 }
 
@@ -1307,4 +1259,177 @@ function fixTableFormat(inputText) {
         // const sixTables = rawTables.slice(0, 6).map(t => JSON.parse(t.replace(/'/g, '"')));
         // return sixTables
     }
+}
+
+/**
+ * 修改重整理模板
+ */
+export async function modifyRebuildTemplate() {
+    const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
+    const sheetConfig= {
+        formTitle: "编辑重整理模板",
+        formDescription: "设置重整理时的提示词结构",
+        fields: [
+            { label: '模板名字', type: 'label', text: selectedTemplate },
+            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
+            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理)' },
+        ],
+    }
+    let initialData = null
+    if(selectedTemplate === 'rebuild_base') 
+        return EDITOR.warning('默认模板不能修改，请新建模板');
+    else 
+        initialData = USER.tableBaseSetting.rebuild_message_template_list[selectedTemplate]
+    const formInstance = new Form(sheetConfig, initialData);
+    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "保存", allowVerticalScrolling: true, cancelButton: "取消" });
+    await popup.show();
+    if (popup.result) {
+        const result = formInstance.result();
+        USER.tableBaseSetting.rebuild_message_template_list = {
+            ...USER.tableBaseSetting.rebuild_message_template_list,
+            [selectedTemplate]: {
+                ...result,
+                name: selectedTemplate,
+            }
+        }
+        EDITOR.success(`修改模板 "${selectedTemplate}" 成功`);
+    }
+}
+/*         
+
+/**
+ * 新建重整理模板
+ */
+export async function newRebuildTemplate() {
+    const sheetConfig= {
+        formTitle: "新建重整理模板",
+        formDescription: "设置重整理时的提示词结构",
+        fields: [
+            { label: '模板名字', type: 'text', dataKey: 'name' },
+            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
+            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理, `$1`为上下文聊天记录的局部宏，`$2`为当前表格数据的局部宏)' },
+        ],
+    }
+    const initialData = {
+        name: "新重整理模板",
+        system_prompt: USER.tableBaseSetting.rebuild_default_system_message_template,
+        user_prompt_begin: USER.tableBaseSetting.rebuild_default_message_template,
+    };
+    const formInstance = new Form(sheetConfig, initialData);
+    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "保存", allowVerticalScrolling: true, cancelButton: "取消" });
+    await popup.show();
+    if (popup.result) {
+        const result = formInstance.result();
+        const name  = createUniqueName(result.name)
+        result.name = name;
+        USER.tableBaseSetting.rebuild_message_template_list={
+            ...USER.tableBaseSetting.rebuild_message_template_list,
+            [name]: result
+        }
+        USER.tableBaseSetting.lastSelectedTemplate = name;
+        refreshRebuildTemplate()
+        EDITOR.success(`新建模板 "${name}" 成功`);
+    }
+}
+
+/**
+ * 创建不重复的名称
+ * @param {string} baseName - 基础名称
+ */
+function createUniqueName(baseName) {
+    let name = baseName;
+    let counter = 1;
+    while (USER.tableBaseSetting.rebuild_message_template_list[name]) {
+        name = `${baseName} (${counter})`;
+        counter++;
+    }
+    return name;
+}
+
+/**
+ * 删除重整理模板
+ */
+export async function deleteRebuildTemplate() {
+    const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
+    if (selectedTemplate === 'rebuild_base') {
+        return EDITOR.warning('默认模板不能删除');
+    }
+    const confirmation = await EDITOR.callGenericPopup('是否删除此模板？', EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
+    if (confirmation) {
+        const newTemplates = {}
+        Object.values(USER.tableBaseSetting.rebuild_message_template_list).forEach((template) => {
+            if (template.name !== selectedTemplate) {
+                newTemplates[template.name] = template;
+            }
+        })
+        USER.tableBaseSetting.rebuild_message_template_list = newTemplates
+        USER.tableBaseSetting.lastSelectedTemplate = 'rebuild_base';
+        refreshRebuildTemplate()
+        EDITOR.success(`删除模板 "${selectedTemplate}" 成功`);
+    }
+}
+
+/**
+ * 导出重整理模板
+ */
+export async function exportRebuildTemplate() {
+    const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
+    if (selectedTemplate === 'rebuild_base') {
+        return EDITOR.warning('默认模板不能导出');
+    }
+    const template = USER.tableBaseSetting.rebuild_message_template_list[selectedTemplate];
+    if (!template) {
+        return EDITOR.error(`未找到模板 "${selectedTemplate}"`);
+    }
+    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedTemplate}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    EDITOR.success(`导出模板 "${selectedTemplate}" 成功`);
+}
+
+/**
+ * 导入重整理模板
+ */
+export async function importRebuildTemplate() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    input.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            EDITOR.error('未选择文件');
+            return;
+        }
+        try {
+            const text = await file.text();
+            const template = JSON.parse(text);
+            if (!template.name || !template.system_prompt || !template.user_prompt_begin) {
+                throw new Error('无效的模板格式');
+            }
+            const name = createUniqueName(template.name);
+            template.name = name;
+            USER.tableBaseSetting.rebuild_message_template_list = {
+                ...USER.tableBaseSetting.rebuild_message_template_list,
+                [name]: template
+            }
+            USER.tableBaseSetting.lastSelectedTemplate = name;
+            refreshRebuildTemplate();
+            EDITOR.success(`导入模板 "${name}" 成功`);
+        } catch (error) {
+            EDITOR.error(`导入失败：${error.message}`);
+        } finally {
+            document.body.removeChild(input);
+        }
+    });
+
+    input.click();
 }

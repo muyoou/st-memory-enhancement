@@ -92,8 +92,6 @@ export async function filterTableDataPopup(originalData, title, warning) {
     waitingRegister.rebuild_token_limit_value = '#table_init_refresh_template';
     waitingRegister.refresh_system_message_template = '#table_init_refresh_template';
     waitingRegister.refresh_user_message_template = '#table_init_refresh_template';
-    waitingRegister.rebuild_system_message_template = '#table_init_refresh_template';
-    waitingRegister.rebuild_user_message_template = '#table_init_refresh_template';
     // 双步设置
     waitingRegister.step_by_step = '#table_init_step';
     waitingRegister.step_by_step_use_main_api = '#table_init_step';
@@ -277,321 +275,253 @@ export const defaultSettings = await switchLanguage('__defaultSettings__', {
     rebuild_token_limit_value: 10000,
     // 重整理使用的提示词模板
     lastSelectedTemplate: 'rebuild_base',
-    refresh_system_message_template: `你是一个专业的表格整理助手，请严格按照用户的指令和格式要求处理表格数据。`,
-    refresh_user_message_template: `根据以下规则整理表格：
-<整理规则>
-    1. 修正格式错误，删除所有data[0]为空的行，此操作只允许整行操作！
-    2. 补全空白/未知内容，但禁止捏造信息
-    3. 当"重要事件历史表格"(tableIndex: 4)超过10行时，检查是否有重复或内容相近的行，适当合并或删除多余的行，此操作只允许整行操作！
-    4. "角色与User社交表格"(tableIndex: 2)中角色名禁止重复，有重复的需要整行删除，此操作只允许整行操作！
-    5. "时空表格"(tableIndex: 0）只允许有一行，删除所有旧的内容，此操作只允许整行操作！
-    6. 如果一个格子中超过15个字，则进行简化使之不超过15个字；如果一个格子中斜杠分隔的内容超过4个，则简化后只保留不超过4个
-    7. 时间格式统一为YYYY-MM-DD HH：MM   (时间中的冒号应当用中文冒号，未知的部分可以省略，例如：2023-10-01 12：00 或 2023-10-01 或 12：00)
-    8. 地点格式为 大陆>国家>城市>具体地点 (未知的部分可以省略，例如：大陆>中国>北京>故宫 或 异世界>酒馆)
-    9. 单元格中禁止使用逗号，语义分割应使用 /
-    10. 单元格内的string中禁止出现双引号
-    11. 禁止插入与现有表格内容完全相同的行，检查现有表格数据后再决定是否插入
-</整理规则>
+    rebuild_default_system_message_template: `你是一个专业的表格整理助手，请严格按照用户的指令和格式要求处理表格数据。`,
+    rebuild_default_message_template: `请你根据<整理规则>和<聊天记录>处理<当前表格>，并严格按照<当前表格>的格式回复我<新的表格>，回复务必使用中文，只回复<新的表格>的内容，不要回复多余的解释和思考：
+    <聊天记录>
+        $1
+    </聊天记录>
 
-<聊天记录>
-    $1
-</聊天记录>
+    <当前表格>
+        $0
+    </当前表格>
 
-<当前表格>
-    $0
-</当前表格>
-
-请用纯JSON格式回复操作列表，确保：
-    1. 所有键名必须使用双引号包裹，例如 "action" 而非 action
-    2. 数值键名必须加双引号，例如 "0" 而非 0
-    3. 使用双引号而非单引号，例如 "value" 而非 'value'
-    4. 斜杠（/）必须转义为 \/
-    5. 不要包含注释或多余的Markdown标记
-    6. 将所有删除操作放在最后发送，并且删除的时候先发送row值较大的操作
-    7. 有效的格式：
-        [{
-            "action": "insert/update/delete",
-            "tableIndex": 数字,
-            "rowIndex": 数字（delete/update时需要）,
-            "data": {列索引: "值"}（insert/update时需要）
-        }]
-    8. 强调：delete操作不包含"data"，insert操作不包含"rowIndex"
-    9. 强调：tableIndex和rowIndex的值为数字，不加双引号，例如 0 而非 "0"
-
-<正确回复示例>
-    [
-        {
-            "action": "update",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "data": {
-            "0": "2023-10-01",
-            "1": "12：00",
-            "2": "大陆>中国>北京>故宫"
-            }
-        }，
-        {
-            "action": "insert",",
-            "tableIndex": 0,
-            "data": {
-            "0": "2023-10-01",
-            "1": "12：00",
-            "2": "大陆>中国>北京>故宫"
-            }
+    <整理规则>
+    {
+      "TableProcessingProtocol": {
+        "languageDirective": {
+          "processingRules": "en-US",
+          "outputSpecification": "zh-CN"
         },
-        {
-            "action": "delete",
-            "tableIndex": 0,
-            "rowIndex": 0,
-        }
-    ]
-</正确格式示例>`,
-    rebuild_system_message_template: `你是一个专业的表格整理助手，请严格按照用户的指令和格式要求处理表格数据。`,
-    rebuild_user_message_template: `请你根据<整理规则>和<聊天记录>处理<当前表格>，并严格按照<当前表格>的格式回复我<新的表格>，回复务必使用中文，只回复<新的表格>的内容，不要回复多余的解释和思考：
-<聊天记录>
-    $1
-</聊天记录>
-
-<当前表格>
-    $0
-</当前表格>
-
-<整理规则>
-{
-  "TableProcessingProtocol": {
-    "languageDirective": {
-      "processingRules": "en-US",
-      "outputSpecification": "zh-CN"
-    },
-    "structuralIntegrity": {
-      "tableIndexPolicy": {
-        "creation": "PROHIBITED",
-        "modification": "PROHIBITED",
-        "deletion": "PROHIBITED"
-      },
-      "columnManagement": {
-        "freezeSchema": true,
-        "allowedOperations": ["valueInsertion", "contentOptimization"]
-      }
-    },
-    "processingWorkflow": ["SUPPLEMENT", "SIMPLIFY", "CORRECT", "SUMMARY"],
-
-    "SUPPLEMENT": {
-      "insertionProtocol": {
-        "characterRegistration": {
-          "triggerCondition": "newCharacterDetection || traitMutation",
-          "attributeCapture": {
-            "scope": "explicitDescriptionsOnly",
-            "protectedDescriptors": ["粗布衣裳", "布条束发"],
-            "mandatoryFields": ["角色名", "身体特征", "其他重要信息"],
-            "validationRules": {
-              "physique_description": "MUST_CONTAIN [体型/肤色/发色/瞳色]",
-              "relationship_tier": "VALUE_RANGE:[-100, 100]"
-            }
-          }
-        },
-        "eventCapture": {
-          "thresholdConditions": ["plotCriticality≥3", "emotionalShift≥2"],
-          "emergencyBreakCondition": "3_consecutiveSimilarEvents"
-        },
-        "itemRegistration": {
-          "significanceThreshold": "symbolicImportance≥5"
-        }
-      },
-      "dataEnrichment": {
-        "dynamicControl": {
-          "costumeDescription": {
-            "detailedModeThreshold": 25,
-            "overflowAction": "SIMPLIFY_TRIGGER"
+        "structuralIntegrity": {
+          "tableIndexPolicy": {
+            "creation": "PROHIBITED",
+            "modification": "PROHIBITED",
+            "deletion": "PROHIBITED"
           },
-          "eventDrivenUpdates": {
-            "checkInterval": "EVERY_50_EVENTS",
-            "monitoringDimensions": [
-              "TIME_CONTRADICTIONS",
-              "LOCATION_CONSISTENCY",
-              "ITEM_TIMELINE",
-              "CLOTHING_CHANGES"
-            ],
-            "updateStrategy": {
-              "primaryMethod": "APPEND_WITH_MARKERS",
-              "conflictResolution": "PRIORITIZE_CHRONOLOGICAL_ORDER"
-            }
-          },
-          "formatCompatibility": {
-            "timeFormatHandling": "ORIGINAL_PRESERVED_WITH_UTC_CONVERSION",
-            "locationFormatStandard": "HIERARCHY_SEPARATOR(>)_WITH_GEOCODE",
-            "errorCorrectionProtocols": {
-              "dateOverflow": "AUTO_ADJUST_WITH_HISTORIC_PRESERVATION",
-              "spatialConflict": "FLAG_AND_REMOVE_WITH_BACKUP"
-            }
+          "columnManagement": {
+            "freezeSchema": true,
+            "allowedOperations": ["valueInsertion", "contentOptimization"]
           }
         },
-        "traitProtection": {
-          "keyFeatures": ["heterochromia", "scarPatterns"],
-          "lockCondition": "keywordMatch≥2"
-        }
-      }
-    },
+        "processingWorkflow": ["SUPPLEMENT", "SIMPLIFY", "CORRECT", "SUMMARY"],
 
-    "SIMPLIFY": {
-      "compressionLogic": {
-        "characterDescriptors": {
-          "activationCondition": "wordCount>25 PerCell && !protectedStatus",
-          "optimizationStrategy": {
-            "baseRule": "material + color + style",
-            "prohibitedElements": ["stitchingDetails", "wearMethod"],
-            "mergeExamples": ["深褐/浅褐眼睛 → 褐色眼睛"]
-          }
-        },
-        "eventConsolidation": {
-          "mergeDepth": 2,
-          "mergeRestrictions": ["crossCharacter", "crossTimeline"],
-          "keepCriterion": "LONGER_DESCRIPTION_WITH_KEY_DETAILS"
-        }
-      },
-      "protectionMechanism": {
-        "protectedContent": {
-          "summaryMarkers": ["[TIER1]", "[MILESTONE]"],
-          "criticalTraits": ["异色瞳", "皇室纹章"]
-        }
-      }
-    },
-
-    "CORRECT": {
-      "validationMatrix": {
-        "temporalConsistency": {
-          "checkFrequency": "every10Events",
-          "anomalyResolution": "purgeConflicts"
-        },
-        "columnValidation": {
-          "checkConditions": [
-            "NUMERICAL_IN_TEXT_COLUMN",
-            "TEXT_IN_NUMERICAL_COLUMN",
-            "MISPLACED_FEATURE_DESCRIPTION",
-            "WRONG_TABLE_PLACEMENT"
-          ],
-          "correctionProtocol": {
-            "autoRelocation": "MOVE_TO_CORRECT_COLUMN",
-            "typeMismatchHandling": {
-              "primaryAction": "CONVERT_OR_RELOCATE",
-              "fallbackAction": "FLAG_AND_ISOLATE"
+        "SUPPLEMENT": {
+          "insertionProtocol": {
+            "characterRegistration": {
+              "triggerCondition": "newCharacterDetection || traitMutation",
+              "attributeCapture": {
+                "scope": "explicitDescriptionsOnly",
+                "protectedDescriptors": ["粗布衣裳", "布条束发"],
+                "mandatoryFields": ["角色名", "身体特征", "其他重要信息"],
+                "validationRules": {
+                  "physique_description": "MUST_CONTAIN [体型/肤色/发色/瞳色]",
+                  "relationship_tier": "VALUE_RANGE:[-100, 100]"
+                }
+              }
             },
-            "preserveOriginalState": false
-          }
-        },
-        "duplicationControl": {
-          "characterWhitelist": ["Physical Characteristics", "Clothing Details"],
-          "mergeProtocol": {
-            "exactMatch": "purgeRedundant",
-            "sceneConsistency": "actionChaining"
-          }
-        },
-        "exceptionHandlers": {
-          "invalidRelationshipTier": {
-            "operation": "FORCE_NUMERICAL_WITH_LOGGING",
-            "loggingDetails": {
-              "originalData": "Record the original invalid relationship tier data",
-              "conversionStepsAndResults": "The operation steps and results of forced conversion to numerical values",
-              "timestamp": "Operation timestamp",
-              "tableAndRowInfo": "Names of relevant tables and indexes of relevant data rows"
+            "eventCapture": {
+              "thresholdConditions": ["plotCriticality≥3", "emotionalShift≥2"],
+              "emergencyBreakCondition": "3_consecutiveSimilarEvents"
+            },
+            "itemRegistration": {
+              "significanceThreshold": "symbolicImportance≥5"
             }
           },
-          "physiqueInfoConflict": {
-            "operation": "TRANSFER_TO_other_info_WITH_MARKER",
-            "markerDetails": {
-              "conflictCause": "Mark the specific cause of the conflict",
-              "originalPhysiqueInfo": "Original physique information content",
-              "transferTimestamp": "Transfer operation timestamp"
-            }
-          }
-        }
-      }
-    },
-
-    "SUMMARY": {
-      "hierarchicalSystem": {
-        "primaryCompression": {
-          "triggerCondition": "10_rawEvents && unlockStatus",
-          "generationTemplate": "[角色]在[时间段]通过[动作链]展现[特征]",
-          "outputConstraints": {
-            "maxLength": 200,
-            "lockAfterGeneration": true,
-            "placement": "重要事件历史表格",
-            "columns": {
-              "角色": "相关角色",
-              "事件简述": "总结内容",
-              "日期": "相关日期",
-              "地点": "相关地点",
-              "情绪": "相关情绪"
+          "dataEnrichment": {
+            "dynamicControl": {
+              "costumeDescription": {
+                "detailedModeThreshold": 25,
+                "overflowAction": "SIMPLIFY_TRIGGER"
+              },
+              "eventDrivenUpdates": {
+                "checkInterval": "EVERY_50_EVENTS",
+                "monitoringDimensions": [
+                  "TIME_CONTRADICTIONS",
+                  "LOCATION_CONSISTENCY",
+                  "ITEM_TIMELINE",
+                  "CLOTHING_CHANGES"
+                ],
+                "updateStrategy": {
+                  "primaryMethod": "APPEND_WITH_MARKERS",
+                  "conflictResolution": "PRIORITIZE_CHRONOLOGICAL_ORDER"
+                }
+              },
+              "formatCompatibility": {
+                "timeFormatHandling": "ORIGINAL_PRESERVED_WITH_UTC_CONVERSION",
+                "locationFormatStandard": "HIERARCHY_SEPARATOR(>)_WITH_GEOCODE",
+                "errorCorrectionProtocols": {
+                  "dateOverflow": "AUTO_ADJUST_WITH_HISTORIC_PRESERVATION",
+                  "spatialConflict": "FLAG_AND_REMOVE_WITH_BACKUP"
+                }
+              }
+            },
+            "traitProtection": {
+              "keyFeatures": ["heterochromia", "scarPatterns"],
+              "lockCondition": "keywordMatch≥2"
             }
           }
         },
-        "advancedSynthesis": {
-          "triggerCondition": "3_primarySummaries",
-          "synthesisFocus": ["growthArc", "worldRulesManifestation"],
-          "outputConstraints": {
-            "placement": "重要事件历史表格",
-            "columns": {
-              "角色": "相关角色",
-              "事件简述": "总结内容",
-              "日期": "相关日期",
-              "地点": "相关地点",
-              "情绪": "相关情绪"
+
+        "SIMPLIFY": {
+          "compressionLogic": {
+            "characterDescriptors": {
+              "activationCondition": "wordCount>25 PerCell && !protectedStatus",
+              "optimizationStrategy": {
+                "baseRule": "material + color + style",
+                "prohibitedElements": ["stitchingDetails", "wearMethod"],
+                "mergeExamples": ["深褐/浅褐眼睛 → 褐色眼睛"]
+              }
+            },
+            "eventConsolidation": {
+              "mergeDepth": 2,
+              "mergeRestrictions": ["crossCharacter", "crossTimeline"],
+              "keepCriterion": "LONGER_DESCRIPTION_WITH_KEY_DETAILS"
+            }
+          },
+          "protectionMechanism": {
+            "protectedContent": {
+              "summaryMarkers": ["[TIER1]", "[MILESTONE]"],
+              "criticalTraits": ["异色瞳", "皇室纹章"]
             }
           }
-        }
-      },
-      "safetyOverrides": {
-        "overcompensationGuard": {
-          "detectionCriteria": "compressionArtifacts≥3",
-          "recoveryProtocol": "rollback5Events"
-        }
-      }
-    },
-
-    "SystemSafeguards": {
-      "priorityChannel": {
-        "coreProcesses": ["deduplication", "traitPreservation"],
-        "loadBalancing": {
-          "timeoutThreshold": 15,
-          "degradationProtocol": "basicValidationOnly"
-        }
-      },
-      "paradoxResolution": {
-        "temporalAnomalies": {
-          "resolutionFlow": "freezeAndHighlight",
-          "humanInterventionTag": "⚠️REQUIRES_ADMIN"
-        }
-      },
-      "intelligentCleanupEngine": {
-        "mandatoryPurgeRules": [
-          "EXACT_DUPLICATES_WITH_TIMESTAMP_CHECK",
-          "USER_ENTRIES_IN_SOCIAL_TABLE",
-          "TIMELINE_VIOLATIONS_WITH_CASCADE_DELETION",
-          "EMPTY_ROWS(excluding spacetime)",
-          "EXPIRED_QUESTS(>20d)_WITH_ARCHIVAL"
-        ],
-        "protectionOverrides": {
-          "protectedMarkers": ["[TIER1]", "[MILESTONE]"],
-          "exemptionConditions": [
-            "HAS_PROTECTED_TRAITS",
-            "CRITICAL_PLOT_POINT"
-          ]
         },
-        "cleanupTriggers": {
-          "eventCountThreshold": 1000,
-          "storageUtilizationThreshold": "85%"
+
+        "CORRECT": {
+          "validationMatrix": {
+            "temporalConsistency": {
+              "checkFrequency": "every10Events",
+              "anomalyResolution": "purgeConflicts"
+            },
+            "columnValidation": {
+              "checkConditions": [
+                "NUMERICAL_IN_TEXT_COLUMN",
+                "TEXT_IN_NUMERICAL_COLUMN",
+                "MISPLACED_FEATURE_DESCRIPTION",
+                "WRONG_TABLE_PLACEMENT"
+              ],
+              "correctionProtocol": {
+                "autoRelocation": "MOVE_TO_CORRECT_COLUMN",
+                "typeMismatchHandling": {
+                  "primaryAction": "CONVERT_OR_RELOCATE",
+                  "fallbackAction": "FLAG_AND_ISOLATE"
+                },
+                "preserveOriginalState": false
+              }
+            },
+            "duplicationControl": {
+              "characterWhitelist": ["Physical Characteristics", "Clothing Details"],
+              "mergeProtocol": {
+                "exactMatch": "purgeRedundant",
+                "sceneConsistency": "actionChaining"
+              }
+            },
+            "exceptionHandlers": {
+              "invalidRelationshipTier": {
+                "operation": "FORCE_NUMERICAL_WITH_LOGGING",
+                "loggingDetails": {
+                  "originalData": "Record the original invalid relationship tier data",
+                  "conversionStepsAndResults": "The operation steps and results of forced conversion to numerical values",
+                  "timestamp": "Operation timestamp",
+                  "tableAndRowInfo": "Names of relevant tables and indexes of relevant data rows"
+                }
+              },
+              "physiqueInfoConflict": {
+                "operation": "TRANSFER_TO_other_info_WITH_MARKER",
+                "markerDetails": {
+                  "conflictCause": "Mark the specific cause of the conflict",
+                  "originalPhysiqueInfo": "Original physique information content",
+                  "transferTimestamp": "Transfer operation timestamp"
+                }
+              }
+            }
+          }
+        },
+
+        "SUMMARY": {
+          "hierarchicalSystem": {
+            "primaryCompression": {
+              "triggerCondition": "10_rawEvents && unlockStatus",
+              "generationTemplate": "[角色]在[时间段]通过[动作链]展现[特征]",
+              "outputConstraints": {
+                "maxLength": 200,
+                "lockAfterGeneration": true,
+                "placement": "重要事件历史表格",
+                "columns": {
+                  "角色": "相关角色",
+                  "事件简述": "总结内容",
+                  "日期": "相关日期",
+                  "地点": "相关地点",
+                  "情绪": "相关情绪"
+                }
+              }
+            },
+            "advancedSynthesis": {
+              "triggerCondition": "3_primarySummaries",
+              "synthesisFocus": ["growthArc", "worldRulesManifestation"],
+              "outputConstraints": {
+                "placement": "重要事件历史表格",
+                "columns": {
+                  "角色": "相关角色",
+                  "事件简述": "总结内容",
+                  "日期": "相关日期",
+                  "地点": "相关地点",
+                  "情绪": "相关情绪"
+                }
+              }
+            }
+          },
+          "safetyOverrides": {
+            "overcompensationGuard": {
+              "detectionCriteria": "compressionArtifacts≥3",
+              "recoveryProtocol": "rollback5Events"
+            }
+          }
+        },
+
+        "SystemSafeguards": {
+          "priorityChannel": {
+            "coreProcesses": ["deduplication", "traitPreservation"],
+            "loadBalancing": {
+              "timeoutThreshold": 15,
+              "degradationProtocol": "basicValidationOnly"
+            }
+          },
+          "paradoxResolution": {
+            "temporalAnomalies": {
+              "resolutionFlow": "freezeAndHighlight",
+              "humanInterventionTag": "⚠️REQUIRES_ADMIN"
+            }
+          },
+          "intelligentCleanupEngine": {
+            "mandatoryPurgeRules": [
+              "EXACT_DUPLICATES_WITH_TIMESTAMP_CHECK",
+              "USER_ENTRIES_IN_SOCIAL_TABLE",
+              "TIMELINE_VIOLATIONS_WITH_CASCADE_DELETION",
+              "EMPTY_ROWS(excluding spacetime)",
+              "EXPIRED_QUESTS(>20d)_WITH_ARCHIVAL"
+            ],
+            "protectionOverrides": {
+              "protectedMarkers": ["[TIER1]", "[MILESTONE]"],
+              "exemptionConditions": [
+                "HAS_PROTECTED_TRAITS",
+                "CRITICAL_PLOT_POINT"
+              ]
+            },
+            "cleanupTriggers": {
+              "eventCountThreshold": 1000,
+              "storageUtilizationThreshold": "85%"
+            }
+          }
         }
       }
     }
-  }
-}
 
-回复格式示例。再次强调，直接按以下格式回复，不要思考过程，不要解释，不要多余内容：
-<新的表格>
-[{"tableName":"时空表格","tableIndex":0,"columns":["日期","时间","地点（当前描写）","此地角色"],"content":[["2024-01-01","12:00","异世界>酒馆","年轻女子"]]},{"tableName":"角色特征表格","tableIndex":1,"columns":["角色名","身体特征","性格","职业","爱好","喜欢的事物（作品、虚拟人物、物品等）","住所","其他重要信息"],"content":[["年轻女子","身形高挑/小麦色肌肤/乌黑长发/锐利眼睛","野性/不羁/豪爽/好奇","战士","习武","未知","未知","腰悬弯刀/兽牙项链/手指带血"]]},{"tableName":"角色与<user>社交表格","tableIndex":2,"columns":["角色名","对<user>关系","对<user>态度","对<user>好感"],"content":[["年轻女子","陌生人","疑惑/好奇","低"]]},{"tableName":"任务、命令或者约定表格","tableIndex":3,"columns":["角色","任务","地点","持续时间"],"content":[]},{"tableName":"重要事件历史表格","tableIndex":4,"columns":["角色","事件简述","日期","地点","情绪"],"content":[["年轻女子","进入酒馆/点酒/观察<user>","2024-01-01 12:00","异世界>酒馆","好奇"]]},{"tableName":"重要物品表格","tableIndex":5,"columns":["拥有人","物品描述","物品名","重要原因"],"content":[]}]
-</新的表格>
-`,
+    回复格式示例。再次强调，直接按以下格式回复，不要思考过程，不要解释，不要多余内容：
+    <新的表格>
+    [{"tableName":"时空表格","tableIndex":0,"columns":["日期","时间","地点（当前描写）","此地角色"],"content":[["2024-01-01","12:00","异世界>酒馆","年轻女子"]]},{"tableName":"角色特征表格","tableIndex":1,"columns":["角色名","身体特征","性格","职业","爱好","喜欢的事物（作品、虚拟人物、物品等）","住所","其他重要信息"],"content":[["年轻女子","身形高挑/小麦色肌肤/乌黑长发/锐利眼睛","野性/不羁/豪爽/好奇","战士","习武","未知","未知","腰悬弯刀/兽牙项链/手指带血"]]},{"tableName":"角色与<user>社交表格","tableIndex":2,"columns":["角色名","对<user>关系","对<user>态度","对<user>好感"],"content":[["年轻女子","陌生人","疑惑/好奇","低"]]},{"tableName":"任务、命令或者约定表格","tableIndex":3,"columns":["角色","任务","地点","持续时间"],"content":[]},{"tableName":"重要事件历史表格","tableIndex":4,"columns":["角色","事件简述","日期","地点","情绪"],"content":[["年轻女子","进入酒馆/点酒/观察<user>","2024-01-01 12:00","异世界>酒馆","好奇"]]},{"tableName":"重要物品表格","tableIndex":5,"columns":["拥有人","物品描述","物品名","重要原因"],"content":[]}]
+    </新的表格>
+    `,
+    rebuild_message_template_list:{},
     /**
      * ===========================
      * 双步设置

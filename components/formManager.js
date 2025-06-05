@@ -62,8 +62,14 @@ class Form {
                             <input type="number" id="${field.id}" class="text_pole wideMax100px margin0">
                         </div>
                     `;
-                }
-                else {
+                } else if (field.type === 'label') {
+                    contentHTML += `
+                        <div class="number-container" style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <label for="${field.id}" style="margin-right: 5px;">${field.label}</label>
+                            <div>${field.text}</div>
+                        </div>
+                    `;
+                } else {
                     contentHTML += `
                     <label>${field.label}</label>
                 `;

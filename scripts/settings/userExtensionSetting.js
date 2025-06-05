@@ -1,6 +1,6 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
 import {updateSystemMessageTableStatus, updateAlternateTable} from "../renderer/tablePushToChat.js";
-import {rebuildSheets} from "../runtime/absoluteRefresh.js";
+import {rebuildSheets , modifyRebuildTemplate, newRebuildTemplate, deleteRebuildTemplate, exportRebuildTemplate, importRebuildTemplate} from "../runtime/absoluteRefresh.js";
 import {generateDeviceId} from "../../utils/utility.js";
 import {updateModelList, handleApiTestRequest ,processApiKey} from "./standaloneAPI.js";
 import {filterTableDataPopup} from "../../data/pluginSetting.js";
@@ -468,6 +468,19 @@ function InitBinging() {
     $("#dataTable_to_chat_button").on("click", async function () {
         customSheetsStylePopup()
     })
+
+    // 重整理模板编辑
+    $("#rebuild--set-rename").on("click", modifyRebuildTemplate)
+    $("#rebuild--set-new").on("click", newRebuildTemplate)
+    $("#rebuild--set-delete").on("click", deleteRebuildTemplate)
+    $("#rebuild--set-export").on("click", exportRebuildTemplate)
+    $("#rebuild--set-import").on("click", importRebuildTemplate)
+    $('#rebuild--select').on('change', function() {
+        USER.tableBaseSetting.lastSelectedTemplate = $(this).val();
+        USER.saveSettings && USER.saveSettings();
+    });
+
+
 }
 
 /**
@@ -488,6 +501,7 @@ export function renderSetting() {
     $('#custom_temperature_value').text(USER.tableBaseSetting.custom_temperature);
     $('#step_by_step_threshold').val(USER.tableBaseSetting.step_by_step_threshold);
     $('#step_by_step_threshold_value').text(USER.tableBaseSetting.step_by_step_threshold);
+    refreshRebuildTemplate()
 
     // private data
     $('#custom_api_url').val(USER.IMPORTANT_USER_PRIVACY_DATA.custom_api_url || '');
@@ -615,18 +629,27 @@ function templateToTableStructure() {
     USER.saveSettings()
 }
 
-// /**
-//  * 表格结构转为表格模板
-//  * @param {object[]} tableStructure 表格结构
-//  * @returns 表格模板
-//  */
-// function tableStructureToTemplate(tableStructure) {
-//     return tableStructure.map((structure) => {
-//         const newTemplate = new BASE.SheetTemplate('').createNewSheet(structure.columns.length + 1, 1);
-//         for (const key in structure.columns) {
-//             const cell = newTemplate.findCellByPosition(0, parseInt(key) + 1)
-//             cell.data.value = structure.columns[key]
-//         }
-//     })
-//
-// }
+/**
+ * 刷新重整理模板
+ */
+export function refreshRebuildTemplate() {
+    const templateSelect = $('#rebuild--select');
+    templateSelect.empty(); // 清空现有选项
+    const defaultOption = $('<option>', {
+        value: "rebuild_base",
+        text: "默认",
+    });
+    templateSelect.append(defaultOption);
+    Object.keys(USER.tableBaseSetting.rebuild_message_template_list).forEach(key => {
+        const option = $('<option>', {
+            value: key,
+            text: key
+        });
+        templateSelect.append(option);
+    });
+    // 设置默认选中项
+    if (USER.tableBaseSetting.lastSelectedTemplate) {
+        console.log("默认", USER.tableBaseSetting.lastSelectedTemplate)
+        $('#rebuild--select').val(USER.tableBaseSetting.lastSelectedTemplate);
+    }
+}
