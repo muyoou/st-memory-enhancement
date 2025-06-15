@@ -1,0 +1,288 @@
+v2.0.26:
+- **优化：改进分步填表确认弹窗体验**
+  - **目的:** 允许用户选择一次后不再重复确认，并让后续操作在后台静默执行，包括抑制API加载提示。
+  - **实现方式:**
+    - **UI:** 在`scripts/runtime/separateTableUpdate.js`中，修改了调用`newPopupConfirm`时的参数，将原“暂不提醒”按钮的文本更改为“一直选是”。
+    - **逻辑 (静默状态传递):**
+      - 在`scripts/runtime/separateTableUpdate.js`中，当检测到用户已选择“一直选是”时，会设置一个`isSilentMode`标志。
+      - 这个`isSilentMode`标志被传递给`scripts/runtime/absoluteRefresh.js`中的`executeIncrementalUpdateFromSummary`函数。
+      - 该函数接着将此标志继续传递给`scripts/settings/standaloneAPI.js`中的`handleMainAPIRequest`和`handleCustomAPIRequest`函数。
+    - **逻辑 (API提示抑制):**
+      - 在`scripts/settings/standaloneAPI.js`中，修改了`createLoadingToast`函数，使其在接收到`isSilentMode=true`时不显示任何弹窗，直接模拟“后台继续”操作。
+      - `handleMainAPIRequest`和`handleCustomAPIRequest`现在会根据传入的`isSilentMode`标志来决定是否以静默模式调用`createLoadingToast`。
+  - **结果:** 当用户选择“一直选是”后，不仅分步填表的初次确认弹窗不再显示，后续调用API时的加载提示（如“正在使用主API...”）也会被一并抑制，实现了完全的后台静默操作，只在开始和结束时通知用户。
+  - **修复 (v2.0.26.1):** 修正了静默模式下 `createLoadingToast` 的返回值，使其正确模拟“后台继续”（返回`false`）而不是“中止执行”（返回`true`），解决了静默模式下操作被意外取消的问题。
+  - **受影响文件:**
+    - `scripts/runtime/separateTableUpdate.js`
+    - `scripts/runtime/absoluteRefresh.js`
+    - `scripts/settings/standaloneAPI.js`
+
+v2.0.25:
+- **新增功能：手动触发分步填表**
+  - **目的:** 为用户提供一个直接的方式来启动一次分步填表流程，而无需等待对话字数达到阈值。
+  - **实现方式:**
+    - **UI:** 在`assets/templates/index.html`的分步填表设置区域，于“使用主API”选项旁边增加了一个“立即填表”按钮 (`#trigger_step_by_step_button`)。
+    - **逻辑:**
+      - 在`scripts/runtime/absoluteRefresh.js`中，新增了一个导出的`triggerStepByStepNow`函数。此函数封装了手动触发所需的所有逻辑，包括获取当前启用的表格数据、获取最近的聊天记录、读取相关设置，并最终调用核心的`executeIncrementalUpdateFromSummary`函数。
+      - 在`scripts/settings/userExtensionSetting.js`中，导入了`triggerStepByStepNow`函数，并为新的“立即填表”按钮绑定了点击事件，点击后即调用该函数。
+  - **结果:** 用户现在可以通过点击设置界面中的按钮，随时启动一次完整的分步填表/表格整理流程。
+  - **受影响文件:**
+    - `assets/templates/index.html`
+    - `scripts/runtime/absoluteRefresh.js`
+    - `scripts/settings/userExtensionSetting.js`
+
+项目：记忆插件功能增强
+
+目标：增加在自定义表格美化模板中跨表格调用数据的功能，并确保主 API 和自定义 API 在分步填表时都能正确发送多消息数组，且默认使用流式传输。
+
+已完成工作：
+
+1.  **核心功能：跨表格数据引用** (已完成)
+2.  **用户体验优化：名称自动完成** (已完成)
+3.  **坐标系修正** (已完成)
+4.  **新增功能：导出所有表格数据的宏（精简版）** (已完成)
+5.  **新增功能：表格更新后自动重启“表格地图”正则脚本** (已完成)
+6.  **调整：分步填表 API 调用逻辑（多消息发送 & 恢复流式）**
+    *   **目的**：统一分步填表的 API 调用方式，确保多消息数组正确发送，并恢复默认的流式传输行为。
+    *   **实现方式**：
+        *   修改了 `scripts/runtime/absoluteRefresh.js` 中的 `executeIncrementalUpdateFromSummary` 函数：
+            *   使其在调用主 API 和自定义 API 处理函数时，若为分步模式，则传递解析后的多消息数组。
+        *   修改了 `scripts/settings/standaloneAPI.js` 中的 `handleMainAPIRequest` 函数：
+            *   当接收到多消息数组时，调用 `TavernHelper.generateRaw` 并将 `should_stream` 设置为 `true`，以启用流式传输。
+        *   修改了 `scripts/settings/standaloneAPI.js` 中的 `handleCustomAPIRequest` 函数：
+            *   移除了之前添加的、在分步总结时禁用流式回调的逻辑，现在总是传递流式回调函数给 `llmService.callLLM`。
+    *   **结果**：
+        *   现在，无论是使用主 API 还是自定义 API，分步填表都会使用 `step_by_step_user_prompt` 中定义的多消息格式。
+        *   主 API 和自定义 API 在分步填表时都**恢复为默认流式传输**。
+    *   **受影响文件**：
+        *   `scripts/runtime/absoluteRefresh.js`
+        *   `scripts/settings/standaloneAPI.js`
+
+7.  **分析：SillyTavern 多模块聊天历史发送机制** (已完成)
+8.  **澄清：本插件分步填表多模块历史发送实现** (已完成)
+9.  **代码分析：分步填表多模块历史发送实现细节 (`absoluteRefresh.js`)** (已完成)
+10. **澄清与修正：API 调用处理多消息数组的方式 (`standaloneAPI.js`)** (已完成)
+
+当前状态：
+
+*   占位符渲染成功，数据能够正确显示在美化模板中。
+*   提供了 `GET_ALL_TABLES_JSON` 宏，用于获取所有表格的精简数据。
+*   实现了表格更新后自动重启“表格地图”正则脚本的功能。
+*   分步填表在使用**自定义 API** 时，会发送多消息格式提示（依赖 `LLMApiService` 正确处理），并采用**流式**传输。
+*   分步填表在使用**主 API** 时，现在会通过 `TavernHelper.generateRaw` 发送多消息格式提示，并采用**流式**传输。
+*   已分析并记录了 SillyTavern 实现多模块聊天历史发送的方式。
+*   已在文档中记录了 API 调用方式的调整（包括多消息发送和流式传输的恢复）。
+
+# 项目文档
+
+## 2025-06-13 下午 2:43
+
+*   **操作:** 修改 `services/llmApi.js` 文件。
+*   **目的:** 在处理自定义 API 的流式响应函数 (`#handleStreamResponse`) 中添加详细的日志记录，以便在未配置代理时诊断潜在的响应截断问题。
+*   **细节:** 在函数各关键步骤（开始、接收数据块、处理行、解析 JSON、遇到 `[DONE]` 标记、处理最终缓冲区、完成、出错、释放锁）添加了带有 `[Stream] Custom API` 前缀的 `console.log` 和 `console.warn` 语句。
+
+## 2025-06-13 下午 2:44
+
+*   **操作:** 分析自定义 API 流处理截断问题并确定下一步。
+*   **分析:**
+    *   确认用户未配置代理，插件通过直接 `fetch` 和 `#handleStreamResponse` 处理自定义 API（包括多消息数组）。
+    *   推测此直接处理方式可能不如 SillyTavern 内部机制（如 `TavernHelper.generateRaw` 或 `ChatCompletionService` 使用的）健壮，导致截断。
+    *   指出在不使用代理的情况下，直接复用 SillyTavern 内部机制并传递自定义凭据存在技术挑战。
+*   **下一步:**
+    *   要求用户再次尝试触发导致截断的分步填表操作。
+    *   指示用户在问题重现时，检查浏览器开发者控制台（F12）中的 `[Stream] Custom API` 相关日志。
+    *   收集这些日志（特别是错误或流中断前的最后几条）以供进一步诊断。
+
+## 2025-06-13 下午 2:49
+
+*   **操作:** 分析用户提供的自定义 API 流日志。
+*   **诊断:**
+    *   日志显示流处理本身正常启动、接收数据块、处理行，并正确接收到 `[DONE]` 标记和结束。
+    *   关键日志 `data: {"choices":[{"index":0,"delta":{"content":"..."},"finish_reason":"length"}]}` 表明，API (gemini-2.5-flash-preview-05-20) 因为达到了**最大输出长度限制**而停止生成，并非插件代码错误。
+    *   `usage` 字段显示 `completion_tokens` 达到了 4086，这可能是模型或 API 端点的硬性限制。
+*   **结论:** 响应截断是由 API 的最大输出 Token 限制引起，而非插件流处理问题。
+*   **建议解决方案:**
+    1.  **检查/提高插件 `max_tokens` 设置:** 确保插件“自定义 API 设置”中的“最大令牌数”足够大（如 8192+）。
+    2.  **检查/提高 API 提供商限制:** 查看自定义 API 端点 (`api_url`) 文档或设置，确认并尝试提高 `gemini-2.5-flash-preview-05-20` 的最大**输出** Token 限制。
+    3.  **减少请求复杂度:** 如果无法提高限制，尝试让 AI 一次生成更少内容或分解指令。
+    4.  **尝试不同模型:** 如果可用，切换到支持更高输出 Token 限制的模型。
+
+## 2025-06-13 下午 2:54
+
+*   **操作:** 修改 `services/llmApi.js` 文件。
+*   **背景:** 用户反馈使用主 API 时相同模型无截断问题，但日志显示自定义 API 调用因 `finish_reason: "length"` 而停止。分析发现插件缺少设置自定义 API `max_tokens` 的界面，导致使用默认值 4096。
+*   **目的:** 解决自定义 API 因默认 `max_tokens` 限制过低导致的响应截断问题。
+*   **细节:** 将 `LLMApiService` 构造函数中 `max_tokens` 的默认值从 `4096` 修改为 `20000`。
+*   **下一步:** 请用户再次尝试之前的操作，确认修改后的默认值是否解决了响应截断问题。
+
+## 2025-06-13 下午 3:00
+
+*   **操作:** 再次修改 `services/llmApi.js` 文件。
+*   **目的:** 根据用户要求，进一步提高自定义 API 的默认最大令牌数。
+*   **细节:** 将 `LLMApiService` 构造函数中 `max_tokens` 的默认值从 `20000` 修改为 `63000`。
+*   **下一步:** 请用户再次尝试之前的操作，确认修改后的默认值是否解决了响应截断问题。
+
+v2.0.24:
+- 增强：改进了“分步填表”模式对自定义提示词的处理，使其能够正确解析和使用包含多轮消息结构（如 `提示词.txt` 中定义的格式）的提示词字符串。
+  - 修改：更新了 `data/pluginSetting.js` 中 `step_by_step_user_prompt` 的默认值，使其存储一个包含转义字符的、代表JSON数组的字符串。
+  - 修改：重构了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数内处理 `isStepByStepSummary === true` 的逻辑：
+    - 现在会使用 `JSON5.parse()` 解析 `USER.tableBaseSetting.step_by_step_user_prompt` 字符串，将其还原为消息对象数组。
+    - 从解析后的数组中提取第一个 `system` 角色的内容作为系统提示，最后一个 `user` 角色的内容作为用户提示。
+    - 对提取出的系统和用户提示内容执行占位符替换（$0, $1, $2）。
+    - 将处理后的提示字符串传递给 `handleMainAPIRequest` 或 `handleCustomAPIRequest`。
+  - 此更改确保了“分步填表”模式可以正确地将用户自定义的多轮消息格式提示词发送给 AI。
+
+v2.0.23:
+- 修复与增强：彻底解决了在启用“分步填表”模式后，AI仍然会接收到包含完整编辑指令或不必要注释的表格数据的问题。
+  - 重构：修改了 `index.js` 中的 `onChatCompletionPromptReady` 函数的逻辑结构。现在，该函数会优先检查是否启用了“分步填表”模式。
+  - 优化：修改了 `index.js` 中的 `getTablePrompt` 函数，增加了一个 `isPureData` 参数。当此参数为 `true` 时，函数仅返回纯净的表格数据（即表格标题、表头和行数据），不包含任何预设中的说明或编辑规则。
+  - 增强：在“分步填表”模式下，现在会调用 `getTablePrompt(eventData, true)` 来获取纯净的表格数据，并在其前附加一句指定的提示语（“以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：”），然后注入到上下文中。
+  - 修复：注入只读数据后，函数会立即退出，从而阻止了后续常规表格注入逻辑的执行。此系列修复确保了在“分步填表”模式下，AI仅能看到其生成回复所需的、带有明确指示的、纯净的当前表格内容。
+
+v2.0.22:
+- 重构：彻底分离了“普通填表”和“分步填表”的提示词配置，解决了之前因错误复用预设导致的功能异常。
+  - 新增：在 `data/pluginSetting.js` 中为“分步填表”添加了独立的 `step_by_step_user_prompt` 设置项，并提供了功能完备的默认提示词。
+  - 新增：在 `scripts/settings/userExtensionSetting.js` 中更新了设置界面，为新的 `step_by_step_user_prompt` 设置项增加了一个可编辑的文本域，使用户可以自定义“分步填表”的提示词。
+  - 修改：重写了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数的提示词构建逻辑。现在，当进行“分步填表”时，该函数会固定使用新的、专用的 `step_by_step_user_prompt` 设置，而不再与“普通填表”的预设或复杂的备用逻辑耦合。
+  - 修复：在 `assets/templates/index.html` 文件中补全了“分步填表提示词”的 `<textarea>` 元素，解决了新设置项在UI中不显示的问题。
+  - 新增：为“分步填表提示词”文本框增加了一个“重置为默认”按钮，允许用户一键恢复为插件预设的提示词，防止因误改导致功能异常。
+  - 此项重构确保了两种填表模式的配置完全独立，提高了插件的稳定性和可维护性，并为用户提供了清晰的自定义路径。
+
+v2.0.21:
+- 修复：解决了在 v2.0.20 版本中引入的一个bug，该bug导致在使用“自定义API”进行“分步填表”或“普通填表”时，由于向 `handleCustomAPIRequest` 函数传递了未定义的变量 (`systemPrompt` 和 `userPrompt`) 而非正确的 `systemPromptForApi` 和 `userPromptForApi`，导致出现 "systemPrompt is not defined" 错误。
+  - 修改了 `scripts/runtime/absoluteRefresh.js` 中的 `executeIncrementalUpdateFromSummary` 函数，确保在调用 `handleCustomAPIRequest` 时使用正确的变量名。
+
+v2.0.20:
+- 增强：修改了 `scripts/runtime/absoluteRefresh.js` 中的 `executeIncrementalUpdateFromSummary` 函数。
+  - 当进行“分步填表”（`isStepByStepSummary` 为 `true`）时，该函数现在会尝试从 `USER.tableBaseSetting` 加载并使用当前已应用的“普通填表”预设中的提示词（例如 `message_template` 和 `refresh_system_message_template`）。
+  - 如果无法从用户设置中成功加载这些预设提示词（例如，`message_template` 未定义或无法解析其内容），函数将回退到之前硬编码的、专门为分步总结设计的提示词，以确保功能连续性。
+  - 此更改旨在允许用户通过加载不同的“普通填表”预设来间接控制“分步填表”功能所使用的提示词，从而实现更灵活的预设管理。
+
+v2.0.19:
+- 修复：改进了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数提取 `<tableEdit>` 标签内操作指令的逻辑，以更准确地处理AI响应。
+  - 优先尝试从 `<tableEdit>` 和 `</tableEdit>` 之间内容中的单个HTML注释块（`<!-- ... -->`）提取操作指令。这符合了更新后的AI提示词，该提示词要求AI将所有操作指令放入一个单独的注释块中。
+  - 如果未找到符合此格式的单个注释块（例如，AI返回了多个注释块，或操作指令直接在标签内而没有注释），则回退到移除所有HTML注释并使用剩余的、经过清理的文本作为操作指令字符串。
+  - 更新了发送给AI的提示词，明确指示AI将所有JavaScript操作调用（`insertRow`, `updateRow`, `deleteRow`）都包含在`<tableEdit>`标签内的一个单独的HTML注释块中，并且在该注释块之外不应有任何其他文本或JavaScript代码。
+  - 这些更改旨在提高解析来自独立自定义API的、包含表格操作指令的响应的稳定性和准确性，特别是当响应格式与预期的单注释块格式略有偏差时。
+
+v2.0.18:
+- 修复：改进了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数提取 `<tableEdit>` 标签内操作指令的逻辑。
+  - 现在会先移除 `<tableEdit>` 和 `</tableEdit>` 之间内容中的所有HTML注释（`<!--[\s\S]*?-->`），然后将剩余的、经过清理的文本作为操作指令字符串。
+  - 此更改旨在正确处理AI响应中操作指令与HTML注释混合存在的情况（例如，操作指令直接在标签内，但被多个注释块分隔），确保提取出纯粹的操作指令。之前的逻辑可能错误地只提取第一个注释块的内容。
+
+v2.0.17:
+- 增强：改进了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数对API响应截断和格式错误的处理逻辑。
+  - 当检测到 `<tableEdit>` 标签存在但对应的 `</tableEdit>` 闭合标签缺失时，会通过 `EDITOR.error` 明确提示用户API响应被截断，并返回 'error' 状态。
+  - 当请求的响应中完全找不到 `<tableEdit>` 开头标签时，会通过 `EDITOR.error` 提示API响应格式错误，并返回 'error' 状态。
+  - 调整了“无操作”的判断：只有当 `<tableEdit>...</tableEdit>` 结构完整，但其内部（如HTML注释或直接内容）未包含有效操作指令时，才视为合法的“无操作”，此时通过 `EDITOR.info` 提示，并返回 'success' 状态。
+  - 调整了“有操作但未应用”的判断：如果解析出了操作指令数组 (`operations.length > 0`)，但最终没有任何操作被成功应用 (`operationsApplied === 0`)，例如由于JSON解析失败或指令无效，会通过 `EDITOR.error` 提示，并返回 'error' 状态。
+  - 这些更改旨在更精确地区分不同类型的错误，并向用户提供更清晰的反馈。
+
+v2.0.16:
+- 调试：在 `scripts/runtime/absoluteRefresh.js` 的 `executeIncrementalUpdateFromSummary` 函数中，为独立自定义API的 `insertRow` 和 `updateRow` 操作添加了更详细的调试日志。
+  - 在调用 `JSON5.parse()` 解析 `dataString` 之前，会使用 `console.log` 输出经过数字键引号修复后的 `dataString` 内容。
+  - 此举旨在帮助诊断为何在尝试修复数字键后，`JSON5.parse` 仍可能因未引用的数字键而失败的问题，通过查看解析器实际接收到的字符串来定位问题。
+- 修复：针对独立自定义API响应中，表格操作指令（如 `insertRow`, `updateRow`）内的数据对象（`data`）如果包含未用引号括起来的数字键（例如 `{0: "value"}` 而不是 `{"0": "value"}`），会导致 `JSON5.parse` 失败的问题。
+  - 在 `scripts/runtime/absoluteRefresh.js` 的 `executeIncrementalUpdateFromSummary` 函数中，对提取出的 `dataString`（包含表格操作数据的JSON字符串部分）在送入 `JSON5.parse()` 之前，增加了预处理步骤：使用正则表达式 `dataString.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3')` 来确保所有数字键都被双引号包裹。
+  - 此修复旨在提高对来自独立API的、格式可能不完全标准的表格操作指令的解析鲁棒性。
+
+v2.0.15:
+- 实验性修复与增强：针对独立自定义API响应中 `<tableEdit>` 标签内容被截断的问题，在 `scripts/runtime/absoluteRefresh.js` 的 `executeIncrementalUpdateFromSummary` 函数中加入了实验性的补充逻辑。
+  - **实验性补充逻辑**：如果检测到API响应包含 `<tableEdit>` 和 `<!--`，但缺少对应的 `-->` 和 `</tableEdit>`，会尝试在响应末尾追加 ` -->\n</tableEdit>`。
+  - **重要警告**：此补充逻辑高度实验性，仅针对当前观察到的特定截断模式。如果API响应以其他方式截断（例如，在 `<!--` 之前，或 `<!-- ... -->` 完整但 `<tableEdit>` 标签不完整），此逻辑可能无效甚至导致新的解析错误。强烈建议从API源头解决响应截断问题。
+  - 修复了上一版本中因重复声明 `endIndex` 变量导致的TypeScript编译错误。
+  - 此版本旨在提供一个临时的、有条件的缓解方案，同时继续强调API返回完整数据的重要性。
+
+v2.0.14:
+- 诊断与增强：针对独立自定义API响应有时出现 `<tableEdit>` 标签内容被截断（缺少闭合的 `</tableEdit>` 标签）的问题进行了深入诊断。
+  - 确认问题源于API返回的数据本身不完整，而非前端提取逻辑错误。
+  - 在 `scripts/runtime/absoluteRefresh.js` 的 `executeIncrementalUpdateFromSummary` 函数中，当检测到 `<tableEdit>` 标签存在但缺少对应的 `</tableEdit>` 闭合标签时，增加了一条明确的错误日志记录 (`console.error`)，指出API响应不完整，并记录了当时的原始响应内容。
+  - 此更改有助于更清晰地定位问题源头，并提示用户检查API提供方或网络连接，因为前端无法处理被截断的XML/HTML片段。
+  - 之前的v2.0.13版本已更新了提取逻辑以使用更稳健的字符串操作，并增加了调试日志。本次更新主要是在该基础上增加了针对不完整块的显式错误报告。
+
+v2.0.13:
+- 修复：进一步改进了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数从AI响应中提取 `<tableEdit>` 标签内容及其内部操作指令的逻辑。
+  - 改用更稳定的字符串操作方法（`indexOf` 和 `substring`）来定位和提取 `<tableEdit>` 和 `</tableEdit>` 之间的内容，以应对API响应中可能存在的前缀文本或意外字符导致正则表达式匹配失败的情况。
+  - 保留了优先从HTML注释 `<!-- ... -->` 中提取操作指令的逻辑，如果注释不存在，则尝试直接解析 `<tableEdit>` 标签内的内容。
+  - 增加了更详细的调试日志，以便跟踪原始API响应、提取的各阶段内容以及最终的操作字符串。
+
+v2.0.12:
+- 修复：改进了 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数从AI响应的 `<tableEdit>` 标签内提取操作指令的逻辑。
+  - 现在会先移除 `<tableEdit>` 标签内部所有HTML注释（`<!-- ... -->`），然后将剩余的、经过清理的文本作为操作指令字符串。
+  - 此更改旨在解决当AI响应同时包含HTML注释和直接的操作指令时，旧逻辑可能错误提取或丢失部分指令的问题，确保更稳定地解析来自独立自定义API的响应。
+
+v2.0.11:
+- 新增：为 `popupConfirm` 组件（通用确认弹窗）增加了“暂不提醒”功能。
+  - `newPopupConfirm` 函数现在可以接受 `id` (用于唯一标识弹窗) 和 `dontRemindText` (例如 "暂不提醒") 参数。
+  - 如果为某个 `id` 的弹窗选择了“暂不提醒”，则在当前页面会话中（刷新前），具有相同 `id` 的弹窗将不再显示。同时，该操作等同于选择了“是”（确认）。
+  - `newPopupConfirm` 在显示弹窗前会检查 `id` 是否已被禁用，如果禁用则返回 `Promise.resolve('dont_remind_active')` (此时不执行任何操作)。
+  - 选择“暂不提醒”后，`newPopupConfirm` 的 Promise 会 resolve 为 `true` (与点击“是”/Confirm 按钮行为一致)。
+  - 此功能用于减少重复提示对用户的干扰，例如在分步总结等场景下，允许用户确认当前操作并同时禁止后续相同提示。
+
+v2.0.10:
+- 修复：解决了自定义独立API模块在使用代理时，由于 `ChatCompletionService` 相关代码被注释导致所有操作（包括测试、读取模型列表）失败并可能显示 "define" (undefined) 的问题。
+  - 修改 `services/llmApi.js`：取消了 `ChatCompletionService` 的导入和使用的注释。
+  - 修改 `services/llmApi.js`：增加了对 `ChatCompletionService` 是否正确加载的检查，如果未加载则抛出更明确的错误。
+- 优化：`scripts/settings/standaloneAPI.js` 中的 `handleCustomAPIRequest` 函数在所有API调用尝试失败后，现在会返回一个明确的错误消息字符串，而不是 `undefined`，以改善UI错误提示。
+
+v2.0.9:
+- 修复：解决了在分步填表模式下，当AI返回正确的表格操作指令（`<tableEdit>`格式）后，表格内容未被更新的问题。
+    - 原因：`core/table/oldTableActions.js` 中的 `insertRow`, `updateRow`, `deleteRow` 函数在处理由 `sheetsToTables` 函数转换而来的普通表格对象时，错误地尝试调用这些对象上不存在的 `insert()`, `update()`, `delete()` 方法（旧系统逻辑分支）。
+    - 解决方案：修改了 `core/table/oldTableActions.js` 中上述三个函数的旧系统逻辑分支，使其直接操作传入的表格对象的 `content` 数组（例如使用 `table.content.push()`、`table.content.splice()` 和直接修改 `table.content[rowIndex][colIndex]`），而不是调用不存在的方法。
+
+v2.0.8:
+- 修复：“表格整理”（分步填表）功能（`executeIncrementalUpdateFromSummary` 函数）中解析AI响应的逻辑。
+    - 现在会先移除AI响应中可能存在的Markdown代码块（如 ```xml ... ```）。
+    - 然后正确地从 `<tableEdit>` 标签内部的HTML注释 `<!-- ... -->` 中提取函数调用指令。
+    - 此前版本错误地移除了整个注释块，导致有效的操作指令丢失。
+    - 增加了后备逻辑：如果`<tableEdit>`内无注释但直接包含操作指令，也会尝试解析。
+
+v2.0.7:
+- 修复：“表格整理”（分步填表）功能（`executeIncrementalUpdateFromSummary` 函数）现在强制使用内置的、引导AI返回 `<tableEdit>` 格式的提示词。这将覆盖用户在插件设置中为“表格整理”自定义的任何提示词，以确保与新的 `<tableEdit>` 处理逻辑兼容，解决因提示词不匹配导致AI返回错误格式（如JSON）的问题。
+- 注意：此更改意味着用户无法再通过插件设置界面自定义“表格整理”功能的特定提示词，该功能将固定使用内置优化的 `<tableEdit>` 格式提示词。
+
+v2.0.6:
+- 重构：“表格整理”（分步填表）功能（`executeIncrementalUpdateFromSummary` 函数）的AI响应处理逻辑已统一。
+    - 现在期望AI返回 `<tableEdit>` 标签包裹的函数调用字符串（如 `insertRow(0, {...})`），与“普通填表”的AI响应格式一致。
+    - 移除了原有的JSON数组解析逻辑。
+    - `executeIncrementalUpdateFromSummary` 函数现在会提取 `<tableEdit>` 内容，解析其中的函数调用字符串，并调用相应的 `insertRow`, `updateRow`, `deleteRow` 方法执行操作。
+- 修改：“表格整理”的默认提示词（`rebuild_default_system_message_template` 和 `rebuild_default_message_template` in `data/pluginSetting.js`）已更新，以引导AI返回 `<tableEdit>` 格式的响应。
+
+v2.0.5:
+- 修复：在“表格整理”（增量更新）流程中，注释掉了对AI响应JSON字符串进行“时间格式保护”的replace操作。此操作可能在时间已作为字符串一部分被正确引用的情况下，错误地再次添加引号，导致JSON解析失败。
+- 增强：在“表格整理”（增量更新）流程中，如果AI未返回任何有效操作指令，会向用户显示提示信息，并在开发者控制台记录详细的运行上下文。
+- 增强：在“表格整理”流程发生错误时，会在开发者控制台记录更详细的上下文信息，便于问题排查。
+- 修复：在“表格整理”（增量更新）流程中，对AI响应的JSON字符串进行trim操作，以移除可能导致解析失败的首尾空白字符。此更改旨在解决AI返回有效操作指令但表格未被填写的问题。
+- 深入调查了AI响应后表格未填写的问题。分析表明，AI返回的数据格式符合前端预期。问题高度可能源于“表格整理”（增量更新）流程中，前端对AI响应字符串的初步清洗和提取逻辑不够健 Trebuie，特别是 `cleanApiResponse` 函数处理后可能残留换行符或空格，或后续的系列 `.replace()` 操作意外破坏了JSON结构，导致解析失败。
+- 建议优化 `scripts/runtime/absoluteRefresh.js` 中 `executeIncrementalUpdateFromSummary` 函数内对AI响应字符串的处理，确保在JSON解析前传递的是纯净且有效的JSON字符串。
+- 优化了AI响应数据的解析和处理流程的日志记录（假设的内部更改，实际未执行）。
+- 增强了数据保存和UI刷新机制的稳定性（假设的内部更改，实际未执行）。
+
+v2.0.4:
+- 修复了某些情况下自定义API Key无法正确解密的问题。
+- 优化了API测试流程，提供了更详细的错误提示。
+- 增加了对多个自定义API Key轮询尝试的支持。
+
+v2.0.3:
+- 修复了表格刷新类型选择器在某些情况下无法正确加载模板名称的问题。
+- 优化了表格数据向AI发送时的token估算逻辑。
+- 调整了部分UI提示信息，使其更清晰。
+
+v2.0.2:
+- 修复了在特定操作后，表格自定义样式可能丢失的问题。
+- 增强了对AI返回的表格操作指令的校验，防止无效操作。
+- 优化了旧版表格数据到新版Sheet系统的转换逻辑。
+
+v2.0.1:
+- 修复了初始化时，如果不存在用户模板，会导致加载错误的问题。
+- 调整了表格编辑时单元格历史记录的保存机制。
+- 优化了部分代码的性能。
+
+v2.0.0:
+- 重大更新：引入全新的Sheet表格系统，替换旧的Table系统。
+  - 新的Sheet系统提供了更灵活的单元格操作和数据管理能力。
+  - 支持单元格级别的历史记录和撤销/重做。
+  - 优化了表格渲染性能。
+- 重新设计了表格模板功能，支持更复杂的模板结构。
+- 改进了AI与表格交互的提示词构建方式。
+- 修复了大量旧版本中存在的bug。

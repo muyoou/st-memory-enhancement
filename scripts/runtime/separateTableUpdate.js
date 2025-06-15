@@ -173,7 +173,7 @@ export async function TableTwoStepSummary() {
         "取消",
         "执行总结",
         popupId,
-        "暂不提醒"
+        "一直选是" // <--- 修改按钮文本
     );
 
     console.log('newPopupConfirm result for stepwise summary:', confirmResult);
@@ -195,8 +195,9 @@ export async function TableTwoStepSummary() {
         // This block executes if confirmResult is true OR 'dont_remind_active'
         if (confirmResult === 'dont_remind_active') {
             console.log('分步总结弹窗已被禁止，自动执行。');
+            EDITOR.info('已选择“一直选是”，操作将在后台自动执行...'); // <--- 增加后台执行提示
         } else { // confirmResult === true
-            console.log('用户确认执行分步总结 (或首次选择了暂不提醒并确认)');
+            console.log('用户确认执行分步总结 (或首次选择了“一直选是”并确认)');
         }
 
         // 获取当前表格数据
@@ -220,6 +221,8 @@ export async function TableTwoStepSummary() {
         
         const useMainApiForStepByStep = USER.tableBaseSetting.step_by_step_use_main_api === undefined ? true : USER.tableBaseSetting.step_by_step_use_main_api;
 
+        const isSilentMode = confirmResult === 'dont_remind_active';
+
         // 调用增量更新函数，并传递 isStepByStepSummary 标志
         const r = await executeIncrementalUpdateFromSummary(
             todoChats,
@@ -228,7 +231,8 @@ export async function TableTwoStepSummary() {
             latestTables,
             useMainApiForStepByStep, // API choice for step-by-step
             USER.tableBaseSetting.bool_silent_refresh, // isSilentUpdate
-            true // isStepByStepSummary flag
+            true, // isStepByStepSummary flag
+            isSilentMode // Pass silent mode flag
         );
 
         console.log('执行分步总结（增量更新）结果:', r);

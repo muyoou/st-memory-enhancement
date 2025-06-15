@@ -148,8 +148,11 @@
 
                                 <!-- 分步填表 -->
                                 <div id="step_by_step_options" style="padding-left: 20px; width: calc(100% - 20px);">
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label" style="display: flex; align-items: center;">
                                         <input type="checkbox" id="step_by_step_use_main_api" checked><span data-i18n="Use main API">使用主API</span>
+                                        <div class="menu_button menu_button_icon" id="trigger_step_by_step_button" style="margin-left: 10px;">
+                                            <i class="fa-solid fa-play"></i><a data-i18n="Fill now">立即填表</a>
+                                        </div>
                                     </div>
                                     <div class="flex-container slider-container" style="margin: 5px; padding-bottom: 10px">
                                         <label><span data-i18n="Trigger threshold characters">触发阈值字数：</span><code id="step_by_step_threshold_value">900</code><small class="toggle-description" data-i18n="Trigger threshold description">（回复字数大于该值触发分步填表）</small></label>

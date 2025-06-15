@@ -103,7 +103,12 @@ async function decryptXor(encrypted, deviceId) {
     }
 }
 
-async function createLoadingToast(isUseMainAPI = true) {
+async function createLoadingToast(isUseMainAPI = true, isSilent = false) {
+    if (isSilent) {
+        // 在静默模式下，不显示弹窗，直接模拟“后台继续”
+        // 返回 false，因为 PopupConfirm 中“后台继续”按钮（cancelBtn）返回 false
+        return Promise.resolve(false);
+    }
     loadingToast?.close()
     loadingToast = new PopupConfirm();
     return await loadingToast.show(
@@ -118,9 +123,10 @@ async function createLoadingToast(isUseMainAPI = true) {
 /**主API调用
  * @param {string|Array<object>} systemPrompt - 系统提示或消息数组
  * @param {string} [userPrompt] - 用户提示 (如果第一个参数是消息数组，则此参数被忽略)
+ * @param {boolean} [isSilent=false] - 是否以静默模式运行，不显示加载提示
  * @returns {Promise<string>} 生成的响应内容
  */
-export async function handleMainAPIRequest(systemPrompt, userPrompt) {
+export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = false) {
     let finalSystemPrompt = '';
     let finalUserPrompt = '';
     let suspended = false; // Define suspended outside the blocks
@@ -130,8 +136,8 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt) {
         const messages = systemPrompt; // messages is defined here now
 
         // Loading toast logic
-        createLoadingToast().then((r) => {
-            loadingToast.close()
+        createLoadingToast(true, isSilent).then((r) => {
+            if (loadingToast) loadingToast.close();
             suspended = r; // Assign to the outer suspended variable
         });
 
@@ -155,8 +161,8 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt) {
         finalSystemPrompt = systemPrompt;
         finalUserPrompt = userPrompt;
 
-        createLoadingToast().then((r) => {
-            loadingToast.close()
+        createLoadingToast(true, isSilent).then((r) => {
+            if (loadingToast) loadingToast.close();
             suspended = r; // Assign to the outer suspended variable
         });
 
@@ -312,9 +318,10 @@ export async function testApiConnection(apiUrl, apiKeys, modelName) {
  * @param {string|Array<object>} systemPrompt - 系统提示或消息数组
  * @param {string} [userPrompt] - 用户提示 (如果第一个参数是消息数组，则此参数被忽略)
  * @param {boolean} [isStepByStepSummary=false] - 是否为分步总结模式，用于控制流式传输
+ * @param {boolean} [isSilent=false] - 是否以静默模式运行，不显示加载提示
  * @returns {Promise<string>} 生成的响应内容
  */
-export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByStepSummary = false) {
+export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByStepSummary = false, isSilent = false) {
     const USER_API_URL = USER.IMPORTANT_USER_PRIVACY_DATA.custom_api_url;
     const decryptedApiKeysString = await getDecryptedApiKey(); // 获取逗号分隔的密钥字符串
     const USER_API_MODEL = USER.IMPORTANT_USER_PRIVACY_DATA.custom_model_name;
@@ -339,8 +346,8 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
     }
 
     let suspended = false;
-    createLoadingToast(false).then((r) => {
-        loadingToast?.close()
+    createLoadingToast(false, isSilent).then((r) => {
+        if (loadingToast) loadingToast.close();
         suspended = r;
     })
 

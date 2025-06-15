@@ -1429,6 +1429,59 @@ export async function importRebuildTemplate() {
 }
 
 /**
+ * 手动触发一次分步填表
+ */
+export async function triggerStepByStepNow() {
+    console.log('[Memory Enhancement] Manually triggering step-by-step update...');
+    
+    // 1. 获取所需数据
+    const { piece } = BASE.getLastSheetsPiece();
+    if (!piece) {
+        EDITOR.error('无法触发填表：找不到有效的表格数据。');
+        return;
+    }
+    const latestSheets = BASE.hashSheetsToSheets(piece.hash_sheets);
+    const enabledSheets = latestSheets.filter(sheet => sheet.enable);
+
+    if (enabledSheets.length === 0) {
+        EDITOR.info('没有启用的表格，无需执行填表操作。');
+        return;
+    }
+
+    const oldTables = sheetsToTables(enabledSheets);
+    const originTableText = tablesToString(enabledSheets);
+
+    const tableHeadersOnly = oldTables.map((table, index) => ({
+        tableName: table.tableName || `Table ${index + 1}`,
+        headers: table.columns || []
+    }));
+    const tableHeadersJsonString = JSON.stringify(tableHeadersOnly);
+
+    const chat = USER.getContext().chat;
+    const lastChats = await getRecentChatHistory(
+        chat,
+        USER.tableBaseSetting.clear_up_stairs, // 使用现有的设置
+        USER.tableBaseSetting.ignore_user_sent,
+        USER.tableBaseSetting.rebuild_token_limit_value
+    );
+
+    const useMainAPI = USER.tableBaseSetting.step_by_step_use_main_api;
+
+    // 2. 调用核心执行函数
+    EDITOR.info("正在启动手动分步填表...");
+    await executeIncrementalUpdateFromSummary(
+        lastChats,
+        originTableText,
+        tableHeadersJsonString,
+        enabledSheets, // 传递启用的表格
+        useMainAPI,
+        false, // 手动触发时不静默更新，总是显示确认
+        true, // 明确是分步总结模式
+        true // 总是以静默模式运行
+    );
+}
+
+/**
  * 执行增量更新（可用于普通刷新和分步总结）
  * @param {string} chatToBeUsed - 要使用的聊天记录, 为空则使用最近的聊天记录
  * @param {string} originTableText - 当前表格的文本表示
@@ -1437,6 +1490,7 @@ export async function importRebuildTemplate() {
  * @param {boolean} useMainAPI - 是否使用主API
  * @param {boolean} silentUpdate - 是否静默更新,不显示操作确认
  * @param {boolean} isStepByStepSummary - 是否为分步总结模式
+ * @param {boolean} [isSilentMode=false] - 是否以静默模式运行API调用（不显示加载提示）
  * @returns {Promise<string>} 'success', 'suspended', 'error', or empty
  */
 export async function executeIncrementalUpdateFromSummary(
@@ -1446,7 +1500,8 @@ export async function executeIncrementalUpdateFromSummary(
     latestSheets,
     useMainAPI,
     silentUpdate = USER.tableBaseSetting.bool_silent_refresh,
-    isStepByStepSummary = false
+    isStepByStepSummary = false,
+    isSilentMode = false
 ) {
     if (!SYSTEM.lazy('executeIncrementalUpdate', 1000)) return '';
 
@@ -1525,7 +1580,8 @@ export async function executeIncrementalUpdateFromSummary(
                 // Otherwise, pass the separate system and user prompts for normal refresh
                 rawContent = await handleMainAPIRequest(
                     isStepByStepSummary ? systemPromptForApi : systemPromptForApi,
-                    isStepByStepSummary ? null : userPromptForApi
+                    isStepByStepSummary ? null : userPromptForApi,
+                    isSilentMode
                 );
                 if (rawContent === 'suspended') {
                     EDITOR.info('操作已取消 (主API)');
@@ -1538,7 +1594,7 @@ export async function executeIncrementalUpdateFromSummary(
         } else { // Using Custom API
             try {
                 // Calls handleCustomAPIRequest for custom API, pass isStepByStepSummary flag
-                rawContent = await handleCustomAPIRequest(systemPromptForApi, userPromptForApi, isStepByStepSummary);
+                rawContent = await handleCustomAPIRequest(systemPromptForApi, userPromptForApi, isStepByStepSummary, isSilentMode);
                 if (rawContent === 'suspended') {
                     EDITOR.info('操作已取消 (自定义API)');
                     return 'suspended';
