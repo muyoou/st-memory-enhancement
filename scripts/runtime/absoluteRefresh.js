@@ -48,7 +48,7 @@ function confirmTheOperationPerformed(content) {
     return `
 <div class="wide100p padding5 dataBankAttachments">
     <div class="refresh-title-bar">
-        <h2 class="refresh-title"> 请确认以下操作 </h2>
+        <h2 class="refresh-title"> Please confirm the following operations </h2>
         <div>
 
         </div>
@@ -1261,21 +1261,21 @@ function fixTableFormat(inputText) {
 export async function modifyRebuildTemplate() {
     const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
     const sheetConfig= {
-        formTitle: "编辑重整理模板",
-        formDescription: "设置重整理时的提示词结构",
+        formTitle: "Edit Rebuild Template",
+        formDescription: "Set the prompt structure for reorganization",
         fields: [
-            { label: '模板名字', type: 'label', text: selectedTemplate },
-            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
-            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理)' },
+            { label: 'Template Name', type: 'label', text: selectedTemplate },
+            { label: 'System Prompt', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(Used as the beginning of the overall prompt)' },
+            { label: 'Reorganization Rules', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(Explain to AI how to reorganize)' },
         ],
     }
     let initialData = null
     if(selectedTemplate === 'rebuild_base') 
-        return EDITOR.warning('默认模板不能修改，请新建模板');
+        return EDITOR.warning('Default template cannot be modified, please create a new template');
     else 
         initialData = USER.tableBaseSetting.rebuild_message_template_list[selectedTemplate]
     const formInstance = new Form(sheetConfig, initialData);
-    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "保存", allowVerticalScrolling: true, cancelButton: "取消" });
+    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "Save", allowVerticalScrolling: true, cancelButton: "Cancel" });
     await popup.show();
     if (popup.result) {
         const result = formInstance.result();
@@ -1286,31 +1286,30 @@ export async function modifyRebuildTemplate() {
                 name: selectedTemplate,
             }
         }
-        EDITOR.success(`修改模板 "${selectedTemplate}" 成功`);
+        EDITOR.success(`Template "${selectedTemplate}" modified successfully`);
     }
 }
-/*         
 
 /**
  * 新建重整理模板
  */
 export async function newRebuildTemplate() {
     const sheetConfig= {
-        formTitle: "新建重整理模板",
-        formDescription: "设置重整理时的提示词结构",
+        formTitle: "Create New Rebuild Template",
+        formDescription: "Set the prompt structure for reorganization",
         fields: [
-            { label: '模板名字', type: 'text', dataKey: 'name' },
-            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
-            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理, `$1`为上下文聊天记录的局部宏，`$2`为当前表格数据的局部宏)' },
+            { label: 'Template Name', type: 'text', dataKey: 'name' },
+            { label: 'System Prompt', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(Used as the beginning of the overall prompt)' },
+            { label: 'Reorganization Rules', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(Explain to AI how to reorganize, `$1` is the partial context chat log, `$2` is the current table data)' },
         ],
     }
     const initialData = {
-        name: "新重整理模板",
+        name: "New Rebuild Template",
         system_prompt: USER.tableBaseSetting.rebuild_default_system_message_template,
         user_prompt_begin: USER.tableBaseSetting.rebuild_default_message_template,
     };
     const formInstance = new Form(sheetConfig, initialData);
-    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "保存", allowVerticalScrolling: true, cancelButton: "取消" });
+    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "Save", allowVerticalScrolling: true, cancelButton: "Cancel" });
     await popup.show();
     if (popup.result) {
         const result = formInstance.result();
@@ -1322,22 +1321,8 @@ export async function newRebuildTemplate() {
         }
         USER.tableBaseSetting.lastSelectedTemplate = name;
         refreshRebuildTemplate()
-        EDITOR.success(`新建模板 "${name}" 成功`);
+        EDITOR.success(`Template "${name}" created successfully`);
     }
-}
-
-/**
- * 创建不重复的名称
- * @param {string} baseName - 基础名称
- */
-function createUniqueName(baseName) {
-    let name = baseName;
-    let counter = 1;
-    while (USER.tableBaseSetting.rebuild_message_template_list[name]) {
-        name = `${baseName} (${counter})`;
-        counter++;
-    }
-    return name;
 }
 
 /**
@@ -1346,9 +1331,9 @@ function createUniqueName(baseName) {
 export async function deleteRebuildTemplate() {
     const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
     if (selectedTemplate === 'rebuild_base') {
-        return EDITOR.warning('默认模板不能删除');
+        return EDITOR.warning('Default template cannot be deleted');
     }
-    const confirmation = await EDITOR.callGenericPopup('是否删除此模板？', EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
+    const confirmation = await EDITOR.callGenericPopup('Delete this template?', EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "Continue", cancelButton: "Cancel" });
     if (confirmation) {
         const newTemplates = {};
         Object.values(USER.tableBaseSetting.rebuild_message_template_list).forEach((template) => {
@@ -1359,7 +1344,7 @@ export async function deleteRebuildTemplate() {
         USER.tableBaseSetting.rebuild_message_template_list = newTemplates;
         USER.tableBaseSetting.lastSelectedTemplate = 'rebuild_base';
         refreshRebuildTemplate();
-        EDITOR.success(`删除模板 "${selectedTemplate}" 成功`);
+        EDITOR.success(`Template "${selectedTemplate}" deleted successfully`);
     }
 }
 
@@ -1369,11 +1354,11 @@ export async function deleteRebuildTemplate() {
 export async function exportRebuildTemplate() {
     const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
     if (selectedTemplate === 'rebuild_base') {
-        return EDITOR.warning('默认模板不能导出');
+        return EDITOR.warning('Default template cannot be exported');
     }
     const template = USER.tableBaseSetting.rebuild_message_template_list[selectedTemplate];
     if (!template) {
-        return EDITOR.error(`未找到模板 "${selectedTemplate}"`);
+        return EDITOR.error(`Template "${selectedTemplate}" not found`);
     }
     const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1384,7 +1369,7 @@ export async function exportRebuildTemplate() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    EDITOR.success(`导出模板 "${selectedTemplate}" 成功`);
+    EDITOR.success(`Template "${selectedTemplate}" exported successfully`);
 }
 
 /**
@@ -1476,8 +1461,7 @@ export async function triggerStepByStepNow() {
         enabledSheets, // 传递启用的表格
         useMainAPI,
         false, // 手动触发时不静默更新，总是显示确认
-        true, // 明确是分步总结模式
-        true // 总是以静默模式运行
+        true // 明确是分步总结模式
     );
 
     if (result === 'success') {

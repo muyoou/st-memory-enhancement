@@ -485,7 +485,7 @@ function InitBinging() {
         customSheetsStylePopup()
     })
 
-    // 重整理模板编辑
+    // 重建模板编辑
     $("#rebuild--set-rename").on("click", modifyRebuildTemplate)
     $("#rebuild--set-new").on("click", newRebuildTemplate)
     $("#rebuild--set-delete").on("click", deleteRebuildTemplate)
@@ -659,10 +659,10 @@ function templateToTableStructure() {
  */
 export function refreshRebuildTemplate() {
     const templateSelect = $('#rebuild--select');
-    templateSelect.empty(); // 清空现有选项
+    templateSelect.empty(); // Clear current options
     const defaultOption = $('<option>', {
         value: "rebuild_base",
-        text: "默认",
+        text: "Default",
     });
     templateSelect.append(defaultOption);
     Object.keys(USER.tableBaseSetting.rebuild_message_template_list).forEach(key => {
