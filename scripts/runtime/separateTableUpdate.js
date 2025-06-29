@@ -125,6 +125,9 @@ export async function TableTwoStepSummary(mode) {
  */
 export async function manualSummaryChat(todoChats, confirmResult) {
 
+    // 设置一个旗标，用于在onChatCompletionPromptReady中判断是否为填表请求
+    DERIVED.any.isAITableFillingRequest = true;
+
     // 参考piece
     const referencePiece = BASE.getReferencePiece();
 

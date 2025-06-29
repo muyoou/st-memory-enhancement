@@ -495,20 +495,36 @@ async function onChatCompletionPromptReady(eventData) {
     try {
         // 优先处理分步填表模式
         if (USER.tableBaseSetting.step_by_step === true) {
-            // 仅当插件和AI读表功能开启时才注入
-            if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
-                const tableData = getTablePrompt(eventData, true); // 获取纯净数据
-                if (tableData) { // 确保有内容可注入
-                    const finalPrompt = `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${tableData}`;
-                    if (USER.tableBaseSetting.deep === 0) {
+            // 如果是填表请求，则执行完整注入逻辑
+            if (DERIVED.any.isAITableFillingRequest === true) {
+                DERIVED.any.isAITableFillingRequest = false; // 重置旗标
+                // 仅当插件和AI读表功能开启时才注入
+                if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
+                    const tableData = getTablePrompt(eventData, true); // 获取纯净数据
+                    if (tableData) { // 确保有内容可注入
+                        const finalPrompt = `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${tableData}`;
                         eventData.chat.push({ role: getMesRole(), content: finalPrompt });
-                    } else {
-                        eventData.chat.splice(-USER.tableBaseSetting.deep, 0, { role: getMesRole(), content: finalPrompt });
+                        console.log("分步填表模式：注入只读表格数据（填表请求）", eventData.chat);
                     }
-                    console.log("分步填表模式：注入只读表格数据", eventData.chat);
                 }
+                return; // 处理完分步模式后直接退出，不执行后续的常规注入
             }
-            return; // 处理完分步模式后直接退出，不执行后续的常规注入
+            
+            // 如果是普通聊天请求，则执行只读注入逻辑
+            if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
+                if (eventData.dryRun === true || USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false || USER.tableBaseSetting.injection_mode === "injection_off") {
+                    return;
+                }
+                const tableData = getTablePrompt(eventData, true);
+                if (USER.tableBaseSetting.deep === 0) {
+                    eventData.chat.push({ role: getMesRole(), content: tableData });
+                } else {
+                    eventData.chat.splice(-USER.tableBaseSetting.deep, 0, { role: getMesRole(), content: tableData });
+                }
+                console.log("分步填表模式：注入完整表格数据", eventData.chat);
+                return;
+            }
+            return;
         }
 
         // 常规模式的注入逻辑

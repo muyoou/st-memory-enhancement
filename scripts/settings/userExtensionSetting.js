@@ -283,7 +283,7 @@ function InitBinging() {
     $("#fill_table_time").change(function() {
         const value = $(this).val();
         const step_by_step = value === 'after'
-        $('#reply_options').toggle(!step_by_step);
+        $('#reply_options').show(); // 确保注入控件始终可见
         $('#step_by_step_options').toggle(step_by_step);
         USER.tableBaseSetting.step_by_step = step_by_step;
     })
@@ -539,7 +539,7 @@ export function renderSetting() {
     updateSwitch('#alternate_switch', USER.tableBaseSetting.alternate_switch);
     updateSwitch('#show_drawer_in_extension_list', USER.tableBaseSetting.show_drawer_in_extension_list);
     updateSwitch('#table_to_chat_can_edit', USER.tableBaseSetting.table_to_chat_can_edit);
-    $('#reply_options').toggle(!USER.tableBaseSetting.step_by_step);
+    $('#reply_options').show();
     $('#step_by_step_options').toggle(USER.tableBaseSetting.step_by_step);
     $('#table_to_chat_options').toggle(USER.tableBaseSetting.isTableToChat);
     $('#table_to_chat_is_micro_d').toggle(USER.tableBaseSetting.table_to_chat_mode === 'macro');
