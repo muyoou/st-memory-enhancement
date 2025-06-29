@@ -494,24 +494,25 @@ function getMesRole() {
 async function onChatCompletionPromptReady(eventData) {
     try {
         // 优先处理分步填表模式
-        if (USER.tableBaseSetting.step_by_step === true) {
-            // 仅当插件和AI读表功能开启时才注入
-            if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
-                const tableData = getTablePrompt(eventData, true); // 获取纯净数据
-                if (tableData) { // 确保有内容可注入
-                    const finalPrompt = `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${tableData}`;
-                    if (USER.tableBaseSetting.deep === 0) {
-                        eventData.chat.push({ role: getMesRole(), content: finalPrompt });
-                    } else {
-                        eventData.chat.splice(-USER.tableBaseSetting.deep, 0, { role: getMesRole(), content: finalPrompt });
-                    }
-                    console.log("分步填表模式：注入只读表格数据", eventData.chat);
-                }
-            }
-            return; // 处理完分步模式后直接退出，不执行后续的常规注入
-        }
+        // // 优先处理分步填表模式
+        // if (USER.tableBaseSetting.step_by_step === true) {
+        //     // 仅当插件和AI读表功能开启时才注入
+        //     if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
+        //         const tableData = getTablePrompt(eventData, true); // 获取纯净数据
+        //         if (tableData) { // 确保有内容可注入
+        //             const finalPrompt = `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${tableData}`;
+        //             if (USER.tableBaseSetting.deep === 0) {
+        //                 eventData.chat.push({ role: getMesRole(), content: finalPrompt });
+        //             } else {
+        //                 eventData.chat.splice(-USER.tableBaseSetting.deep, 0, { role: getMesRole(), content: finalPrompt });
+        //             }
+        //             console.log("分步填表模式：注入只读表格数据", eventData.chat);
+        //         }
+        //     }
+        //     return; // 处理完分步模式后直接退出，不执行后续的常规注入
+        // }
 
-        // 常规模式的注入逻辑
+        // 统一注入逻辑
         if (eventData.dryRun === true ||
             USER.tableBaseSetting.isExtensionAble === false ||
             USER.tableBaseSetting.isAiReadTable === false ||
@@ -623,9 +624,9 @@ async function onMessageEdited(this_edit_mes_id) {
  */
 async function onMessageReceived(chat_id) {
     if (USER.tableBaseSetting.isExtensionAble === false) return
-    if (USER.tableBaseSetting.step_by_step === true && USER.getContext().chat.length > 2) {
-        TableTwoStepSummary("auto");  // 请勿使用await，否则会导致主进程阻塞引起的连锁bug
-    } else {
+    // if (USER.tableBaseSetting.step_by_step === true && USER.getContext().chat.length > 2) {
+    //     TableTwoStepSummary("auto");  // 请勿使用await，否则会导致主进程阻塞引起的连锁bug
+    // } else {
         if (USER.tableBaseSetting.isAiWriteTable === false) return
         const chat = USER.getContext().chat[chat_id];
         console.log("收到消息", chat_id)
@@ -633,7 +634,7 @@ async function onMessageReceived(chat_id) {
             handleEditStrInMessage(chat)
         } catch (error) {
             EDITOR.error("记忆插件：表格自动更改失败\n原因：", error.message, error)
-        }
+        // }
     }
 
     updateSheetsView()

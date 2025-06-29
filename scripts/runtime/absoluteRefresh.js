@@ -1550,8 +1550,8 @@ export async function executeIncrementalUpdateFromSummary(
 
         const replacePlaceholders = (text) => {
             if (typeof text !== 'string') return '';
-            // text = text.replace(/(?<!\\)\$0/g, () => originTableText);
-            // text = text.replace(/(?<!\\)\$1/g, () => lastChats);
+            text = text.replace(/(?<!\\)\$0/g, () => originTableText);
+            text = text.replace(/(?<!\\)\$1/g, () => lastChats);
             text = text.replace(/(?<!\\)\$3/g, () => finalPrompt);
             return text;
         };
