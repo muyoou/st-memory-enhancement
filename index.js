@@ -524,6 +524,7 @@ async function onChatCompletionPromptReady(eventData) {
                 console.log("分步填表模式：注入完整表格数据", eventData.chat);
                 return;
             }
+            return;
         }
 
         // 常规模式的注入逻辑
