@@ -283,7 +283,7 @@ function InitBinging() {
     $("#fill_table_time").change(function() {
         const value = $(this).val();
         const step_by_step = value === 'after'
-        $('#reply_options').toggle(!step_by_step);
+        // $('#reply_options').toggle(!step_by_step);
         $('#step_by_step_options').toggle(step_by_step);
         USER.tableBaseSetting.step_by_step = step_by_step;
     })
