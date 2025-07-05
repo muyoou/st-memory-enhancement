@@ -67,6 +67,18 @@ export async function initAppHeaderTableDrawer() {
     $('.fa-panorama').removeClass('fa-panorama').addClass('fa-image');
     $('.fa-user-cog').removeClass('fa-user-cog').addClass('fa-user');
 
+    let doNavbarIconClick = undefined;
+    try {
+        // 动态导入，兼容函数不存在的情况
+        const module = await import('../../../../../../script.js');
+        doNavbarIconClick = module.doNavbarIconClick;
+    } catch (e) { }
+
+    if (typeof doNavbarIconClick === 'undefined'){// 适用于SillyTavern 1.13.0及以前
+        tableDrawerContent.attr("data-slide-toggle", "hidden");
+        tableDrawerContent.css("display", "none");
+    }
+
     // 异步获取内容 (只执行一次)
     if (tableViewDom === null) {
         tableViewDom = await getChatSheetsView(-1);
