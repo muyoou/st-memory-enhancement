@@ -839,9 +839,19 @@ jQuery(async () => {
         }
     });
 
+    let doNavbarIconClick = undefined;
+    try {
+        // 动态导入，兼容函数不存在的情况
+        const module = await import('../../../../script.js');
+        doNavbarIconClick = module.doNavbarIconClick;
+    } catch (e) { }
+
     // 设置表格编辑按钮
     $(document).on('click', '#table_drawer_icon', function () {
-        openAppHeaderTableDrawer();
+        if (typeof doNavbarIconClick === 'undefined')
+            openAppHeaderTableDrawer();// 适用于SillyTavern 1.13.0及以前
+        else
+            doNavbarIconClick.call($(this).parent());// 适用于SillyTavern 1.13.1起
         // updateTableContainerPosition();
     })
     // // 设置表格编辑按钮
