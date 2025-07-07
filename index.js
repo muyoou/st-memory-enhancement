@@ -873,7 +873,7 @@ jQuery(async () => {
         tableStructure.enable = $(this).prop('checked');
     })
 
-    initAppHeaderTableDrawer().then();  // 初始化表格编辑器
+    // initAppHeaderTableDrawer().then();  // 初始化表格编辑器
     functionToBeRegistered()    // 注册用于调试的各种函数
 
     executeTranslation(); // 执行翻译函数
