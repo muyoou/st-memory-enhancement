@@ -541,8 +541,8 @@ async function onChatCompletionPromptReady(eventData) {
     try {
         // 优先处理分步填表模式
         if (USER.tableBaseSetting.step_by_step === true) {
-            // 仅当插件和AI读表功能开启时才注入
-            if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true) {
+            // 仅当插件和AI读表功能开启,注入模式不是关闭注入时才注入
+            if (USER.tableBaseSetting.isExtensionAble === true && USER.tableBaseSetting.isAiReadTable === true && USER.tableBaseSetting.injection_mode !== "injection_off") {
                 const tableData = getTablePrompt(eventData, true); // 获取纯净数据
                 if (tableData) { // 确保有内容可注入
                     const finalPrompt = `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${tableData}`;
