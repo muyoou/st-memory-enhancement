@@ -24,15 +24,13 @@ export function filterSavingData(sheet, key=["uid", "name", "domain", "type", "e
         if(k === 'cellHistory') {
             r.cellHistory = sheet.cellHistory.map((
                 {
-                    CellAction,
-                    CellType,
-                    bridge,
-                    parent,
-                    element,
-                    customEventListeners,
-                    ...filter
+                    uid, type, status, coordUid, data, targetUid
                 }) => {
-                return filter;
+                const obj = { uid, coordUid, data };
+                if (status !== '') obj.status = status;
+                if (targetUid !== '') obj.targetUid = targetUid;
+                if (type !== 'cell') obj.type = type;
+                return obj;
             });
             return
         }

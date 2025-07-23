@@ -7,6 +7,7 @@ import { PopupMenu } from "../../components/popupMenu.js";
 import { openTableStatisticsPopup } from "./tableStatistics.js";
 import { openCellHistoryPopup } from "./cellHistory.js";
 import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
+import { Cell } from "../../core/table/cell.js";
 
 let tablePopup = null
 let copyTableData = null
@@ -212,7 +213,7 @@ async function cellDataEdit(cell) {
     if (result) {
         cell.editCellData({ value: result })
         refreshContextView();
-        if(cell.type === cell.CellType.column_header) BASE.refreshTempView(true)
+        if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
     }
 }
 
@@ -256,7 +257,7 @@ function batchEditMode(cell) {
 // 新的事件处理函数
 export function cellClickEditModeEvent(cell) {
     cell.element.style.cursor = 'pointer'
-    if (cell.type === cell.CellType.row_header) {
+    if (cell.type === Cell.CellType.row_header) {
         cell.element.textContent = ''
 
         // 在 cell.element 中添加三个 div，一个用于显示排序，一个用于显示锁定按钮，一个用于显示删除按钮
@@ -284,7 +285,7 @@ export function cellClickEditModeEvent(cell) {
         $(deleteDiv).on('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            handleAction(cell, cell.CellAction.deleteSelfRow)
+            handleAction(cell, Cell.CellAction.deleteSelfRow)
             //if (cell.locked) return
 
             /* cell.parent.hashSheet.forEach(row => {
@@ -302,7 +303,7 @@ export function cellClickEditModeEvent(cell) {
         $(containerDiv).append(indexDiv).append(rightDiv)
         $(cell.element).append(containerDiv)
 
-    } else if (cell.type === cell.CellType.cell) {
+    } else if (cell.type === Cell.CellType.cell) {
         cell.element.style.cursor = 'text'
         cell.element.contentEditable = true
         cell.element.focus()
@@ -431,19 +432,19 @@ function cellClickEvent(cell) {
 
         if (rowIndex === 0 && colIndex === 0) {
             menu.add('<i class="fa-solid fa-bars-staggered"></i> 批量行编辑', () => batchEditMode(cell));
-            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, cell.CellAction.insertRightColumn));
-            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, cell.CellAction.insertDownRow));
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, Cell.CellAction.insertRightColumn));
+            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, Cell.CellAction.insertDownRow));
             menu.add('<i class="fa-solid fa-wand-magic-sparkles"></i> 自定义表格样式', async () => customSheetStyle(cell));
         } else if (colIndex === 0) {
             menu.add('<i class="fa-solid fa-bars-staggered"></i> 批量行编辑', () => batchEditMode(cell));
-            menu.add('<i class="fa fa-arrow-up"></i> 向上插入行', () => handleAction(cell, cell.CellAction.insertUpRow));
-            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, cell.CellAction.insertDownRow));
-            menu.add('<i class="fa fa-trash-alt"></i> 删除行', () => handleAction(cell, cell.CellAction.deleteSelfRow), menu.ItemType.warning)
+            menu.add('<i class="fa fa-arrow-up"></i> 向上插入行', () => handleAction(cell, Cell.CellAction.insertUpRow));
+            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, Cell.CellAction.insertDownRow));
+            menu.add('<i class="fa fa-trash-alt"></i> 删除行', () => handleAction(cell, Cell.CellAction.deleteSelfRow), menu.ItemType.warning)
         } else if (rowIndex === 0) {
             menu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async () => await cellDataEdit(cell));
-            menu.add('<i class="fa fa-arrow-left"></i> 向左插入列', () => handleAction(cell, cell.CellAction.insertLeftColumn));
-            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, cell.CellAction.insertRightColumn));
-            menu.add('<i class="fa fa-trash-alt"></i> 删除列', () => confirmAction(() => { handleAction(cell, cell.CellAction.deleteSelfColumn) }, '确认删除列？'), menu.ItemType.warning);
+            menu.add('<i class="fa fa-arrow-left"></i> 向左插入列', () => handleAction(cell, Cell.CellAction.insertLeftColumn));
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, Cell.CellAction.insertRightColumn));
+            menu.add('<i class="fa fa-trash-alt"></i> 删除列', () => confirmAction(() => { handleAction(cell, Cell.CellAction.deleteSelfColumn) }, '确认删除列？'), menu.ItemType.warning);
         } else {
             menu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async () => await cellDataEdit(cell));
             menu.add('<i class="fa-solid fa-clock-rotate-left"></i> 单元格历史记录', async () => await cellHistoryView(cell));
@@ -498,7 +499,7 @@ function cellClickEvent(cell) {
 function handleAction(cell, action) {
     cell.newAction(action)
     refreshContextView();
-    if(cell.type === cell.CellType.column_header) BASE.refreshTempView(true)
+    if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
 }
 
 export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _cellClickEvent = cellClickEvent) {
@@ -560,8 +561,8 @@ async function renderSheetsDOM(mesId = -1) {
     DERIVED.any.renderingMesId = mesId
     updateSystemMessageTableStatus();
     task.log()
-    const {deep: lastestDeep} = BASE.getLastSheetsPiece()
-    const { piece, deep } = mesId === -1 ? {piece:USER.getContext().chat[lastestDeep], deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
+    const {deep: lastestDeep, piece: lastestPiece} = BASE.getLastSheetsPiece()
+    const { piece, deep } = mesId === -1 ? {piece:lastestPiece, deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
     if (!piece || !piece.hash_sheets) return;
 
     if( deep === lastestDeep) DERIVED.any.isRenderLastest = true;

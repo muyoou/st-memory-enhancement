@@ -41,10 +41,6 @@ export const USER = {
         const {deep} = USER.getChatPiece()
         return {isSwipe: true, deep}
     },
-
-    // getContextSheets: () => APP.getContext().chatMetadata.sheets,
-    // getRoleSheets: () => APP,
-    // getGlobalSheets: () => APP,
     getChatPiece: (deep = 0, direction = 'up') => {
         const chat = APP.getContext().chat;
         if (!chat || chat.length === 0 || deep >= chat.length) return  {piece: null, deep: -1};

@@ -1,5 +1,5 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
-import { executeIncrementalUpdateFromSummary, sheetsToTables } from "./absoluteRefresh.js";
+import { executeIncrementalUpdateFromSummary } from "./absoluteRefresh.js";
 import { newPopupConfirm } from '../../components/popupConfirm.js';
 import { reloadCurrentChat } from "/script.js"
 import {getTablePrompt,initTableData, undoSheets} from "../../index.js"

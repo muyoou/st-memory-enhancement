@@ -193,6 +193,15 @@ export class Sheet extends SheetBase {
         sheetDataToSave.content = this.getContent(true)
         return sheetDataToSave
     }
+
+    getReadableJson() {
+        return{
+            tableName: this.name,
+            tableUid: this.uid,
+            columns: this.getHeader(),
+            content: this.getContent()
+        }
+    }
     /** _______________________________________ 以下函数不进行外部调用 _______________________________________ */
 
     #load(target) {
@@ -208,7 +217,7 @@ export class Sheet extends SheetBase {
             throw new Error('未找到对应的模板');
         }
         if (typeof target === 'object') {
-            if (target.domain === this.SheetDomain.global) {
+            if (target.domain === SheetBase.SheetDomain.global) {
                 console.log('从模板转化表格', target, this);
                 this.loadJson(target)
                 this.domain = 'chat'

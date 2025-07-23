@@ -1,7 +1,6 @@
 // absoluteRefresh.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
-import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEditActions, getTableEditTag } from "../../index.js";
-import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
+import {  convertOldTablesToNewSheets, executeTableEditActions, getTableEditTag } from "../../index.js";
 import JSON5 from '../../utils/json5.min.mjs'
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
 import { TableTwoStepSummary } from "./separateTableUpdate.js";
@@ -9,6 +8,7 @@ import { estimateTokenCount, handleCustomAPIRequest, handleMainAPIRequest } from
 import { profile_prompts } from "../../data/profile_prompts.js";
 import { Form } from '../../components/formManager.js';
 import { refreshRebuildTemplate } from "../settings/userExtensionSetting.js"
+import { safeParse } from '../../utils/stringUtil.js';
 
 // 在解析响应后添加验证
 function validateActions(actions) {
@@ -193,13 +193,11 @@ export function initRefreshTypeSelector() {
 export async function getPromptAndRebuildTable(templateName = '', additionalPrompt, force, isSilentUpdate = USER.tableBaseSetting.bool_silent_refresh, chatToBeUsed = '') {
     let r = '';
     try {
-        // 根据提示模板类型选择不同的表格处理函数
-        // const force = $('#bool_force_refresh').prop('checked');
         r = await rebuildTableActions(force || true, isSilentUpdate, chatToBeUsed);
         return r;
     } catch (error) {
-        console.error('获取提示模板失败:', error);
-        EDITOR.error(`获取提示模板失败`, error.message, error);
+        console.error('总结失败:', error);
+        EDITOR.error(`总结失败: ${error.message}`);
     }
 }
 
@@ -211,21 +209,12 @@ export async function getPromptAndRebuildTable(templateName = '', additionalProm
  * @returns
  */
 export async function rebuildTableActions(force = false, silentUpdate = USER.tableBaseSetting.bool_silent_refresh, chatToBeUsed = '') {
+    // #region 表格总结执行
     let r = '';
     if (!SYSTEM.lazy('rebuildTableActions', 1000)) return;
 
-    // 如果不是强制刷新，先确认是否继续
-    // if (!force) {
-    //     // 显示配置状态
-    //     const tableRefreshPopup = getRefreshTableConfigStatus(1);
-    //     const confirmation = await EDITOR.callGenericPopup(tableRefreshPopup, EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
-    //     if (!confirmation) return;
-    // }
-
-    // 开始重新生成完整表格
     console.log('开始重新生成完整表格');
     const isUseMainAPI = $('#use_main_api').prop('checked');
-
     try {
         const { piece } = BASE.getLastSheetsPiece();
         if (!piece) {
@@ -233,31 +222,22 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
         }
         const latestTables = BASE.hashSheetsToSheets(piece.hash_sheets).filter(sheet => sheet.enable);
         DERIVED.any.waitingTable = latestTables;
+        DERIVED.any.waitingTableIdMap = latestTables.map(table => table.uid);
 
-        const oldTable = sheetsToTables(latestTables)
-        let originText = tablesToString(latestTables);
+        const tableJson = latestTables.map((table, index) => ({...table.getReadableJson(), tableIndex: index}));
+        const tableJsonText = JSON.stringify(tableJson);
 
         // 提取表头信息
-        const tableHeadersOnly = oldTable.map((table, index) => {
-            let name = `Table ${index + 1}`;
-            if (typeof table.tableName === 'string' && table.tableName) {
-                name = table.tableName;
-            }
-            let headers = [];
-            if (Array.isArray(table.headers) && table.headers.length > 0) {
-                headers = table.headers;
-            } else if (Array.isArray(table.columns) && table.columns.length > 0) {
-                headers = table.columns;
-            }
+        const tableHeaders = latestTables.map(table => {
             return {
-                tableName: name,
-                headers: headers
+                tableId: table.uid,
+                headers: table.getHeader()
             };
         });
-        const tableHeadersJson = JSON.stringify(tableHeadersOnly);
-        console.log('表头数据 (JSON):', tableHeadersJson);
+        const tableHeadersText = JSON.stringify(tableHeaders);
 
-        console.log('重整理 - 最新的表格数据:', originText);
+        console.log('表头数据 (JSON):', tableHeadersText);
+        console.log('重整理 - 最新的表格数据:', tableJsonText);
 
         // 获取最近clear_up_stairs条聊天记录
         const chat = USER.getContext().chat;
@@ -265,7 +245,6 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
             USER.tableBaseSetting.clear_up_stairs,
             USER.tableBaseSetting.ignore_user_sent,
             USER.tableBaseSetting.rebuild_token_limit_value
-            // USER.tableBaseSetting.use_token_limit ? USER.tableBaseSetting.rebuild_token_limit_value : 0
         ) : chatToBeUsed;
 
         // 构建AI提示
@@ -295,9 +274,9 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
 
         const replacePrompt = (input) => {
             let output = input
-            output = output.replace(/\$0/g, originText);
+            output = output.replace(/\$0/g, tableJsonText);
             output = output.replace(/\$1/g, lastChats);
-            output = output.replace(/\$2/g, tableHeadersJson);
+            output = output.replace(/\$2/g, tableHeadersText);
             output = output.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
             return output
         }
@@ -311,15 +290,13 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
 
 
         // 搜索userPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats，将$2替换成空表头
-        userPrompt = userPrompt.replace(/\$0/g, originText);
+        userPrompt = userPrompt.replace(/\$0/g, tableJsonText);
         userPrompt = userPrompt.replace(/\$1/g, lastChats);
-        userPrompt = userPrompt.replace(/\$2/g, tableHeadersJson);
+        userPrompt = userPrompt.replace(/\$2/g, tableHeadersText);
         userPrompt = userPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
 
         console.log('systemPrompt:', parsedSystemPrompt);
         // console.log('userPrompt:', userPrompt);
-
-
 
         // 生成响应内容
         let rawContent;
@@ -361,28 +338,29 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
 
         if (!rawContent.trim()) {
             EDITOR.clear();
-            EDITOR.error('API响应内容为空，无法继续处理表格。');
+            EDITOR.error('API响应内容为空，空回复一般是破限问题');
             console.error('API响应内容为空，rawContent:', rawContent);
             return;
         }
 
         const temp = USER.tableBaseSetting.rebuild_message_template_list[USER.tableBaseSetting.lastSelectedTemplate];
         if (temp && temp.parseType === 'text') {
-            const previewHtml = `
-                <div>
-                    <div style="margin-bottom: 10px; display: flex; align-items: center;">
-                        <span style="margin-right: 10px;">返回的总结结果，请复制后使用</span>
-                    </div>
-                    <textarea id="rebuild_text_preview" rows="10" style="width: 100%">${rawContent}</textarea>
-                </div>`;
-
-            const popup = new EDITOR.Popup(previewHtml, EDITOR.POPUP_TYPE.TEXT, '', { wide: true });
-            await popup.show()
-            return
+            showTextPreview(rawContent);
         }
 
-        //清洗
-        let cleanContentTable = fixTableFormat(rawContent);
+        console.log('响应内容如下：', rawContent);
+        let cleanContentTable = null;
+        try{
+            const parsed = safeParse(rawContent);
+            cleanContentTable = Array.isArray(parsed) ? parsed[parsed.length - 1] : parsed;
+        }catch (error) {
+            console.error('解析响应内容失败:', error);
+            EDITOR.clear();
+            EDITOR.error('解析响应内容失败，请检查API返回的内容是否符合预期格式。', error.message, error);
+            showErrorTextPreview(rawContent);
+            return;
+        }
+        
         console.log('cleanContent:', cleanContentTable);
 
         //将表格保存回去
@@ -392,24 +370,11 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 if (!Array.isArray(cleanContentTable)) {
                     throw new Error("生成的新表格数据不是数组");
                 }
-                //标记改动
-                // TODO
-                compareAndMarkChanges(oldTable, cleanContentTable);
-                // console.log('compareAndMarkChanges后的cleanContent:', cleanContentTable);
-
-                // 深拷贝避免引用问题
-                const clonedTables = tableDataToTables(cleanContentTable);
-                console.log('深拷贝后的cleanContent:', clonedTables);
-
-                // 防止修改标题
-                clonedTables.forEach((table, index) => {
-                    table.tableName = oldTable[index].tableName
-                });
 
                 // 如果不是静默更新，显示操作确认
                 if (!silentUpdate) {
                     // 将uniqueActions内容推送给用户确认是否继续
-                    const confirmContent = confirmTheOperationPerformed(clonedTables);
+                    const confirmContent = confirmTheOperationPerformed(cleanContentTable);
                     const tableRefreshPopup = new EDITOR.Popup(confirmContent, EDITOR.POPUP_TYPE.TEXT, '', { okButton: "继续", cancelButton: "取消" });
                     EDITOR.clear();
                     await tableRefreshPopup.show();
@@ -420,33 +385,43 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 }
 
                 // 更新聊天记录
-                const chat = USER.getContext().chat;
                 const { piece } = USER.getChatPiece()
                 if (piece) {
-                    convertOldTablesToNewSheets(clonedTables, piece)
+                    for (const index in cleanContentTable) {
+                        let sheet;
+                        const table = cleanContentTable[index];
+                        if (table.tableUid){
+                            sheet = BASE.getChatSheet(table.tableUid)
+                        }else if(table.tableIndex !== undefined) {
+                            const uid = DERIVED.any.waitingTableIdMap[table.tableIndex]
+                            sheet = BASE.getChatSheet(uid)
+                        }else{
+                            const uid = DERIVED.any.waitingTableIdMap[index]
+                            sheet = BASE.getChatSheet(uid)
+                        }
+                        if(!sheet) {
+                            console.error(`无法找到表格 ${table.tableName} 对应的sheet`);
+                            continue;
+                        }
+                        const valueSheet = [table.columns, ...table.content].map(row => ['', ...row])
+                        sheet.rebuildHashSheetByValueSheet(valueSheet);
+                        sheet.save(piece, true)
+                    }
                     await USER.getContext().saveChat(); // 等待保存完成
                 } else {
-                    throw new Error("聊天记录为空");
+                    throw new Error("聊天记录为空，请至少有一条聊天记录后再总结");
                 }
 
-                // 刷新 UI
-                const tableContainer = document.querySelector('#tableContainer');
-                if (tableContainer) {
-                    BASE.refreshContextView();
-                    updateSystemMessageTableStatus();
-                    EDITOR.success('生成表格成功！');
-                    r = 'success';
-                } else {
-                    // console.error("无法刷新表格：容器未找到");
-                    // EDITOR.error('生成表格失败：容器未找到');
-                }
-                return r;
+                BASE.refreshContextView();
+                updateSystemMessageTableStatus();
+                EDITOR.success('生成表格成功！');
             } catch (error) {
                 console.error('保存表格时出错:', error);
                 EDITOR.error(`生成表格失败`, error.message, error);
             }
         } else {
             EDITOR.error("生成表格保存失败：内容为空");
+            true
         }
 
     } catch (e) {
@@ -455,250 +430,31 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
     } finally {
 
     }
+    // #endregion
 }
 
-export async function refreshTableActions(force = false, silentUpdate = false, chatToBeUsed = '') {
-    if (!SYSTEM.lazy('refreshTableActions', 1000)) return;
+async function showTextPreview(text) {
+    const previewHtml = `
+        <div>
+            <span style="margin-right: 10px;">返回的总结结果，请复制后使用</span>
+        </div>
+        <textarea rows="10" style="width: 100%">${text}</textarea>
+    `;
 
-    // // 如果不是强制刷新，先确认是否继续
-    // if (!force) {
-    //     // 显示配置状态
-    //     const tableRefreshPopup = getRefreshTableConfigStatus();
-    //     const confirmation = await EDITOR.callGenericPopup(tableRefreshPopup, EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
-    //     if (!confirmation) return;
-    // }
+    const popup = new EDITOR.Popup(previewHtml, EDITOR.POPUP_TYPE.TEXT, '', { wide: true });
+    await popup.show();
+}
 
-    // 开始执行整理表格
-    const twoStepIsUseMainAPI = $('#step_by_step_use_main_api').prop('checked');
+async function showErrorTextPreview(text) {
+    const previewHtml = `
+        <div>
+            <span style="margin-right: 10px;">这是AI返回的信息，无法被脚本解析而停止</span>
+        </div>
+        <textarea rows="10" style="width: 100%">${text}</textarea>
+    `;
 
-    try {
-        const { piece } = BASE.getLastSheetsPiece();
-        if (!piece) {
-            throw new Error('findLastestTableData 未返回有效的表格数据');
-        }
-        const latestTables = BASE.hashSheetsToSheets(piece.hash_sheets);
-        DERIVED.any.waitingTable = latestTables;
-
-        let chat = USER.getContext().chat;
-        let originText = '<表格内容>\n' + latestTables
-            .map((table, index) => table.getTableText(index, ['title', 'node', 'headers', 'rows']))
-            .join("\n");
-
-        // 获取最近clear_up_stairs条聊天记录
-        const lastChats = chatToBeUsed === '' ? await getRecentChatHistory(chat, USER.tableBaseSetting.clear_up_stairs, USER.tableBaseSetting.ignore_user_sent) : chatToBeUsed;
-
-        // 构建AI提示
-        let systemPrompt = USER.tableBaseSetting.refresh_system_message_template;
-        let userPrompt = USER.tableBaseSetting.refresh_user_message_template;
-
-        // 搜索systemPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
-        systemPrompt = systemPrompt.replace(/\$0/g, originText);
-        systemPrompt = systemPrompt.replace(/\$1/g, lastChats);
-
-        // 搜索userPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
-        userPrompt = userPrompt.replace(/\$0/g, originText);
-        userPrompt = userPrompt.replace(/\$1/g, lastChats);
-
-        // 生成响应内容
-        let rawContent;
-        if (twoStepIsUseMainAPI) {
-            try {
-                rawContent = await handleMainAPIRequest(systemPrompt, userPrompt);
-                if (rawContent === 'suspended') {
-                    EDITOR.info('操作已取消');
-                    return 'suspended'
-                }
-            } catch (error) {
-                EDITOR.error('主API请求错误: ' , error.message, error);
-            }
-        }
-        else {
-            try {
-                rawContent = await handleCustomAPIRequest(systemPrompt, userPrompt);
-                if (rawContent === 'suspended') {
-                    EDITOR.info('操作已取消');
-                    return 'suspended'
-                }
-            } catch (error) {
-                EDITOR.error('自定义API请求错误: ' , error.message, error);
-            }
-        }
-
-        //统一清洗
-        let cleanContent = cleanApiResponse(rawContent);
-
-        // 解析响应内容
-        let actions;
-        try {
-            // 增强清洗逻辑
-            cleanContent = cleanContent
-                // 时间格式保护（最先处理！！！！！）
-                .replace(/(?<!")(\d{1,2}:\d{2})(?!")/g, '"$1"') // 使用负向断言确保不会重复处理
-                // 统一键名处理
-                .replace(/"([a-zA-Z_]\w*)"\s*:/g, '"$1":') // 仅处理合法键名格式
-                // 尾逗号修复
-                .replace(/,\s*([}\]])/g, '$1')
-                // 数字键处理（需在时间处理后执行）
-                .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3')
-                // 其他处理
-                .replace(/\\\//g, '/')
-                .replace(/\/\/.*/g, ''); // 行注释移除
-
-            // 安全校验
-            if (!cleanContent || typeof cleanContent !== 'string') {
-                throw new Error('无效的响应内容');
-            }
-
-            actions = JSON5.parse(cleanContent);
-            if (!validateActions(actions)) {
-                throw new Error('AI返回了无效的操作格式');
-            }
-        } catch (parseError) {
-            // 添加错误位置容错处理
-            const position = parseError.position || 0;
-            console.error('[解析错误] 详细日志：', {
-                rawContent: cleanContent,
-                errorPosition: parseError.stack,
-                previewText: cleanContent.slice(
-                    Math.max(0, position - 50),
-                    position + 50
-                )
-            });
-            throw new Error(`JSON解析失败：${parseError.message}`);
-        }
-        console.log('清洗后的内容:', cleanContent);
-
-        // 去重并确保删除操作顺序
-        let uniqueActions = [];
-        const deleteActions = [];
-        const nonDeleteActions = [];
-        // 分离删除和非删除操作
-        actions.forEach(action => {
-            if (action.action.toLowerCase() === 'delete') {
-                deleteActions.push(action);
-            } else {
-                nonDeleteActions.push(action);
-            }
-        });
-
-        // 去重非删除操作，考虑表格现有内容
-        const uniqueNonDeleteActions = nonDeleteActions.filter((action, index, self) => {
-            if (action.action.toLowerCase() === 'insert') {
-                const table = DERIVED.any.waitingTable[action.tableIndex];
-
-                // 容错
-                if (!table) {
-                    console.warn(`表索引 ${action.tableIndex} 无效，跳过操作:`, action);
-                    return;
-                }
-                if (!table.content || !Array.isArray(table.content)) {
-                    const tableNameForLog = table.tableName ? `(名称: ${table.tableName})` : '';
-                    console.warn(`表索引 ${action.tableIndex} ${tableNameForLog} 的 'content' 属性无效或不是数组。将初始化为空数组。原始 'content':`, table.content);
-                    table.content = [];
-                }
-
-
-                const dataStr = JSON.stringify(action.data);
-                // 检查是否已存在完全相同的行
-                const existsInTable = table.content.some(row => JSON.stringify(row) === dataStr);
-                const existsInPreviousActions = self.slice(0, index).some(a =>
-                    a.action.toLowerCase() === 'insert' &&
-                    a.tableIndex === action.tableIndex &&
-                    JSON.stringify(a.data) === dataStr
-                );
-                return !existsInTable && !existsInPreviousActions;
-            }
-            return index === self.findIndex(a =>
-                a.action === action.action &&
-                a.tableIndex === action.tableIndex &&
-                a.rowIndex === action.rowIndex &&
-                JSON.stringify(a.data) === JSON.stringify(action.data)
-            );
-        });
-
-        // 去重删除操作并按 rowIndex 降序排序
-        const uniqueDeleteActions = deleteActions
-            .filter((action, index, self) =>
-                index === self.findIndex(a => (
-                    a.tableIndex === action.tableIndex &&
-                    a.rowIndex === action.rowIndex
-                ))
-            )
-            .sort((a, b) => b.rowIndex - a.rowIndex); // 降序排序，确保大 rowIndex 先执行
-
-        // 合并操作：先非删除，后删除
-        uniqueActions = [...uniqueNonDeleteActions, ...uniqueDeleteActions];
-
-        // 如果不是静默更新，显示操作确认
-        if (!silentUpdate) {
-            // 将uniqueActions内容推送给用户确认是否继续
-            const confirmContent = confirmTheOperationPerformed(uniqueActions);
-            const tableRefreshPopup = new EDITOR.Popup(confirmContent, EDITOR.POPUP_TYPE.TEXT, '', { okButton: "继续", cancelButton: "取消" });
-            EDITOR.clear();
-            await tableRefreshPopup.show();
-            if (!tableRefreshPopup.result) {
-                EDITOR.info('操作已取消');
-                return;
-            }
-        }
-
-        // 处理用户确认的操作
-        // 执行操作
-        uniqueActions.forEach(action => {
-            switch (action.action.toLowerCase()) {
-                case 'update':
-                    try {
-                        const targetRow = DERIVED.any.waitingTable[action.tableIndex].content[action.rowIndex];
-                        if (!targetRow || !targetRow[0]?.trim()) {
-                            console.log(`Skipped update: table ${action.tableIndex} row ${action.rowIndex} 第一列为空`);
-                            break;
-                        }
-                        updateRow(action.tableIndex, action.rowIndex, action.data);
-                        console.log(`Updated: table ${action.tableIndex}, row ${action.rowIndex}`, DERIVED.any.waitingTable[action.tableIndex].content[action.rowIndex]);
-                    } catch (error) {
-                        console.error(`Update操作失败: ${error.message}`);
-                    }
-                    break;
-                case 'insert':
-                    const requiredColumns = findTableStructureByIndex(action.tableIndex)?.columns || [];
-                    const isDataComplete = requiredColumns.every((_, index) => action.data.hasOwnProperty(index.toString()));
-                    if (!isDataComplete) {
-                        console.error(`插入失败：表 ${action.tableIndex} 缺少必填列数据`);
-                        break;
-                    }
-                    insertRow(action.tableIndex, action.data);
-                    break;
-                case 'delete':
-                    if (action.tableIndex === 0 || !USER.tableBaseSetting.bool_ignore_del) {
-                        const deletedRow = DERIVED.any.waitingTable[action.tableIndex].content[action.rowIndex];
-                        deleteRow(action.tableIndex, action.rowIndex);
-                        console.log(`Deleted: table ${action.tableIndex}, row ${action.rowIndex}`, deletedRow);
-                    } else {
-                        console.log(`Ignore: table ${action.tableIndex}, row ${action.rowIndex}`);
-                    }
-                    break;
-            }
-        });
-
-        if (USER.tableBaseSetting.bool_ignore_del) {
-            EDITOR.success('删除保护启用，已忽略了删除操作（可在插件设置中修改）');
-        }
-
-        // 更新聊天数据
-        chat = USER.getContext().chat[USER.getContext().chat.length - 1];
-        chat.dataTable = DERIVED.any.waitingTable;
-        USER.getContext().saveChat();
-        // 刷新 UI
-        const tableContainer = document.querySelector('#tableContainer');
-        BASE.refreshContextView();
-        updateSystemMessageTableStatus()
-        EDITOR.success('表格总结完成');
-    } catch (error) {
-        console.error('总结过程出错:', error);
-        EDITOR.error(`总结失败`, error.message, error);
-    } finally {
-
-    }
+    const popup = new EDITOR.Popup(previewHtml, EDITOR.POPUP_TYPE.TEXT, '', { wide: true });
+    await popup.show();
 }
 
 export async function rebuildSheets() {
@@ -811,30 +567,6 @@ export async function rebuildSheets() {
 }
 
 
-
-
-
-/**________________________________________以下是辅助函数_________________________________________*/
-/**________________________________________以下是辅助函数_________________________________________*/
-/**________________________________________以下是辅助函数_________________________________________*/
-
-
-
-// 将Table数组序列化为字符串
-function tablesToString(sheets) {
-    return JSON.stringify(sheetsToTables(sheets));
-}
-
-// 将sheets转化为tables
-export function sheetsToTables(sheets) { // Ensure this is exported
-    return sheets.map((sheet, index) => ({
-        tableName: sheet.name,
-        tableIndex: index,
-        columns: sheet.getHeader(),
-        content: sheet.getContent()
-    }))
-}
-
 // 将tablesData解析回Table数组
 function tableDataToTables(tablesData) {
     return tablesData.map(item => {
@@ -849,39 +581,6 @@ function tableDataToTables(tablesData) {
             insertedRows: item.insertedRows || [],
             updatedRows: item.updatedRows || []
         }
-    });
-}
-
-/**
- * 标记表格变动的内容，用于render时标记颜色
- * @param {*} oldTables
- * @param {*} newTables  *
- */
-function compareAndMarkChanges(oldTables, newTables) {
-    console.log("标记变动：", oldTables, newTables);
-    newTables.forEach((newTable, tableIndex) => {
-        const oldTable = oldTables[tableIndex];
-        newTable.insertedRows = [];
-        newTable.updatedRows = [];
-
-        // 标记新增行（过滤空行）
-        newTable.content.filter(Boolean).forEach((_, rowIndex) => {
-            if (rowIndex >= oldTable.content.filter(Boolean).length) {
-                newTable.insertedRows.push(rowIndex);
-            }
-        });
-
-        // 标记更新单元格（只比较有效行）
-        oldTable.content.filter(Boolean).forEach((oldRow, rowIndex) => {
-            const newRow = newTable.content[rowIndex];
-            if (newRow) {
-                oldRow.forEach((oldCell, colIndex) => {
-                    if (newRow[colIndex] !== oldCell) {
-                        newTable.updatedRows.push(`${rowIndex}-${colIndex}`);
-                    }
-                });
-            }
-        });
     });
 }
 
@@ -956,372 +655,23 @@ async function getRecentChatHistory(chat, chatStairs, ignoreUserSent = false, to
     return chatHistory;
 }
 
-// 测试清理效果
-window.testFuncClean = function (strTest) {
-    strTest = ``
-    cleanApiResponse(strTest)
-};
-
-/**
- * 清洗API返回的原始内容
- * @param {string} rawContent - 原始API响应内容
- * @param {Object} [options={}] - 清洗配置选项
- * @param {boolean} [options.removeCodeBlock=true] - 是否移除JSON代码块标记
- * @param {boolean} [options.extractJson=true] - 是否提取第一个JSON数组/对象
- * @param {boolean} [options.normalizeKeys=true] - 是否统一键名格式
- * @param {boolean} [options.convertSingleQuotes=true] - 是否转换单引号为双引号
- * @param {boolean} [options.removeBlockComments=true] - 是否移除块注释
- * @returns {string} 清洗后的标准化内容
- */
-function cleanApiResponse(rawContent, options = {}) {
-    const {
-        removeCodeBlock = true,       // 移除代码块标记
-        extractJson = true,           // 提取JSON部分
-        normalizeKeys = true,         // 统一键名格式
-        convertSingleQuotes = true,   // 单引号转双引号
-        normalizeTableStructure = true, // 标准化表格结构，处理tablename到columns部分，中文引号改为英文引号
-        normalizeAndValidateColumnsContentPairs = true, // 标准化表格结构，处理content部分，中文引号改为英文引号，然后检查列数和行数是否匹配以及格式问题，否则回退到原始内容
-        removeBlockComments = true    // 移除块注释
-    } = options;
-
-    let content = rawContent;
-
-    // 按顺序执行清洗步骤
-    if (removeCodeBlock) {
-        // 移除 ```json 和 ``` 代码块标记
-        content = content.replace(/```json|```/g, '');
-        console.log("removeCodeBlock", content)
-    }
-    if (extractJson) {
-        // 提取第一个完整的JSON数组/对象（支持跨行匹配）
-        const start = content.indexOf('[');
-        const end = content.lastIndexOf(']');
-        if (start === -1 || end === -1 || end <= start) {
-            console.error('未找到合法的 JSON 数组结构');
-            return null;
-        }
-        content = content.slice(start, end + 1);
-    }
-    if (normalizeKeys) {
-        // 统一键名格式：将带引号或不带引号的键名标准化为带双引号
-        content = content.replace(/([{,]\s*)(?:"?([a-zA-Z_]\w*)"?\s*:)/g, '$1"$2":');
-        console.log("normalizeKeys", content)
-    }
-    if (convertSingleQuotes) {
-        // 将单引号转换为双引号（JSON标准要求双引号）
-        content = content.replace(/'/g, '"');
-        console.log("convertSingleQuotes", content)
-    }
-    if (normalizeTableStructure) {
-        // 标准化表格结构，处理tablename到columns部分，中文引号改为英文引号
-        const regex = /([\"“”])tableName\1\s*:\s*([\"“”])(.+?)\2\s*,\s*([\"“”])tableIndex\4\s*:\s*(\d+)\s*,\s*([\"“”])columns(?:[\"“”]?)/g;
-        content = content.replace(regex, (match, g1QuoteKeyTable, g2QuoteValueTable, g3TableName, g4QuoteKeyIndex, g5TableIndex, g6QuoteKeyColumns) => {
-            return `"tableName":"${g3TableName}","tableIndex":${g5TableIndex},"columns"`;
-        });
-        console.log("normalizeTableStructure", content)
-    }
-    function replaceQuotesInContext(text) {
-        if (typeof text !== 'string') return text;
-        return text.replace(/[“”]/g, (match, offset, fullString) => {
-            const charBefore = offset > 0 ? fullString[offset - 1] : null;
-            const charAfter = offset + match.length < fullString.length ? fullString[offset + match.length] : null;
-            const contextChars = ['[', ']', ','];
-
-            if ((charBefore && contextChars.includes(charBefore)) || (charAfter && contextChars.includes(charAfter))) {
-                return '"';
-            }
-            return match;
-        });
-    }
-
-    if (normalizeAndValidateColumnsContentPairs) {
-        // 标准化表格结构，处理content部分，中文引号改为英文引号，然后检查列数和行数是否匹配以及格式问题，否则回退到原始内容
-        const regex = /([\"“”])columns\1\s*:\s*(\[.*?\])\s*,\s*([\"“”])content\3\s*:\s*(\[(?:\[.*?\](?:,\s*\[.*?\])*)?\])/g;
-        content = content.replace(regex, (match, _quoteKeyColumns, columnsArrayStr, _quoteKeyContent, contentArrayStr) => {
-            let normalizedColumnsArrayStr = replaceQuotesInContext(columnsArrayStr);
-            let normalizedContentArrayStr = replaceQuotesInContext(contentArrayStr);
-
-            let columns;
-            try {
-                columns = JSON.parse(normalizedColumnsArrayStr);
-                if (!Array.isArray(columns) || !columns.every(col => typeof col === 'string')) {
-                    console.warn("警告: 'columns' 部分解析后不是一个有效的字符串数组。原始片段:", columnsArrayStr, "处理后尝试解析:", normalizedColumnsArrayStr, "解析结果:", columns);
-                    return match;
-                }
-            } catch (e) {
-                console.warn("警告: 解析 'columns' 数组失败。错误:", e, "原始片段:", columnsArrayStr, "处理后尝试解析:", normalizedColumnsArrayStr);
-                return match;
-            }
-
-            let contentRows;
-            try {
-                contentRows = JSON.parse(normalizedContentArrayStr);
-                if (!Array.isArray(contentRows)) {
-                    console.warn("警告: 'content' 部分解析后不是一个有效的数组。原始片段:", contentArrayStr, "处理后尝试解析:", normalizedContentArrayStr, "解析结果:", contentRows);
-                    return match;
-                }
-            } catch (e) {
-                console.warn("警告: 解析 'content' 数组失败。错误:", e, "原始片段:", contentArrayStr, "处理后尝试解析:", normalizedContentArrayStr);
-                return match;
-            }
-
-            const numColumns = columns.length;
-            const validatedContentRows = [];
-            let allRowsValid = true;
-
-            for (const row of contentRows) {
-                if (!Array.isArray(row) || row.length !== numColumns) {
-                    console.warn(`警告: 内容行与列数 (${numColumns}) 不匹配或行本身不是数组。行数据:`, row);
-                    allRowsValid = false;
-                    break;
-                }
-                if (!row.every(cell => typeof cell === 'string')) {
-                    console.warn("警告: 内容行中并非所有单元格都是字符串。行数据:", row);
-                    allRowsValid = false;
-                    break;
-                }
-                validatedContentRows.push(row);
-            }
-
-            if (!allRowsValid) {
-                console.warn("警告: 'content' 数组的某些行未通过验证，该 'columns'-'content' 片段将不会被修改。");
-                return match;
-            }
-
-            const finalColumnsStr = JSON.stringify(columns);
-            const finalContentStr = JSON.stringify(validatedContentRows);
-
-            return `"columns":${finalColumnsStr},"content":${finalContentStr}`;
-        });
-        console.log("normalizeAndValidateColumnsContentPairs", content)
-    }
-    if (removeBlockComments) {
-        // 移除 /* ... */ 形式的块注释
-        content = content.replace(/\/\*.*?\*\//g, '');
-        console.log("removeBlockComments", content)
-    }
-    // 通过括号配平来确定JSON的结束位置
-    const openChar = content[0];
-    const closeChar = (openChar === '[') ? ']' : '}';
-    let balance = 0;
-    let lastCharIndex = -1;
-
-    for (let i = 0; i < content.length; i++) {
-        if (content[i] === openChar) {
-            balance++;
-        } else if (content[i] === closeChar) {
-            balance--;
-        }
-        if (balance === 0) {
-            lastCharIndex = i;
-            content = content.substring(0, lastCharIndex + 1);
-            break;
-        }
-    }
-
-    // 去除首尾空白
-    content = content.trim();
-    console.log('清洗前的内容:', rawContent);
-    console.log('清洗后的内容:', content);
-
-    return content;
-}
-
 /**
  * 修复表格格式
  * @param {string} inputText - 输入的文本
  * @returns {string} 修复后的文本
  * */
 function fixTableFormat(inputText) {
-    const safeParse = (str) => {
-        try {
-            return JSON.parse(str);
-        } catch (primaryError) {
-            // 深度清洗：处理未闭合引号和注释
-            const deepClean = str
-                .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":')  // 修复键名引号
-                .replace(/\/\/.*?\n/g, '')    // 移除行注释
-                .replace(/([:,])\s*([^"{[\s-]+)(\s*[}\]])/g, '$1 "$2"$3') // 补全缺失引号
-                .replace(/'/g, '"')           // 单引号转双引号
-                .replace(/(\w)\s*"/g, '$1"')  // 清理键名后多余空格
-                .replace(/,\s*]/g, ']')       // 移除尾逗号
-                .replace(/}\s*{/g, '},{');    // 修复缺失的数组分隔符
-
-            try {
-                return JSON.parse(deepClean);
-            } catch (fallbackError) {
-                throw new Error(`解析失败: ${fallbackError.message}`);
-            }
-        }
-    };
-
-    const extractTable = (text) => {
-        let balance = 0;
-        let startIndex = -1;
-        let inString = false;
-        let escapeNext = false;
-
-        // 查找潜在数组的第一个左方括号
-        let initialArrayIndex = -1;
-        for (let i = 0; i < text.length; i++) {
-            if (text[i] === '[') {
-                initialArrayIndex = i;
-                break;
-            }
-        }
-
-        if (initialArrayIndex === -1) {
-            console.warn("extractTable: 未找到左方括号 '['。将回退到正则表达式。");
-            const regex = /\[(?:[^\[\]"]|"(?:\\.|[^"\\])*"|\{[^{}]*?\})*?\]/g;
-            let match;
-            const candidates = [];
-            while ((match = regex.exec(text)) !== null) {
-                try {
-                    JSON5.parse(match[0]);
-                    candidates.push(match[0]);
-                } catch (e) { /* 忽略无效的JSON */ }
-            }
-            if (candidates.length > 0) return candidates.sort((a, b) => b.length - a.length)[0];
-            const simpleCandidates = text.match(/\[[^\[\]]*\]/g) || [];
-            return simpleCandidates.sort((a, b) => b.length - a.length)[0] || null;
-        }
-
-        startIndex = initialArrayIndex;
-
-        for (let i = startIndex; i < text.length; i++) {
-            const char = text[i];
-
-            if (escapeNext) {
-                escapeNext = false;
-                continue;
-            }
-
-            if (char === '\\') {
-                escapeNext = true;
-                continue;
-            }
-
-            if (char === '"') {
-                inString = !inString;
-            }
-
-            if (inString) {
-                continue;
-            }
-
-            if (char === '[') {
-                balance++;
-            } else if (char === ']') {
-                balance--;
-                if (balance === 0 && startIndex !== -1) {
-                    const extracted = text.substring(startIndex, i + 1);
-                    try {
-                        JSON5.parse(extracted);
-                        return extracted;
-                    } catch (e) {
-                        console.error("extractTable: 通过括号计数提取的片段不是有效的JSON。片段:", extracted, "错误:", e, "正在回退。");
-                        startIndex = -1; // 使当前尝试无效
-                        balance = 0; // 重置计数
-                        break; // 退出循环以进行回退
-                    }
-                }
-            }
-        }
-        EDITOR.clear();
-        EDITOR.error("API返回了一个错误信息!");
-        EDITOR.error(inputText.length > 300 ? inputText.slice(0, 300) + '...' : inputText);
-        throw new Error("未能找到完整的有效JSON数组，流程中止！");
-
-        // console.warn("extractTable: 括号计数未能找到完整的有效JSON数组。将回退到正则表达式。");
-        // const regex = /\[(?:[^\[\]"]|"(?:\\.|[^"\\])*"|\{[^{}]*?\})*?\]/g;
-        // let match;
-        // const candidates = [];
-        // while((match = regex.exec(text)) !== null) {
-        //     try {
-        //         JSON5.parse(match[0]);
-        //         candidates.push(match[0]);
-        //     } catch(e) { /* 忽略无效的JSON */ }
-        // }
-        //
-        // if (candidates.length > 0) {
-        //     return candidates.sort((a, b) => b.length - a.length)[0];
-        // }
-
-        // console.warn("extractTable: 改进的正则表达式也失败了。将回退到原始的简单正则表达式。");
-        // const simpleCandidates = text.match(/\[[^\[\]]*\]/g) || [];
-        // return simpleCandidates.sort((a, b) => b.length - a.length)[0] || null;
-    };
-
-    // 主流程
     try {
-        let jsonStr = cleanApiResponse(inputText)
-        console.log('cleanApiResponse预处理后:', jsonStr);
-        jsonStr = extractTable(jsonStr);
-        console.log('extractTable提取后:', jsonStr);
-        if (!jsonStr) throw new Error("未找到有效表格数据");
-
-        // 关键预处理：修复常见格式错误
-        jsonStr = jsonStr
-            .replace(/(\w)\s*"/g, '$1"')        // 键名后空格
-            .replace(/:\s*([^"{\[]+)(\s*[,}])/g, ': "$1"$2')    // 值缺失引号
-            .replace(/"tableIndex":\s*"(\d+)"/g, '"tableIndex": $1')    // 移除tableIndex的引号
-            .replace(/"\s*\+\s*"/g, '')         // 拼接字符串残留
-            .replace(/\\n/g, '')                // 移除换行转义
-            .replace(/({|,)\s*([a-zA-Z_]+)\s*:/g, '$1"$2":')    // 键名标准化
-            .replace(/"(\d+)":/g, '$1:')  // 修复数字键格式
-
-        console.log('关键预处理修复常见格式错误后:', jsonStr);
-
-        // 强约束解析
-        let tables = safeParse(jsonStr);
-        console.log('safeParse强约束解析后:', tables);
-
-        tables = tables.map(table => ({  // 新增：类型转换
-            ...table,
-            tableIndex: parseInt(table.tableIndex) || 0
-        }));
-
-
-        // 列对齐修正
-        return tables.map((table, index) => {
-            if (!table || typeof table !== 'object') {
-                console.error(`处理索引 ${index} 处的表格时出错：表格数据无效（null、undefined 或不是对象）。接收到：`, table);
-                return { tableName: `无效表格 (索引 ${index})`, columns: [], content: [] }; // 返回默认的空表格结构
-            }
-
-            let columnCount = 0;
-            if (table.columns) {
-                if (Array.isArray(table.columns)) {
-                    columnCount = table.columns.length;
-                } else {
-                    console.error(`表格 "${table.tableName || `(原始索引 ${index})`}" 在映射索引 ${index} 处的表格结构错误：'columns' 属性不是数组。找到：`, table.columns);
-                }
-            } else {
-                console.error(`表格 "${table.tableName || `(原始索引 ${index})`}" 在映射索引 ${index} 处的表格结构错误：未找到 'columns' 属性。找到：`, table);
-            }
-
-            if (Array.isArray(table.content)) {
-                table.content = table.content.map(row => {
-                    if (row === null || row === undefined) {
-                        return Array(columnCount).fill("");
-                    }
-                    return Array.from({ length: columnCount }, (_, i) => row[i]?.toString().trim() || "");
-                });
-            } else {
-                console.error(`表格 "${table.tableName || `(原始索引 ${index})`}" 在映射索引 ${index} 处的表格结构错误：'content' 属性不是数组。找到：`, table.content);
-                table.content = []; // 如果 'content' 不是数组或缺失，则默认为空
-            }
-            return table;
-        });
+        return safeParse(inputText);
     } catch (error) {
         console.error("修复失败:", error);
+        const popup = new EDITOR.Popup(`脚本无法解析返回的数据，可能是破限力度问题，也可能是输出掉格式。这里是返回的数据：<div>${inputText}</div>`, EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "确定" });
+        popup.show();
         throw new Error('无法解析表格数据');
-        // 原暴力提取逻辑已禁用
-        // const rawTables = inputText.match(/{[^}]*?"tableIndex":\s*\d+[^}]*}/g) || [];
-        // const sixTables = rawTables.slice(0, 6).map(t => JSON.parse(t.replace(/'/g, '"')));
-        // return sixTables
     }
 }
+
+window.fixTableFormat = fixTableFormat; // 暴露给全局
 
 /**
  * 修改重整理模板

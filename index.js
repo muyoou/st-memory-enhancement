@@ -12,11 +12,13 @@ import { functionToBeRegistered } from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import {executeTranslation} from "./services/translate.js";
 import applicationFunctionManager from "./services/appFuncManager.js"
+import {SheetBase} from "./core/table/base.js";
+import { Cell } from "./core/table/cell.js";
 
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.1.1'
+const VERSION = '2.2.0'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -78,7 +80,7 @@ export function buildSheetsByTemplates(targetPiece) {
             const newSheet = BASE.createChatSheetByTemp(template);
             newSheet.save(targetPiece);
         } catch (error) {
-            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, "", error);
+            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, error.message, error);
         }
     })
     BASE.updateSelectBySheetStatus()
@@ -110,7 +112,7 @@ export function convertOldTablesToNewSheets(oldTableList, targetPiece) {
         // 如果表格未存在，则创建新的表格
         const newSheet = BASE.createChatSheet(cols, rows);
         newSheet.name = oldTable.tableName
-        newSheet.domain = newSheet.SheetDomain.chat
+        newSheet.domain = SheetBase.SheetDomain.chat
         newSheet.type = newSheet.SheetType.dynamic
         newSheet.enable = oldTable.enable
         newSheet.required = oldTable.Required
@@ -374,14 +376,14 @@ function executeAction(EditAction, sheets) {
             Object.entries(action.data).forEach(([key, value]) => {
                 const cell = sheet.findCellByPosition(rowIndex + 1, parseInt(key) + 1)
                 if (!cell) return -1
-                cell.newAction(cell.CellAction.editCell, { value }, false)
+                cell.newAction(Cell.CellAction.editCell, { value }, false)
             })
             break
         case 'insert': {
             // 执行插入操作
             const cell = sheet.findCellByPosition(sheet.getRowCount() - 1, 0)
             if (!cell) return -1
-            cell.newAction(cell.CellAction.insertDownRow, {}, false)
+            cell.newAction(Cell.CellAction.insertDownRow, {}, false)
             const lastestRow = sheet.getRowCount() - 1
             const cells = sheet.getCellsByRowIndex(lastestRow)
             if(!cells || !action.data) return
@@ -396,7 +398,7 @@ function executeAction(EditAction, sheets) {
             const deleteRow = parseInt(action.rowIndex) + 1
             const cell = sheet.findCellByPosition(deleteRow, 0)
             if (!cell) return -1
-            cell.newAction(cell.CellAction.deleteSelfRow, {}, false)
+            cell.newAction(Cell.CellAction.deleteSelfRow, {}, false)
             break
     }
     console.log("执行表格编辑操作", EditAction)
@@ -821,7 +823,10 @@ jQuery(async () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientVersion: VERSION, user: USER.getContext().name1 })
     }).then(res => res.json()).then(res => {
         if (res.success) {
-            if (!res.isLatest) $("#tableUpdateTag").show()
+            if (!res.isLatest) {
+                $("#tableUpdateTag").show()
+                $("#setting_button_new_tag").show() // 显示设置按钮的New标记
+            }
             if (res.toastr) EDITOR.warning(res.toastrText)
             if (res.message) $("#table_message_tip").html(res.message)
         }
