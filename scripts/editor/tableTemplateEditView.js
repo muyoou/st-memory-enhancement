@@ -4,6 +4,8 @@ import { PopupMenu } from '../../components/popupMenu.js';
 import { Form } from '../../components/formManager.js';
 import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
 import { compareDataDiff } from "../../utils/utility.js";
+import {SheetBase} from "../../core/table/base.js"
+import { Cell } from '../../core/table/cell.js';
 
 let drag = null;
 let currentPopupMenu = null;
@@ -333,15 +335,15 @@ function bindCellClickEvent(cell) {
         const sheetType = cell.parent.type;
 
         if (rowIndex === 0 && colIndex === 0) {
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, cell.CellAction.insertRightColumn) });
-            if (sheetType === cell.parent.SheetType.free || sheetType === cell.parent.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, cell.CellAction.insertDownRow) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
             }
         } else if (rowIndex === 0) {
             cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async (e) => { await templateCellDataEdit(cell) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-left"></i> 向左插入列', (e) => { handleAction(cell, cell.CellAction.insertLeftColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, cell.CellAction.insertRightColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除列', (e) => { handleAction(cell, cell.CellAction.deleteSelfColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-left"></i> 向左插入列', (e) => { handleAction(cell, Cell.CellAction.insertLeftColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除列', (e) => { handleAction(cell, Cell.CellAction.deleteSelfColumn) });
         } else if (colIndex === 0) {
             // if (sheetType === cell.parent.SheetType.dynamic) {
             //     cell.element.delete();
@@ -349,13 +351,13 @@ function bindCellClickEvent(cell) {
             // }
 
             cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该行', async (e) => { await templateCellDataEdit(cell) });
-            if (sheetType === cell.parent.SheetType.free || sheetType === cell.parent.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-up"></i> 向上插入行', (e) => { handleAction(cell, cell.CellAction.insertUpRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, cell.CellAction.insertDownRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除行', (e) => { handleAction(cell, cell.CellAction.deleteSelfRow) });
+            if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-up"></i> 向上插入行', (e) => { handleAction(cell, Cell.CellAction.insertUpRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除行', (e) => { handleAction(cell, Cell.CellAction.deleteSelfRow) });
             }
         } else {
-            if (sheetType === cell.parent.SheetType.static) {
+            if (sheetType === SheetBase.SheetType.static) {
                 cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async (e) => { await templateCellDataEdit(cell) });
             } else {
                 return;

@@ -152,6 +152,9 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
 
         console.log('主API请求的多消息数组:', messages); // Log the actual array
         // Use TavernHelper.generateRaw with the array, enabling streaming
+
+        if(!TavernHelper) throw new Error("酒馆助手未安装，总结功能依赖于酒馆助手插件，请安装后刷新");
+
         const response = await TavernHelper.generateRaw({
             ordered_prompts: messages, // Pass the array directly
             should_stream: true,      // Re-enable streaming
@@ -261,7 +264,7 @@ export async function handleApiTestRequest(apiUrl, encryptedApiKeys, modelName) 
 
         return results; // 返回结果数组
     } catch (error) {
-        EDITOR.error(`API 测试过程中发生错误: ${error.message}`);
+        EDITOR.error(`API 测试过程中发生错误`, error.message, error);
         console.error("API Test Error:", error);
         // 发生一般错误时返回一个表示所有测试密钥失败的数组
         return keysToTest.map((_, index) => ({
@@ -419,7 +422,7 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
         } catch (error) { // This catch should ideally not be reached due to inner try/catch
             console.error(`处理密钥索引 ${keyIndexToTry} 时发生意外错误:`, error);
             lastError = error;
-            EDITOR.error(`处理第 ${keyIndexToTry + 1} 个 Key 时发生意外错误: ${error.message || '未知错误'}`);
+            EDITOR.error(`处理第 ${keyIndexToTry + 1} 个 Key 时发生意外错误`, error.message || '未知错误', error);
         }
     }
 
@@ -431,7 +434,7 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
     }
 
     const errorMessage = `所有 ${attempts} 次尝试均失败。最后错误: ${lastError?.message || '未知错误'}`;
-    EDITOR.error(errorMessage);
+    EDITOR.error(errorMessage, "", lastError);
     console.error('所有API调用尝试均失败。', lastError);
     return `错误: ${errorMessage}`; // 返回一个明确的错误字符串
 
@@ -543,7 +546,7 @@ export async function updateModelList() {
         normalizedUrl.pathname = normalizedUrl.pathname.replace(/\/$/, '') + '/models';
         modelsUrl = normalizedUrl.href;
     } catch (e) {
-        EDITOR.error(`无效的API URL: ${apiUrl}`);
+        EDITOR.error(`无效的API URL: ${apiUrl}`, "", e);
         console.error('URL解析失败:', e);
         return;
     }

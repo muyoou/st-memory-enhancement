@@ -8,16 +8,17 @@ import { initTest } from "./components/_fotTest.js";
 import { initAppHeaderTableDrawer, openAppHeaderTableDrawer } from "./scripts/renderer/appHeaderTableBaseDrawer.js";
 import { initRefreshTypeSelector } from './scripts/runtime/absoluteRefresh.js';
 import {refreshTempView, updateTableContainerPosition} from "./scripts/editor/tableTemplateEditView.js";
-import { refreshContextView } from "./scripts/editor/chatSheetsDataView.js";
 import { functionToBeRegistered } from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import {executeTranslation} from "./services/translate.js";
 import applicationFunctionManager from "./services/appFuncManager.js"
+import {SheetBase} from "./core/table/base.js";
+import { Cell } from "./core/table/cell.js";
 
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.1.1'
+const VERSION = '2.2.0'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -79,7 +80,7 @@ export function buildSheetsByTemplates(targetPiece) {
             const newSheet = BASE.createChatSheetByTemp(template);
             newSheet.save(targetPiece);
         } catch (error) {
-            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, "", error);
+            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, error.message, error);
         }
     })
     BASE.updateSelectBySheetStatus()
@@ -111,7 +112,7 @@ export function convertOldTablesToNewSheets(oldTableList, targetPiece) {
         // 如果表格未存在，则创建新的表格
         const newSheet = BASE.createChatSheet(cols, rows);
         newSheet.name = oldTable.tableName
-        newSheet.domain = newSheet.SheetDomain.chat
+        newSheet.domain = SheetBase.SheetDomain.chat
         newSheet.type = newSheet.SheetType.dynamic
         newSheet.enable = oldTable.enable
         newSheet.required = oldTable.Required
@@ -375,13 +376,14 @@ function executeAction(EditAction, sheets) {
             Object.entries(action.data).forEach(([key, value]) => {
                 const cell = sheet.findCellByPosition(rowIndex + 1, parseInt(key) + 1)
                 if (!cell) return -1
-                cell.newAction(cell.CellAction.editCell, { value }, false)
+                cell.newAction(Cell.CellAction.editCell, { value }, false)
             })
             break
         case 'insert': {
             // 执行插入操作
             const cell = sheet.findCellByPosition(sheet.getRowCount() - 1, 0)
-            cell.newAction(cell.CellAction.insertDownRow, {}, false)
+            if (!cell) return -1
+            cell.newAction(Cell.CellAction.insertDownRow, {}, false)
             const lastestRow = sheet.getRowCount() - 1
             const cells = sheet.getCellsByRowIndex(lastestRow)
             if(!cells || !action.data) return
@@ -396,7 +398,7 @@ function executeAction(EditAction, sheets) {
             const deleteRow = parseInt(action.rowIndex) + 1
             const cell = sheet.findCellByPosition(deleteRow, 0)
             if (!cell) return -1
-            cell.newAction(cell.CellAction.deleteSelfRow, {}, false)
+            cell.newAction(Cell.CellAction.deleteSelfRow, {}, false)
             break
     }
     console.log("执行表格编辑操作", EditAction)
@@ -432,7 +434,15 @@ function formatParams(paramArray) {
             return Number(trimmed);
         }
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            return parseLooseDict(trimmed);
+            const parsed = parseLooseDict(trimmed);
+            if (typeof parsed === 'object' && parsed !== null) {
+                Object.keys(parsed).forEach(key => {
+                    if (!/^\d+$/.test(key)) {
+                        delete parsed[key];
+                    }
+                });
+            }
+            return parsed;
         }
 
         // 其他情况都返回字符串
@@ -766,20 +776,38 @@ export async function undoSheets(deep) {
  * @description 更新表格视图，使用新的Sheet系统
  * @returns {Promise<*[]>}
  */
-async function updateSheetsView() {
-    const task = new SYSTEM.taskTiming('openAppHeaderTableDrawer_task')
+async function updateSheetsView(mesId) {
     try{
        // 刷新表格视图
         console.log("========================================\n更新表格视图")
-        refreshTempView(true).then(() => task.log());
+        refreshTempView(true)
         console.log("========================================\n更新表格内容视图")
-        refreshContextView().then(() => task.log());
+        BASE.refreshContextView(mesId)
 
         // 更新系统消息中的表格状态
         updateSystemMessageTableStatus(); 
     }catch (error) {
         EDITOR.error("记忆插件：更新表格视图失败\n原因：", error.message, error)
     }
+}
+
+/**
+ * 打开表格drawer
+ */
+export function openDrawer() {
+    const drawer = $('#table_database_settings_drawer .drawer-toggle')
+    if (isDrawerNewVersion()) {
+        applicationFunctionManager.doNavbarIconClick.call(drawer)
+    }else{
+        return openAppHeaderTableDrawer()
+    }
+}
+
+/**
+ * 获取是新版还是旧版drawer
+ */
+export function isDrawerNewVersion() {
+    return !!applicationFunctionManager.doNavbarIconClick
 }
 
 jQuery(async () => {
@@ -795,13 +823,16 @@ jQuery(async () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientVersion: VERSION, user: USER.getContext().name1 })
     }).then(res => res.json()).then(res => {
         if (res.success) {
-            if (!res.isLatest) $("#tableUpdateTag").show()
+            if (!res.isLatest) {
+                $("#tableUpdateTag").show()
+                $("#setting_button_new_tag").show() // 显示设置按钮的New标记
+            }
             if (res.toastr) EDITOR.warning(res.toastrText)
             if (res.message) $("#table_message_tip").html(res.message)
         }
     })
 
-    // 注意：已移除旧表格系统的初始化代码，现在使用新的Sheet系统
+    $('.extraMesButtons').append('<div title="查看表格" class="mes_button open_table_by_id">表格</div>');
 
     // 分离手机和电脑事件
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
@@ -822,6 +853,17 @@ jQuery(async () => {
     // 应用程序启动时加载设置
     loadSettings();
 
+    // 表格弹出窗
+    $(document).on('click', '.open_table_by_id', function () {
+        const messageId = parseInt($(this).closest('.mes').attr('mesid'))
+        if (USER.getContext().chat[messageId].is_user === true) {
+            toastr.warning('用户消息不支持表格编辑')
+            return
+        }
+        BASE.refreshContextView(messageId)
+        openDrawer()
+    })
+
     // 注册宏
     USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
     USER.getContext().registerMacro("tableData", () =>getMacroTablePrompt())
@@ -835,14 +877,14 @@ jQuery(async () => {
             return JSON.stringify(jsonData);
         } catch (error) {
             console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
-            EDITOR.error("导出所有表格数据时出错。");
+            EDITOR.error("导出所有表格数据时出错。","",error);
             return "{}"; // 出错时返回空JSON对象
         }
     });
 
     // 设置表格编辑按钮
     console.log("设置表格编辑按钮", applicationFunctionManager.doNavbarIconClick)
-    if (applicationFunctionManager.doNavbarIconClick) {
+    if (isDrawerNewVersion()) {
         $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
     }else{
         $('#table_drawer_content').attr('data-slide-toggle', 'hidden').css('display', 'none');

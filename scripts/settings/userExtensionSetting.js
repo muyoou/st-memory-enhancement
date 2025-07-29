@@ -179,13 +179,13 @@ async function importTableSet() {
                 EDITOR.success('导入成功并已重置所选设置'); // 提示用户导入成功
 
             } catch (error) {
-                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。'); // 提示 JSON 解析失败
+                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。', error.message, error); // 提示 JSON 解析失败
                 console.error("文件读取或解析错误:", error); // 打印详细错误信息到控制台
             }
         };
 
         reader.onerror = (error) => {
-            EDITOR.error(`文件读取失败: ${error}`); // 提示文件读取失败
+            EDITOR.error(`文件读取失败`, error.message, error); // 提示文件读取失败
         };
 
         reader.readAsText(file); // 以文本格式读取文件内容
@@ -213,7 +213,7 @@ async function exportTableSet() {
         URL.revokeObjectURL(url);
         EDITOR.success('导出成功');
     } catch (error) {
-        EDITOR.error(`导出失败: ${error}`);
+        EDITOR.error(`导出失败`, error.message, error);
     }
 }
 
@@ -235,7 +235,7 @@ async function resetSettings() {
         }
         EDITOR.success('已重置所选设置');
     } catch (error) {
-        EDITOR.error(`重置设置失败: ${error}`);
+        EDITOR.error(`重置设置失败`, error.message, error);
     }
 }
 
@@ -393,7 +393,7 @@ function InitBinging() {
                 EDITOR.success(result.message);
             } catch (error) {
                 console.error('API Key 处理失败:', error);
-                EDITOR.error('未能获取到API KEY，请重新输入~');
+                EDITOR.error('未能获取到API KEY，请重新输入~', error.message, error);
             }
         }, 500); // 500ms防抖延迟
     })

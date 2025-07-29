@@ -21,8 +21,8 @@ const customStyleConfig = {
 }
 
 export class SheetBase {
-    SheetDomain = SheetDomain;
-    SheetType = SheetType;
+    static SheetDomain = SheetDomain;
+    static SheetType = SheetType;
 
     constructor() {
         // 以下为基本属性
@@ -104,11 +104,11 @@ export class SheetBase {
             this.cells.set(cell.uid, cell);
             this.cellHistory.push(cell);
             if (i === 0 && j === 0) {
-                cell.type = cell.CellType.sheet_origin;
+                cell.type = Cell.CellType.sheet_origin;
             } else if (i === 0) {
-                cell.type = cell.CellType.column_header;
+                cell.type = Cell.CellType.column_header;
             } else if (j === 0) {
-                cell.type = cell.CellType.row_header;
+                cell.type = Cell.CellType.row_header;
             }
             return cell.uid;
         }));
@@ -126,11 +126,11 @@ export class SheetBase {
             this.cellHistory.push(cell);
             cell.data.value = valueSheet[i][j] || ''; // 设置单元格的值
             if (i === 0 && j === 0) {
-                cell.type = cell.CellType.sheet_origin;
+                cell.type = Cell.CellType.sheet_origin;
             } else if (i === 0) {
-                cell.type = cell.CellType.column_header;
+                cell.type = Cell.CellType.column_header;
             } else if (j === 0) {
-                cell.type = cell.CellType.row_header;
+                cell.type = Cell.CellType.row_header;
             }
             return cell.uid;
         }));
@@ -145,6 +145,19 @@ export class SheetBase {
         if(this.sourceData) this.source.data = this.sourceData
 
         this.markPositionCacheDirty();
+    }
+
+    getCellTypeByPosition(rowIndex, colIndex) {
+        if (rowIndex === 0 && colIndex === 0) {
+            return Cell.CellType.sheet_origin;
+        }
+        if (rowIndex === 0) {
+            return Cell.CellType.column_header;
+        }
+        if (colIndex === 0) {
+            return Cell.CellType.row_header;
+        }
+        return Cell.CellType.cell;
     }
 
     loadCells() {
@@ -166,17 +179,21 @@ export class SheetBase {
             if (this.hashSheet && this.hashSheet.length > 0) {
                 this.hashSheet.forEach((rowUids, rowIndex) => {
                     rowUids.forEach((cellUid, colIndex) => {
-                        const cell = this.cells.get(cellUid);
-                        if (cell) {
-                            if (rowIndex === 0 && colIndex === 0) {
-                                cell.type = cell.CellType.sheet_origin;
-                            } else if (rowIndex === 0) {
-                                cell.type = cell.CellType.column_header;
-                            } else if (colIndex === 0) {
-                                cell.type = cell.CellType.row_header;
-                            } else {
-                                cell.type = cell.CellType.cell;
-                            }
+                        let cell = this.cells.get(cellUid);
+                        if (!cell) {
+                            cell = new Cell(this);
+                            cell.uid = cellUid;
+                            cell.data.value = '空数据'
+                            this.cells.set(cell.uid, cell);
+                        }
+                        if (rowIndex === 0 && colIndex === 0) {
+                            cell.type = Cell.CellType.sheet_origin;
+                        } else if (rowIndex === 0) {
+                            cell.type = Cell.CellType.column_header;
+                        } else if (colIndex === 0) {
+                            cell.type = Cell.CellType.row_header;
+                        } else {
+                            cell.type = Cell.CellType.cell;
                         }
                     });
                 });
@@ -187,8 +204,8 @@ export class SheetBase {
         }
     }
 
-    findCellByValue(value) {
-        const cell = this.cellHistory.find(cell => cell.data.value === value);
+    findCellByValue(value, cellType = null) {
+        const cell = this.cellHistory.find(cell => cell.data.value === value && (cellType === null || cell.type === cellType));
         if (!cell) {
             return null;
         }
@@ -203,8 +220,12 @@ export class SheetBase {
         const hash = this.hashSheet[rowIndex][colIndex]
         const target = this.cells.get(hash) || null;
         if (!target) {
-            console.warn(`未找到单元格 ${rowIndex} ${colIndex} ${hash}`);
-            return null;
+            const cell = new Cell(this);
+            cell.data.value = '空数据';
+            cell.type = colIndex === 0 ? Cell.CellType.row_header : rowIndex === 0 ? Cell.CellType.column_header : Cell.CellType.cell;
+            cell.uid = hash;
+            this.cells.set(cell.uid, cell);
+            return cell;
         }
         console.log('找到单元格',target);
         return target;
@@ -231,7 +252,7 @@ export class SheetBase {
         const content = this.hashSheet.slice(removeHeader?1:0).map((row, index) => row.map(cellUid => {
             const cell = this.cells.get(cellUid)
             if (!cell) return ""
-            return cell.type === cell.CellType.row_header ? index : cell.data[key]
+            return cell.type === Cell.CellType.row_header ? index : cell.data[key]
         }).join(',')).join('\n');
         return content + "\n";
     }
