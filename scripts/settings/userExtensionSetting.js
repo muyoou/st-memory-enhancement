@@ -463,6 +463,13 @@ function InitBinging() {
         USER.saveSettings && USER.saveSettings(); // 保存设置
     });
 
+    // 表格处理延时
+    $('#table_process_delay').on('input', function() {
+        const value = parseInt($(this).val()) || 0;
+        USER.tableBaseSetting.tableProcessDelay = Math.max(0, value); // 确保是非负整数
+        USER.saveSettings && USER.saveSettings(); // 保存设置
+    });
+
     // 获取模型列表
     $('#fetch_models_button').on('click', updateModelList);
 
@@ -536,6 +543,9 @@ export function renderSetting() {
     $('#custom_model_name').val(USER.IMPORTANT_USER_PRIVACY_DATA.custom_model_name || '');
     $('#table_proxy_address').val(USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address || '');
     $('#table_proxy_key').val(USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_key || '');
+
+    // 表格处理延时
+    $('#table_process_delay').val(USER.tableBaseSetting.tableProcessDelay || 0);
 
     // 初始化开关状态
     updateSwitch('#table_switch', USER.tableBaseSetting.isExtensionAble);

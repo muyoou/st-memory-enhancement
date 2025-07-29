@@ -142,6 +142,8 @@ export const defaultSettings = await switchLanguage('__defaultSettings__', {
     isAiWriteTable: true,
     // 预留
     updateIndex:3,
+    // 处理表格延时
+    tableProcessDelay: 0,
     /**
      * ===========================
      * 注入设置
