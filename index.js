@@ -671,13 +671,6 @@ async function onMessageEdited(this_edit_mes_id) {
  */
 async function onMessageReceived(chat_id) {
     if (USER.tableBaseSetting.isExtensionAble === false) return
-    
-    // 延时执行
-    const delay = USER.tableBaseSetting.tableProcessDelay || 0;
-    if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
     if (USER.tableBaseSetting.step_by_step === true && USER.getContext().chat.length > 2) {
         TableTwoStepSummary("auto");  // 请勿使用await，否则会导致主进程阻塞引起的连锁bug
     } else {
@@ -728,12 +721,6 @@ function resolveTableMacros(text) {
  */
 async function onChatChanged() {
     try {
-        // 延时执行
-        const delay = USER.tableBaseSetting.tableProcessDelay || 0;
-        if (delay > 0) {
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        
         // 更新表格视图
         updateSheetsView();
 
@@ -761,13 +748,6 @@ async function onChatChanged() {
  */
 async function onMessageSwiped(chat_id) {
     if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiWriteTable === false) return
-    
-    // 延时执行
-    const delay = USER.tableBaseSetting.tableProcessDelay || 0;
-    if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
     const chat = USER.getContext().chat[chat_id];
     console.log("滑动切换消息", chat)
     if (!chat.swipe_info[chat.swipe_id]) return
