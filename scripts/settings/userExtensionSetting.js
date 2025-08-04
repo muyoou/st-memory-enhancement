@@ -160,11 +160,8 @@ async function importTableSet() {
                     }
                     // 从导入数据中移除暂存数据，以防它被错误地写入设置
                     delete importedData.__stashData;
-                } else {
-                    // 如果导入的数据中不包含暂存数据，则清空现有的暂存数据
-                    localStorage.setItem('table_stash_data', '');
                 }
-                
+
                 // 获取导入 JSON 的第一级 key
                 const firstLevelKeys = Object.keys(importedData);
 
@@ -194,17 +191,17 @@ async function importTableSet() {
                 renderSetting(); // 重新渲染设置界面，应用新的设置
                 // 重新转换模板
                 initTableStructureToTemplate()
-                BASE.refreshTempView(true) // 刷新模板视图
+                BASE.refreshTempView() // 刷新模板视图
                 EDITOR.success('导入成功并已重置所选设置'); // 提示用户导入成功
 
             } catch (error) {
-                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。', error.message, error); // 提示 JSON 解析失败
+                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。'); // 提示 JSON 解析失败
                 console.error("文件读取或解析错误:", error); // 打印详细错误信息到控制台
             }
         };
 
         reader.onerror = (error) => {
-            EDITOR.error(`文件读取失败`, error.message, error); // 提示文件读取失败
+            EDITOR.error(`文件读取失败: ${error}`); // 提示文件读取失败
         };
 
         reader.readAsText(file); // 以文本格式读取文件内容
@@ -219,31 +216,20 @@ async function importTableSet() {
  */
 async function exportTableSet() {
     templateToTableStructure()
-    // 为 filterTableDataPopup 准备一份包含当前暂存数据的副本
-    const dataToFilter = { ...USER.tableBaseSetting };
-    const stashDataRaw = localStorage.getItem('table_stash_data');
-    if (stashDataRaw) {
-        try {
-            dataToFilter.__stashData = JSON.parse(stashDataRaw);
-        } catch (e) {
-            console.warn("解析暂存数据失败，导出时将忽略。", e);
-        }
-    }
-
-    const { filterData, confirmation } = await filterTableDataPopup(dataToFilter, "请选择需要导出的数据", "");
+    const { filterData, confirmation } = await filterTableDataPopup(USER.tableBaseSetting,"请选择需要导出的数据","")
     if (!confirmation) return;
 
     try {
         const blob = new Blob([JSON.stringify(filterData)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement('a')
         a.href = url;
         a.download = `tableCustomConfig-${SYSTEM.generateRandomString(8)}.json`;
         a.click();
         URL.revokeObjectURL(url);
         EDITOR.success('导出成功');
     } catch (error) {
-        EDITOR.error(`导出失败`, error.message, error);
+        EDITOR.error(`导出失败: ${error}`);
     }
 }
 
@@ -664,6 +650,7 @@ export function initTableStructureToTemplate() {
         newTemplate.required = defaultTemplate.Required
         newTemplate.triggerSend = defaultTemplate.triggerSend
         newTemplate.triggerSendDeep = defaultTemplate.triggerSendDeep
+        newTemplate.isSendToContext = defaultTemplate.isSendToContext
         if(defaultTemplate.config)
             newTemplate.config = JSON.parse(JSON.stringify(defaultTemplate.config))
         newTemplate.source.data.note = defaultTemplate.note
@@ -695,6 +682,7 @@ function templateToTableStructure() {
             enable: template.enable,
             triggerSend: template.triggerSend,
             triggerSendDeep: template.triggerSendDeep,
+            isSendToContext:template.isSendToContext,
         }
     })
     USER.tableBaseSetting.tableStructure = tableTemplates
