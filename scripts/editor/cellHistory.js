@@ -1,5 +1,5 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
-import {refreshContextView} from "./chatSheetsDataView.js";
+import { Cell } from '../../core/table/cell.js';
 
 const histories = `
 <style>
@@ -130,11 +130,11 @@ async function reloadCellHistory(cell, historyCell, container) {
 
     await tracebackCellHistoryPopup.show();
     if (tracebackCellHistoryPopup.result) {
-        cell.newAction(cell.CellAction.editCell, { value: resultValue }, true)
+        cell.newAction(Cell.CellAction.editCell, { value: resultValue }, true)
         const targetCell = cell.parent.cellHistory[cell.parent.cellHistory.length - 1]
         updateCellHistoryData(container, targetCell);  // 更新历史记录
         scrollToBottom(container);
-        refreshContextView();
+        BASE.refreshContextView();
     }
 }
 

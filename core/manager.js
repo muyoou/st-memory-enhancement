@@ -1,5 +1,4 @@
 import { TTable } from "./tTableManager.js";
-import { Logger } from "../services/logger.js";
 import applicationFunctionManager from "../services/appFuncManager.js";
 // 移除旧表格系统引用
 import { consoleMessageToEditor } from "../scripts/settings/devConsole.js";
@@ -13,7 +12,6 @@ import { pushCodeToQueue } from "../components/_fotTest.js";
 import { createProxy, createProxyWithUserSetting } from "../utils/codeProxy.js";
 import { refreshTempView } from '../scripts/editor/tableTemplateEditView.js';
 import { newPopupConfirm, PopupConfirm } from "../components/popupConfirm.js";
-import { debounce } from "../utils/utility.js";
 import { refreshContextView } from "../scripts/editor/chatSheetsDataView.js";
 import { updateSystemMessageTableStatus } from "../scripts/renderer/tablePushToChat.js";
 import {taskTiming} from "../utils/system.js";
@@ -33,23 +31,6 @@ export const USER = {
     getExtensionSettings: () => APP.extension_settings,
     saveSettings: () => APP.saveSettings(),
     saveChat: () => APP.saveChat(),
-    // [持久化修复] 引入一个带防抖的保存函数，用于在表格数据变更时自动、安全地保存聊天记录。
-    // 延迟1.5秒执行，以合并短时间内的多次连续操作。
-    isSaveLocked: false, // [v6.0.2] 新增保存锁状态
-    debouncedSaveRequired: false, // [v6.0.3] 新增延迟保存标志
-    debouncedSaveChat: debounce(() => {
-        // [v6.0.3] 协同修复：在执行防抖保存前，检查保存锁是否已激活。
-        if (USER.isSaveLocked) {
-            Logger.warn('[Save Lock] A debounced save attempt was intercepted by an active save lock and has been postponed.');
-            // 不直接跳过，而是设置一个标志，表示在锁释放后需要进行一次保存。
-            USER.debouncedSaveRequired = true;
-            return; 
-        }
-        Logger.info('[Memory Enhancement] Debounced save executed.');
-        USER.saveChat();
-        // 成功执行后，重置标志。
-        USER.debouncedSaveRequired = false;
-    }, 1500),
     getContext: () => APP.getContext(),
     isSwipe:()=>
     {
@@ -60,10 +41,6 @@ export const USER = {
         const {deep} = USER.getChatPiece()
         return {isSwipe: true, deep}
     },
-
-    // getContextSheets: () => APP.getContext().chatMetadata.sheets,
-    // getRoleSheets: () => APP,
-    // getGlobalSheets: () => APP,
     getChatPiece: (deep = 0, direction = 'up') => {
         const chat = APP.getContext().chat;
         if (!chat || chat.length === 0 || deep >= chat.length) return  {piece: null, deep: -1};
@@ -82,7 +59,7 @@ export const USER = {
             USER.getSettings().table_database_templates = templates;
             USER.saveSettings();
         }
-        Logger.debug("全局模板", templates)
+        console.log("全局模板", templates)
         return templates;
     },
     tableBaseSetting: createProxyWithUserSetting('muyoo_dataTable'),
@@ -212,7 +189,7 @@ export const BASE = {
         if(type === 'data') return BASE.saveChatSheets()
         const oldSheets = BASE.getChatSheets().filter(sheet => !newSheets.some(newSheet => newSheet.uid === sheet.uid))
         oldSheets.forEach(sheet => sheet.enable = false)
-        Logger.info("应用表格数据", newSheets, oldSheets)
+        console.log("应用表格数据", newSheets, oldSheets)
         const mergedSheets = [...newSheets, ...oldSheets]
         BASE.reSaveAllChatSheets(mergedSheets)
     },
@@ -220,54 +197,45 @@ export const BASE = {
         if(saveToPiece){
             const {piece} = USER.getChatPiece()
             if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
-            // [持久化修复] sheet.save内部会触发 debouncedSaveChat, 这里不再需要手动调用 USER.saveChat()
             BASE.getChatSheets(sheet => sheet.save(piece, true))
         }else BASE.getChatSheets(sheet => sheet.save(undefined, true))
-        // USER.saveChat() // 已通过 debouncedSaveChat 自动处理
+        USER.saveChat()
     },
     reSaveAllChatSheets(sheets) {
         BASE.sheetsData.context = []
         const {piece} = USER.getChatPiece()
-        if(!piece) return EDITOR.error("没有记录载体")
+        if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         sheets.forEach(sheet => {
-            // [持久化修复] sheet.save内部会触发 debouncedSaveChat, 这里不再需要手动调用 USER.saveChat()
             sheet.save(piece, true)
         })
         updateSelectBySheetStatus()
         BASE.refreshTempView(true)
-        // USER.saveChat() // 已通过 debouncedSaveChat 自动处理
+        USER.saveChat()
     },
     updateSelectBySheetStatus(){
         updateSelectBySheetStatus()
     },
-    getLastSheetsPiece(deep = 0, cutoff = 1000, startAtLastest = true) {
-        Logger.debug("向上查询表格数据，深度", deep, "截断", cutoff, "从最新开始", startAtLastest)
-        const chat = APP.getContext()?.chat; // 安全地访问 chat
+    getLastSheetsPiece(deep = 0, cutoff = 1000, deepStartAtLastest = true, direction = 'up') {
+        console.log("向上查询表格数据，深度", deep, "截断", cutoff, "从最新开始", deepStartAtLastest)
+        // 如果没有找到新系统的表格数据，则尝试查找旧系统的表格数据（兼容模式）
+        const chat = APP.getContext().chat
         if (!chat || chat.length === 0 || chat.length <= deep) {
             return { deep: -1, piece: BASE.initHashSheet() }
         }
-        const startIndex = startAtLastest ? chat.length - deep - 1 : deep;
-        for (let i = startIndex; i >= 0 && i >= startIndex - cutoff; i--) {
-            // [健壮性修复] 增加对 chat[i] 存在的检查
-            if (!chat[i]) continue;
-            
-            // 跳过用户消息
-            if (chat[i].is_user === true) continue;
-
-            // [核心数据安全修复] 如果一个消息连 hash_sheets 属性都没有（例如欢迎消息），
-            // 就直接跳过它，而不是尝试处理或让上游函数崩溃。
-            if (typeof chat[i].hash_sheets === 'undefined' && typeof chat[i].dataTable === 'undefined') {
-                continue;
-            }
-
+        const startIndex = deepStartAtLastest ? chat.length - deep - 1 : deep;
+        for (let i = startIndex;
+            direction === 'up' ? (i >= 0 && i >= startIndex - cutoff) : (i < chat.length && i < startIndex + cutoff);
+            direction === 'up' ? i-- : i++) {
+            if (chat[i].is_user === true) continue; // 跳过用户消息
             if (chat[i].hash_sheets) {
-                Logger.debug("向上查询表格数据，找到表格数据", chat[i])
+                console.log("向上查询表格数据，找到表格数据", chat[i])
                 return { deep: i, piece: chat[i] }
             }
-            
-            // 兼容旧的 dataTable
+            // 如果没有找到新系统的表格数据，则尝试查找旧系统的表格数据（兼容模式）
+            // 请注意不再使用旧的Table类
             if (chat[i].dataTable) {
-                Logger.info("找到旧表格数据", chat[i])
+                // 为了兼容旧系统，将旧数据转换为新的Sheet格式
+                console.log("找到旧表格数据", chat[i])
                 convertOldTablesToNewSheets(chat[i].dataTable, chat[i])
                 return { deep: i, piece: chat[i] }
             }
@@ -276,7 +244,7 @@ export const BASE = {
     },
     getReferencePiece(){
         const swipeInfo = USER.isSwipe()
-        Logger.debug("获取参考片段", swipeInfo)
+        console.log("获取参考片段", swipeInfo)
         const {piece} = swipeInfo.isSwipe?swipeInfo.deep===-1?{piece:BASE.initHashSheet()}: BASE.getLastSheetsPiece(swipeInfo.deep-1,1000,false):BASE.getLastSheetsPiece()
         return piece
     },
@@ -284,37 +252,11 @@ export const BASE = {
         if (!hashSheets) {
             return [];
         }
-        
-        // [持久化改造] 核心修复：确保每次都从最权威的数据源（hashSheets）创建全新的、干净的Sheet实例，
-        // 而不是复用可能被污染的缓存实例（DERIVED.any.chatSheetMap）。
-        const newSheets = [];
-        for (const sheetUid in hashSheets) {
-            // 1. 从 context 中找到原始的、持久化的 sheet 模板数据
-            const sheetTemplate = BASE.sheetsData.context.find(s => s.uid === sheetUid);
-            if (!sheetTemplate) {
-                Logger.warn(`[hashSheetsToSheets] 未在 context 中找到 UID 为 ${sheetUid} 的 sheet 模板，已跳过。`);
-                continue;
-            }
-
-            // 2. 使用模板创建一个全新的、干净的 Sheet 实例
-            const newSheet = new BASE.Sheet(sheetTemplate);
-
-            // 3. 将当前 piece 中的 hash_sheets 状态应用到这个新实例上
-            newSheet.hashSheet = hashSheets[sheetUid].map(row => [...row]); // 使用深拷贝确保数据隔离
-
-            // 4. 重新加载 cells，确保内部状态与 cellHistory 同步
-            //    loadJson 已经包含了 loadCells 的逻辑
-            newSheet.loadCells();
-
-            newSheets.push(newSheet);
-        }
-        
-        // 用新创建的、干净的实例列表，覆盖掉缓存中的旧实例
-        const newSheetMap = {};
-        newSheets.forEach(s => newSheetMap[s.uid] = s);
-        DERIVED.any.chatSheetMap = newSheetMap;
-
-        return newSheets;
+        return BASE.getChatSheets((sheet)=>{
+            if (hashSheets[sheet.uid]) {
+                sheet.hashSheet = hashSheets[sheet.uid].map(row => row.map(hash => hash));
+            }else sheet.initHashSheet()
+        })
     },
     getLastestSheets(){
         const { piece, deep } = BASE.getLastSheetsPiece();
@@ -323,7 +265,7 @@ export const BASE = {
     },
     initHashSheet() {
         if (BASE.sheetsData.context.length === 0) {
-            Logger.info("尝试从模板中构建表格数据")
+            console.log("尝试从模板中构建表格数据")
             const {piece: currentPiece} = USER.getChatPiece()
             buildSheetsByTemplates(currentPiece)
             if (currentPiece?.hash_sheets) {
@@ -402,14 +344,14 @@ export const DERIVED = {
  */
 export const SYSTEM = {
     getTemplate: (name) => {
-        Logger.debug('getTemplate', name);
+        console.log('getTemplate', name);
         return APP.renderExtensionTemplateAsync('third-party/st-memory-enhancement/assets/templates', name);
     },
 
     codePathLog: function (context = '', deep = 2) {
         const r = getRelativePositionOfCurrentCode(deep);
         const rs = `${r.codeFileRelativePathWithRoot}[${r.codePositionInFile}] `;
-        Logger.debug(`%c${rs}${r.codeAbsolutePath}`, 'color: red', context);
+        console.log(`%c${rs}${r.codeAbsolutePath}`, 'color: red', context);
     },
     lazy: lazy,
     generateRandomString: generateRandomString,

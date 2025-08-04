@@ -358,7 +358,7 @@ function bindStyleManagementEvents() {
 
             EDITOR.success('导入样式成功');
         } catch (e) {
-            EDITOR.error('导入样式失败，JSON格式错误');
+            EDITOR.error('导入样式失败，JSON格式错误', e.message, e);
         }
     });
 

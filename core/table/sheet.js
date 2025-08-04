@@ -1,9 +1,7 @@
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../manager.js';
-import { Logger } from '../../services/logger.js';
 import { SheetBase } from "./base.js";
 import { cellStyle, filterSavingData } from "./utils.js";
-import {Cell} from "./cell.js";
-
+import { Cell } from "./cell.js";
 /**
  * 表格类，用于管理表格数据
  * @description 表格类用于管理表格数据，包括表格的名称、域、类型、单元格数据等
@@ -53,8 +51,8 @@ export class Sheet extends SheetBase {
             const rowElement = document.createElement('tr');
             rowUids.forEach((cellUid, colIndex) => {
                 let cell = this.cells.get(cellUid)
-                if(!cell) {
-                    Logger.warn(`Cell not found: ${cellUid}`);
+                if (!cell) {
+                    console.warn(`Cell not found: ${cellUid}`);
                     cell = new Cell(this); // 如果没有找到对应的单元格，则创建一个新的 Cell 实例
                     cell.uid = cellUid; // 设置 uid
                     cell.data = { value: '' }; // 初始化数据
@@ -88,23 +86,16 @@ export class Sheet extends SheetBase {
             }
             BASE.sheetsData.context = sheets;
             if (!targetPiece) {
-                Logger.warn("没用消息能承载hash_sheets数据，不予保存")
+                console.log("没用消息能承载hash_sheets数据，不予保存")
                 return this
             }
             if (!targetPiece.hash_sheets) targetPiece.hash_sheets = {};
             targetPiece.hash_sheets[this.uid] = this.hashSheet?.map(row => row.map(hash => hash));
-            Logger.debug('保存表格数据', targetPiece, this.hashSheet);
-            // [持久化修复] 调用防抖保存函数，确保在操作后能自动保存聊天记录。
-            // 如果需要立即保存，则直接调用，否则使用防抖版本。
-            if (manualSave) {
-                USER.saveChat();
-            } else {
-                USER.debouncedSaveChat();
-            }
+            console.log('保存表格数据', targetPiece, this.hashSheet);
             
             return this;
         } catch (e) {
-            EDITOR.error(`保存模板失败：${e}`);
+            EDITOR.error(`保存模板失败`, e.message, e);
             return false;
         }
     }
@@ -125,9 +116,8 @@ export class Sheet extends SheetBase {
      * 获取表格内容的提示词，可以通过指定['title', 'node', 'headers', 'rows', 'editRules']中的部分，只获取部分内容
      * @returns 表格内容提示词
      */
-    getTableText(index, customParts = ['title', 'node', 'headers', 'rows', 'editRules'], eventData, ignoreToChatFilter = false) {
-        Logger.debug('获取表格内容提示词', this, `ignoreToChatFilter: ${ignoreToChatFilter}`)
-        if (ignoreToChatFilter === false && this.config.toChat === false) return ''; // 如果配置为不发送到聊天，则直接返回空
+    getTableText(index, customParts = ['title', 'node', 'headers', 'rows', 'editRules']) {
+        console.log('获取表格内容提示词', this)
         if (this.triggerSend && this.triggerSendDeep < 1) return ''; // 如果触发深度=0，则不发送，可以用作信息一览表
         const title = `* ${index}:${this.name}\n`;
         const node = this.source.data.note && this.source.data.note !== '' ? '【说明】' + this.source.data.note + '\n' : '';
@@ -135,21 +125,26 @@ export class Sheet extends SheetBase {
         let rows = this.getSheetCSV()
         const editRules = this.#getTableEditRules() + '\n';
         // 新增触发式表格内容发送，检索聊天内容的角色名
-        if (eventData && eventData.chat && rows && this.triggerSend) {
+
+
+        if (rows && this.triggerSend) {
+            const chats = USER.getContext().chat;
+            console.log("进入触发发送模式,测试获取chats", chats)
             // 提取所有聊天内容中的 content 值
-            const chatContents = eventData.chat.map(chat => chat.content).join('\n');
-            // console.log("获取事件数据-聊天内容", chatContents);  //调试用，正常情况不打开
+            const chat_content = getLatestChatHistory(chats, this.triggerSendDeep)
+            console.log('获取聊天内容: ', chat_content)
+            console.log("聊天内容类型:", typeof (chat_content))
             const rowsArray = rows.split('\n').filter(line => {
                 line = line.trim();
                 if (!line) return false;
                 const parts = line.split(',');
                 const str1 = parts?.[1] ?? ""; // 字符串1对应索引1
-                return chatContents.includes(str1);
+                return chat_content.includes(str1);
             });
             rows = rowsArray.join('\n');
         }
         let result = '';
-        Logger.debug('测试获取表格内容提示词', customParts, result, this);
+        console.log('测试获取表格内容提示词', customParts, result, this);
         if (customParts.includes('title')) {
             result += title;
         }
@@ -190,12 +185,19 @@ export class Sheet extends SheetBase {
     }
 
     getJson() {
-        const sheetDataToSave = this.filterSavingData(["uid", "name", "domain", "type", "enable", "required", "toChat", "triggerSend", "triggerSendDeep", "config", "sourceData", "content"])
-        delete sheetDataToSave.cellHistory
-        delete sheetDataToSave.hashSheet
+        const sheetDataToSave = this.filterSavingData(["uid", "name", "domain", "type", "enable", "required", "tochat", "triggerSend", "triggerSendDeep", "config", "sourceData", "content", "cellHistory", "hashSheet"])
         sheetDataToSave.sourceData = this.source.data
         sheetDataToSave.content = this.getContent(true)
         return sheetDataToSave
+    }
+
+    getReadableJson() {
+        return{
+            tableName: this.name,
+            tableUid: this.uid,
+            columns: this.getHeader(),
+            content: this.getContent()
+        }
     }
     /** _______________________________________ 以下函数不进行外部调用 _______________________________________ */
 
@@ -212,8 +214,8 @@ export class Sheet extends SheetBase {
             throw new Error('未找到对应的模板');
         }
         if (typeof target === 'object') {
-            if (target.domain === this.SheetDomain.global) {
-                Logger.info('从模板转化表格', target, this);
+            if (target.domain === SheetBase.SheetDomain.global) {
+                console.log('从模板转化表格', target, this);
                 this.loadJson(target)
                 this.domain = 'chat'
                 this.uid = `sheet_${SYSTEM.generateRandomString(8)}`;
@@ -249,7 +251,7 @@ export class Sheet extends SheetBase {
         this.hashSheet = [this.hashSheet[0].map(uid => uid)];
         this.markPositionCacheDirty();
     }
-    
+
     /**
      * 根据 "A1" 格式的地址获取单元格
      * @param {string} address - 例如 "A1", "B2"
@@ -276,4 +278,25 @@ export class Sheet extends SheetBase {
         const cellUid = this.hashSheet?.[row]?.[col];
         return cellUid ? this.cells.get(cellUid) : null;
     }
+}
+
+/**
+ * 获取制定深度的聊天历史内容
+ * @param {当前聊天文件} chat 
+ * @param {扫描深度} deep 
+ * @returns string
+ */
+function getLatestChatHistory(chat, deep) {
+    let filteredChat = chat;
+
+    let collected = "";
+    const floors = filteredChat.length
+    // 从最新记录开始逆序遍历，最大不超过聊天记录最大楼层
+    for (let i = 0; i < Math.min(deep, floors); i++) {
+        // 格式化消息并清理标签
+        const currentStr = `${filteredChat[floors - i - 1].mes}`
+            .replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
+        collected += currentStr;
+    }
+    return collected;
 }

@@ -1,4 +1,5 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
+import { Cell } from '../../core/table/cell.js';
 import {estimateTokenCount} from "../settings/standaloneAPI.js";
 
 const statistics = `
@@ -95,8 +96,7 @@ async function clearTableStatisticsButton(statisticsContainer) {
             lastCellHistoryHashNum++
             if (cell && cell.uid && filterDuplicateMap.has(cell.uid)) {
                 cellHistoryHashNum++;
-                delete cell.CellAction;
-                delete cell.CellType;
+                delete Cell.CellAction;
                 delete cell.bridge;
             } else {
                 cellHistories[index].splice(cellIndex, 1);

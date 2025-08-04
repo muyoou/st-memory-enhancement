@@ -8,6 +8,36 @@ try {
 } catch (e) {
     console.warn("未检测到 /scripts/custom-request.js 或未正确导出 ChatCompletionService，将禁用代理相关功能。", e);
 }
+
+/**
+ * 统一处理和规范化API响应数据。
+ * - 自动解析JSON字符串。
+ * - 自动处理嵌套的 'data' 对象。
+ * @param {*} responseData - 从API收到的原始响应数据
+ * @returns {object} 规范化后的数据对象
+ */
+function normalizeApiResponse(responseData) {
+    let data = responseData;
+    // 1. 如果响应是字符串，尝试解析为JSON
+    if (typeof data === 'string') {
+        try {
+            data = JSON.parse(data);
+        } catch (e) {
+            console.error("API响应JSON解析失败:", e);
+            // 返回一个错误结构，以便下游可以一致地处理
+            return { error: { message: 'Invalid JSON response' } };
+        }
+    }
+    // 2. 检查并解开嵌套的 'data' 属性
+    // 这种情况经常出现在一些代理服务中，例如 { "data": { "data": [...] } }
+    if (data && typeof data.data === 'object' && data.data !== null && !Array.isArray(data.data)) {
+        if (Object.hasOwn(data.data, 'data')) {
+            data = data.data;
+        }
+    }
+    return data;
+}
+
 export class LLMApiService {
     constructor(config = {}) {
         this.config = {
@@ -47,14 +77,11 @@ export class LLMApiService {
 
         this.config.stream = streamCallback !== null;
 
-        // 改造：只要不是默认API地址，就强制使用SillyTavern的内部代理来绕过CORS
-        const isCustomApi = this.config.api_url && !this.config.api_url.includes("api.openai.com");
-        const shouldUseProxy = isCustomApi || USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address;
-        
-        if (shouldUseProxy) {
-            console.log("检测到自定义API或代理配置，将使用 SillyTavern 内部路由");
+        // 如果配置了代理地址，则使用 SillyTavern 的内部路由
+        if (USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address) {
+            console.log("检测到代理配置，将使用 SillyTavern 内部路由");
             if (typeof ChatCompletionService === 'undefined' || !ChatCompletionService?.processRequest) {
-                const errorMessage = "当前酒馆版本过低或缺少核心文件 /scripts/custom-request.js，无法发送自定义请求。请更新你的酒馆版本。";
+                const errorMessage = "当前酒馆版本过低，无法发送自定义请求。请更新你的酒馆版本";
                 EDITOR.error(errorMessage);
                 throw new Error(errorMessage);
             }
@@ -65,11 +92,9 @@ export class LLMApiService {
                     max_tokens: this.config.max_tokens,
                     model: this.config.model_name,
                     temperature: this.config.temperature,
-                    // 终极修复：当使用自定义URL时，必须将源设置为'custom'，否则后端会拒绝请求 (400 Bad Request)
-                    chat_completion_source: isCustomApi ? 'custom' : 'openai',
+                    chat_completion_source: 'openai', // 假设代理目标是 OpenAI 兼容的
                     custom_url: this.config.api_url,
-                    // 恢复逻辑：如果用户没有设置全局代理，我们就使用酒馆的默认内部代理地址/api/proxy，这对于处理自定义URL是必需的
-                    reverse_proxy: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address || '/api/proxy',
+                    reverse_proxy: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address,
                     proxy_password: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_key || null,
                 };
 
@@ -146,11 +171,14 @@ export class LLMApiService {
             throw new Error(`API请求失败: ${response.status} - ${errorText}`);
         }
 
-        const responseData = await response.json();
+        const rawResponseData = await response.json();
+        const responseData = normalizeApiResponse(rawResponseData);
+
 
         if (!responseData.choices || responseData.choices.length === 0 ||
             !responseData.choices[0].message || !responseData.choices[0].message.content) {
-            throw new Error("API返回无效的响应结构");
+            const errorMessage = responseData?.error?.message || "API返回无效的响应结构";
+            throw new Error(`${errorMessage} 响应: ${JSON.stringify(rawResponseData)}`);
         }
 
         let translatedText = responseData.choices[0].message.content;
@@ -286,12 +314,9 @@ export class LLMApiService {
             { role: 'user', content: testPrompt }
         ];
 
-        // 改造：同样，只要是自定义API或配置了代理，就通过内部路由测试
-        const isCustomApi = this.config.api_url && !this.config.api_url.includes("api.openai.com");
-        const shouldUseProxy = isCustomApi || USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address;
-
-        if (shouldUseProxy) {
-            console.log("检测到自定义API或代理配置，将使用 SillyTavern 内部路由进行连接测试");
+        // 如果配置了代理地址，则使用 SillyTavern 的内部路由进行测试
+        if (USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address) {
+            console.log("检测到代理配置，将使用 SillyTavern 内部路由进行连接测试");
             try {
                 const requestData = {
                     stream: false, // 测试连接不需要流式
@@ -299,11 +324,9 @@ export class LLMApiService {
                     max_tokens: 50, // 测试连接不需要太多 token
                     model: this.config.model_name,
                     temperature: this.config.temperature,
-                    // 终极修复：当使用自定义URL时，必须将源设置为'custom'，否则后端会拒绝请求 (400 Bad Request)
-                    chat_completion_source: isCustomApi ? 'custom' : 'openai',
+                    chat_completion_source: 'openai', // 假设代理目标是 OpenAI 兼容的
                     custom_url: this.config.api_url,
-                    // 恢复逻辑：如果用户没有设置全局代理，我们就使用酒馆的默认内部代理地址/api/proxy，这对于处理自定义URL是必需的
-                    reverse_proxy: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address || '/api/proxy',
+                    reverse_proxy: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address,
                     proxy_password: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_key || null,
                 };
                 // 使用 processRequest 进行非流式请求测试

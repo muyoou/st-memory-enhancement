@@ -1,14 +1,14 @@
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
 import { ext_exportAllTablesAsJson, saveDataToLocalStorage, readDataFromLocalStorage } from '../settings/standaloneAPI.js';
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
-import { findNextChatWhitTableData,undoSheets } from "../../index.js";
+import { findNextChatWhitTableData,undoSheets, triggerTableUpdateCallbacks } from "../../index.js";
 import { rebuildSheets } from "../runtime/absoluteRefresh.js";
 import { openTableHistoryPopup } from "./tableHistory.js";
-import { reloadCurrentChat } from "/script.js";
 import { PopupMenu } from "../../components/popupMenu.js";
 import { openTableStatisticsPopup } from "./tableStatistics.js";
 import { openCellHistoryPopup } from "./cellHistory.js";
 import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
+import { Cell } from "../../core/table/cell.js";
 
 let tablePopup = null
 let copyTableData = null
@@ -51,7 +51,7 @@ export async function copyTable() {
  */
 async function pasteTable() {
     if (USER.getContext().chat.length === 0) {
-        EDITOR.error("请至少让ai回复一条消息作为表格载体")
+        EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         return
     }
     const confirmation = await EDITOR.callGenericPopup('粘贴会清空原有的表格数据，是否继续？', EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
@@ -68,10 +68,6 @@ async function pasteTable() {
     }
 }
 
-/**
- * 导入表格
- * @param {number} mesId 需要导入表格的消息id
- */
 /**
  * [重构] 核心导入逻辑，用于处理JSON字符串
  * @param {string} jsonString - 包含表格数据的JSON字符串
@@ -112,36 +108,6 @@ async function processImportedData(jsonString, isAuto = false) {
     return false;
 }
 
-
-async function importTable(mesId, viewSheetsContainer) {
-    if (mesId === -1) {
-        EDITOR.error("请至少让ai回复一条消息作为表格载体")
-        return
-    }
-
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.json';
-
-    fileInput.addEventListener('change', function (event) {
-        const files = event.target.files;
-        if (files && files.length > 0) {
-            const file = files[0];
-            const reader = new FileReader();
-            reader.onload = async function (loadEvent) {
-                // 手动导入时，isAuto为false
-                await processImportedData(loadEvent.target.result, false);
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
-    });
-    fileInput.click();
-}
-
-/**
- * 导出表格
- * @param {Array} tables 所有表格数据
- */
 /**
  * 暂存表格数据
  */
@@ -178,6 +144,63 @@ async function clearStashData() {
         }
     }
 }
+/**
+ * [新] 自动从暂存中导入数据
+ * @returns {Promise<boolean>} 是否成功加载数据
+ */
+export async function autoImportFromStash() {
+    // [终极修复] 在执行任何操作前，首先检查是否存在聊天载体。
+    if (USER.getContext().chat.length === 0) {
+        console.log('[Memory Enhancement] 检测到暂存数据，但无聊天载体，已中止自动恢复。');
+        return false; // 直接返回，不进行任何后续操作
+    }
+
+    const content = await readDataFromLocalStorage('table_stash_data');
+    if (content && content.length > 2) { // 检查内容是否为一个有效的json object
+        console.log('[Memory Enhancement] 检测到暂存数据，将在1.5秒后尝试自动恢复...');
+        return new Promise(resolve => {
+            setTimeout(async () => {
+                // 自动导入时，isAuto为true，跳过弹窗
+                const success = await processImportedData(content, true);
+                if (success) {
+                    triggerTableUpdateCallbacks();
+                }
+                // 移除内部的成功提示，统一由调用方处理
+                resolve(success);
+            }, 1500);
+        });
+    }
+    return false;
+}
+
+/**
+ * 导入表格
+ * @param {number} mesId 需要导入表格的消息id
+ */
+async function importTable(mesId, viewSheetsContainer) {
+    if (mesId === -1) {
+        EDITOR.error("请至少让ai回复一条消息作为表格载体")
+        return
+    }
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+
+    fileInput.addEventListener('change', function (event) {
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = async function (loadEvent) {
+                // 手动导入时，isAuto为false
+                await processImportedData(loadEvent.target.result, false);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+    });
+    fileInput.click();
+}
 
 /**
  * 导出表格
@@ -205,16 +228,11 @@ async function exportTable() {
  * 获取表格Json数据
  */
 function getTableJson(mate) {
-    const { piece } = BASE.getLastSheetsPiece();
-    if (!piece || !piece.hash_sheets) {
+    if (!DERIVED.any.renderingSheets || DERIVED.any.renderingSheets.length === 0) {
         EDITOR.warning('当前表格没有数据，无法导出');
-        return null;
+        return;
     }
-    const sheets = BASE.hashSheetsToSheets(piece.hash_sheets).filter(sheet => sheet.enable);
-    if (sheets.length === 0) {
-        EDITOR.warning('当前没有启用的表格，无法导出');
-        return null;
-    }
+    const sheets = DERIVED.any.renderingSheets.filter(sheet => sheet.enable)
     // const csvTables = sheets.map(sheet => "SHEET-START" + sheet.uid + "\n" + sheet.getSheetCSV(false) + "SHEET-END").join('\n')
     const jsonTables = {}
     sheets.forEach(sheet => {
@@ -242,7 +260,7 @@ async function clearTable(mesId, viewSheetsContainer) {
         setTimeout(() => {
             USER.saveSettings()
             USER.saveChat();
-            BASE.refreshContextView()
+            refreshContextView()
             EDITOR.success("表格数据清除成功")
             console.log("已清除表格数据")
         }, 100)
@@ -277,7 +295,7 @@ async function cellDataEdit(cell) {
     if (result) {
         cell.editCellData({ value: result })
         refreshContextView();
-        if(cell.type === cell.CellType.column_header) BASE.refreshTempView(true)
+        if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
     }
 }
 
@@ -321,7 +339,7 @@ function batchEditMode(cell) {
 // 新的事件处理函数
 export function cellClickEditModeEvent(cell) {
     cell.element.style.cursor = 'pointer'
-    if (cell.type === cell.CellType.row_header) {
+    if (cell.type === Cell.CellType.row_header) {
         cell.element.textContent = ''
 
         // 在 cell.element 中添加三个 div，一个用于显示排序，一个用于显示锁定按钮，一个用于显示删除按钮
@@ -349,7 +367,7 @@ export function cellClickEditModeEvent(cell) {
         $(deleteDiv).on('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            handleAction(cell, cell.CellAction.deleteSelfRow)
+            handleAction(cell, Cell.CellAction.deleteSelfRow)
             //if (cell.locked) return
 
             /* cell.parent.hashSheet.forEach(row => {
@@ -367,7 +385,7 @@ export function cellClickEditModeEvent(cell) {
         $(containerDiv).append(indexDiv).append(rightDiv)
         $(cell.element).append(containerDiv)
 
-    } else if (cell.type === cell.CellType.cell) {
+    } else if (cell.type === Cell.CellType.cell) {
         cell.element.style.cursor = 'text'
         cell.element.contentEditable = true
         cell.element.focus()
@@ -396,6 +414,7 @@ async function confirmAction(event, text = '是否继续该操作？') {
  * 单元格高亮
  */
 export function cellHighlight(sheet) {
+    if(!lastCellsHashSheet) return;
     const lastHashSheet = lastCellsHashSheet[sheet.uid] || []
     if ((sheet.hashSheet.length < 2) && (lastHashSheet.length < 2)) return;    //表格内容为空的时候不执行后续函数,提高健壮性
     const hashSheetFlat = sheet.hashSheet.flat()
@@ -495,19 +514,19 @@ function cellClickEvent(cell) {
 
         if (rowIndex === 0 && colIndex === 0) {
             menu.add('<i class="fa-solid fa-bars-staggered"></i> 批量行编辑', () => batchEditMode(cell));
-            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, cell.CellAction.insertRightColumn));
-            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, cell.CellAction.insertDownRow));
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, Cell.CellAction.insertRightColumn));
+            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, Cell.CellAction.insertDownRow));
             menu.add('<i class="fa-solid fa-wand-magic-sparkles"></i> 自定义表格样式', async () => customSheetStyle(cell));
         } else if (colIndex === 0) {
             menu.add('<i class="fa-solid fa-bars-staggered"></i> 批量行编辑', () => batchEditMode(cell));
-            menu.add('<i class="fa fa-arrow-up"></i> 向上插入行', () => handleAction(cell, cell.CellAction.insertUpRow));
-            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, cell.CellAction.insertDownRow));
-            menu.add('<i class="fa fa-trash-alt"></i> 删除行', () => handleAction(cell, cell.CellAction.deleteSelfRow), menu.ItemType.warning)
+            menu.add('<i class="fa fa-arrow-up"></i> 向上插入行', () => handleAction(cell, Cell.CellAction.insertUpRow));
+            menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', () => handleAction(cell, Cell.CellAction.insertDownRow));
+            menu.add('<i class="fa fa-trash-alt"></i> 删除行', () => handleAction(cell, Cell.CellAction.deleteSelfRow), menu.ItemType.warning)
         } else if (rowIndex === 0) {
             menu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async () => await cellDataEdit(cell));
-            menu.add('<i class="fa fa-arrow-left"></i> 向左插入列', () => handleAction(cell, cell.CellAction.insertLeftColumn));
-            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, cell.CellAction.insertRightColumn));
-            menu.add('<i class="fa fa-trash-alt"></i> 删除列', () => confirmAction(() => { handleAction(cell, cell.CellAction.deleteSelfColumn) }, '确认删除列？'), menu.ItemType.warning);
+            menu.add('<i class="fa fa-arrow-left"></i> 向左插入列', () => handleAction(cell, Cell.CellAction.insertLeftColumn));
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', () => handleAction(cell, Cell.CellAction.insertRightColumn));
+            menu.add('<i class="fa fa-trash-alt"></i> 删除列', () => confirmAction(() => { handleAction(cell, Cell.CellAction.deleteSelfColumn) }, '确认删除列？'), menu.ItemType.warning);
         } else {
             menu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async () => await cellDataEdit(cell));
             menu.add('<i class="fa-solid fa-clock-rotate-left"></i> 单元格历史记录', async () => await cellHistoryView(cell));
@@ -562,7 +581,7 @@ function cellClickEvent(cell) {
 function handleAction(cell, action) {
     cell.newAction(action)
     refreshContextView();
-    if(cell.type === cell.CellType.column_header) BASE.refreshTempView(true)
+    if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
 }
 
 export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _cellClickEvent = cellClickEvent) {
@@ -619,41 +638,44 @@ async function undoTable(mesId, tableContainer) {
 }
 
 
-async function renderSheetsDOM() {
+async function renderSheetsDOM(mesId = -1) {
     const task = new SYSTEM.taskTiming('renderSheetsDOM_task')
-
+    DERIVED.any.renderingMesId = mesId
     updateSystemMessageTableStatus();
     task.log()
-    const { piece, deep } = BASE.getLastSheetsPiece();
+    const {deep: lastestDeep, piece: lastestPiece} = BASE.getLastSheetsPiece()
+    const { piece, deep } = mesId === -1 ? {piece:lastestPiece, deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
     if (!piece || !piece.hash_sheets) return;
+
+    if( deep === lastestDeep) DERIVED.any.isRenderLastest = true;
+    else DERIVED.any.isRenderLastest = false;
+    DERIVED.any.renderDeep = deep;
 
     const sheets = BASE.hashSheetsToSheets(piece.hash_sheets);
     sheets.forEach((sheet) => {
-        // [二次修复] 增加对单元格是否存在的检查，防止因数据不一致导致渲染失败
         sheet.hashSheet = sheet.hashSheet.filter((row) => {
-            const cell = sheet.cells.get(row[0]);
-            return cell && cell.isDeleted !== true;
-        });
+            return (sheet.cells.get(row[0]).isDeleted !== true);
+        })
         sheet.cells.forEach((cell) => {
             cell.isDeleted = false;
-        });
-    });
+        })
+    })
     console.log('renderSheetsDOM:', piece, sheets)
     DERIVED.any.renderingSheets = sheets
     task.log()
     // 用于记录上一次的hash_sheets，渲染时根据上一次的hash_sheets进行高亮
-    lastCellsHashSheet = BASE.getLastSheetsPiece(deep - 1, 3, false)?.piece.hash_sheets;
-    // console.log("找到的diff前项", lastCellsHashSheet)
-    if (lastCellsHashSheet) {
-        lastCellsHashSheet = BASE.copyHashSheets(lastCellsHashSheet)
-        //for (const sheetUid in lastCellsHashSheet) {
-        //    lastCellsHashSheet[sheetUid] = lastCellsHashSheet[sheetUid].flat()
-        //}
+    if(deep != 0) {
+        lastCellsHashSheet = BASE.getLastSheetsPiece(deep - 1, 3, false)?.piece.hash_sheets;
+        if (lastCellsHashSheet) {
+            lastCellsHashSheet = BASE.copyHashSheets(lastCellsHashSheet)
+        }
     }
+    
     task.log()
     $(viewSheetsContainer).empty()
     viewSheetsContainer.style.paddingBottom = '150px'
-    renderEditableSheetsDOM(sheets, viewSheetsContainer)
+    renderEditableSheetsDOM(sheets, viewSheetsContainer,DERIVED.any.isRenderLastest?undefined:()=>{})
+    $("#table_indicator").text(DERIVED.any.isRenderLastest ? "现在是可修改的活动表格" : `现在是第${deep}轮对话中的旧表格，不可被更改`)
     task.log()
 }
 
@@ -661,7 +683,6 @@ let initializedTableView = null
 async function initTableView(mesId) {
     initializedTableView = $(await SYSTEM.getTemplate('manager')).get(0);
     viewSheetsContainer = initializedTableView.querySelector('#tableContainer');
-
     // setTableEditTips($(initializedTableView).find('#tableEditTips'));    // 确保在 table_manager_container 存在的情况下查找 tableEditTips
 
     // 设置编辑提示
@@ -708,42 +729,38 @@ async function initTableView(mesId) {
     $(document).on('click', '#clear_stash_button', function () {
         EDITOR.tryBlock(clearStashData, "清空暂存数据失败");
     })
+    // 点击前表按钮
+    $(document).on('click', '#table_prev_button', function () {
+        const deep = DERIVED.any.renderDeep;
+        const { deep: prevDeep }  = BASE.getLastSheetsPiece(deep - 1, 20, false);
+        if (prevDeep === -1) {
+            EDITOR.error("没有更多的表格数据了")
+            return
+        }
+        renderSheetsDOM(prevDeep);
+    })
+
+    // 点击后表按钮
+    $(document).on('click', '#table_next_button', function () {
+        const deep = DERIVED.any.renderDeep;
+        console.log("当前深度：", deep)
+        const { deep: nextDeep }  = BASE.getLastSheetsPiece(deep + 1, 20, false, "down");
+        if (nextDeep === -1) {
+            EDITOR.error("没有更多的表格数据了")
+            return
+        }
+        renderSheetsDOM(nextDeep);
+    })
 
     return initializedTableView;
 }
 
-export async function refreshContextView() {
+export async function refreshContextView(mesId = -1) {
     if(BASE.contextViewRefreshing) return
     BASE.contextViewRefreshing = true
-    await renderSheetsDOM();
+    await renderSheetsDOM(mesId);
     console.log("刷新表格视图")
     BASE.contextViewRefreshing = false
-}
-
-/**
- * [新] 自动从暂存中导入数据
- * @returns {Promise<boolean>} 是否成功加载数据
- */
-export async function autoImportFromStash() {
-    // [终极修复] 在执行任何操作前，首先检查是否存在聊天载体。
-    if (USER.getContext().chat.length === 0) {
-        console.log('[Memory Enhancement] 检测到暂存数据，但无聊天载体，已中止自动恢复。');
-        return false; // 直接返回，不进行任何后续操作
-    }
-
-    const content = await readDataFromLocalStorage('table_stash_data');
-    if (content && content.length > 2) { // 检查内容是否为一个有效的json object
-        console.log('[Memory Enhancement] 检测到暂存数据，将在1.5秒后尝试自动恢复...');
-        return new Promise(resolve => {
-            setTimeout(async () => {
-                // 自动导入时，isAuto为true，跳过弹窗
-                const success = await processImportedData(content, true);
-                // 移除内部的成功提示，统一由调用方处理
-                resolve(success);
-            }, 1500);
-        });
-    }
-    return false;
 }
 
 export async function getChatSheetsView(mesId = -1) {

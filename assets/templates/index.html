@@ -19,10 +19,14 @@
                                 <i class="fa-solid fa-book"></i>
                                 <a href="https://muyoo.com.cn/wiki/memory/start.html" data-i18n="Read tutorial">阅读教程</a>
                             </div>
+                            <div class="menu_button_icon menu_button interactable">
+                                <i class="fa-solid fa-list"></i>
+                                <a href="https://github.com/muyoou/st-memory-enhancement/releases" data-i18n="Changelog">更新日志</a>
+                            </div>
                         </div>
                         <div class="menu_button_icon menu_button interactable" id="table_debug_log_button">
                             <i class="fa-solid fa-bug"></i>
-                            <a data-i18n="Logs">日志</a>
+                            <a data-i18n="Logs">Log</a>
                         </div>
                     </div>
                     <div id="table_message_tip"></div>
@@ -90,10 +94,6 @@
                                             <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;" data-i18n="Custom API temperature setting">自定义API温度设定：<span id="custom_temperature_value">1.0</span></label>
                                             <input type="range" id="custom_temperature" min="0.1" max="2.0" step="0.1" value="1.0" style="flex-grow: 1;">
                                         </div>
-                                        <div class="checkbox_label">
-                                            <input type="checkbox" id="custom_api_use_backend_proxy"><span data-i18n="If it's a Claw poll, check this box">如果是Claw轮询就勾选这个</span>
-                                        </div>
-
 
                                         <!-- 代理设置 -->
                                         <div class="inline-drawer wide100p">
@@ -161,8 +161,7 @@
                                         <input type="number" id="separateReadContextLayers" class="margin0 text_pole" style="width: 50px;" min="1" value="1"/>
                                         <label for="separateReadLorebook" style="margin-left: 10px;">读取世界书</label>
                                         <input type="checkbox" id="separateReadLorebook" class="margin0"/>
-                                        <label for="wait_for_fill_then_send" style="margin-left: 10px;">填完再发</label>
-                                        <input type="checkbox" id="wait_for_fill_then_send" class="margin0"/>
+                                        <small class="toggle-description justifyLeft">(不建议大Token卡使用)</small>
                                     </div>
                                     <div style="padding-left: 5px; margin-bottom: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">

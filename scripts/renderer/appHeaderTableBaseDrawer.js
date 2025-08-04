@@ -91,11 +91,6 @@ export async function initAppHeaderTableDrawer() {
     appHeaderTableContainer.append(editorContentDiv);
     appHeaderTableContainer.append(settingContentDiv);
 
-    // 初始时显示数据库内容 (只执行一次)
-    databaseContentDiv.show(); // 直接使用缓存的对象
-    editorContentDiv.hide();   // 直接使用缓存的对象
-    settingContentDiv.hide();  // 直接使用缓存的对象
-
     // 初始化按钮状态 (只执行一次)
     updateButtonStates(databaseButton);
 

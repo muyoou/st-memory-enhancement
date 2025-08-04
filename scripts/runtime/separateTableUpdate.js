@@ -1,10 +1,10 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
 import { Logger } from '../../services/logger.js';
-import { executeIncrementalUpdateFromSummary, sheetsToTables } from "./absoluteRefresh.js";
+import { executeIncrementalUpdateFromSummary } from "./absoluteRefresh.js";
 import { newPopupConfirm, alwaysConfirmPopups } from '../../components/popupConfirm.js';
 import { clearStepData } from '../../services/stepByStepStorage.js';
 import { reloadCurrentChat } from "/script.js"
-import {getTablePrompt,initTableData, undoSheets} from "../../index.js"
+import {getTablePrompt,initTableData, undoSheets, triggerTableUpdateCallbacks} from "../../index.js"
 import { ext_hashSheetsToJson } from '../settings/standaloneAPI.js';
 
 let toBeExecuted = [];
@@ -193,12 +193,6 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
     let finalStatus = 'error'; // 用于跟踪流程的最终结果
 
     try {
-        // --- 保存锁：启动 ---
-        // [v6.0.2] 使用新的全局锁状态，并取消待处理的自动保存。
-        USER.debouncedSaveChat.cancel();
-        USER.isSaveLocked = true;
-        Logger.info('[Save Lock] Lock acquired by manualSummaryChat.');
-        
         // 步骤一：检查是否需要执行“撤销”操作
         const { piece: initialPiece } = USER.getChatPiece();
         if (!initialPiece) {
@@ -243,37 +237,23 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
             clearStepData();
             toBeExecuted = [];
 
-            // 通知UI更新
-            const latestTableData = ext_hashSheetsToJson(referencePiece.hash_sheets);
-            if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableUpdate === 'function') {
-                globalThis.stMemoryEnhancement._notifyTableUpdate(latestTableData);
-            }
+            // [v9.0.5] 修复：统一调用内部和外部UI刷新
+            triggerTableUpdateCallbacks();
+            BASE.refreshContextView();
+
         } else {
             finalStatus = r || 'error';
             Logger.warn('执行增量独立填表失败或取消: ', `(${todoChats.length}) `, toBeExecuted);
+        }
+        
+        // [v9.0.6] 修复：在操作成功后直接保存
+        if (finalStatus === 'success') {
+            await USER.saveChat();
         }
 
     } catch (e) {
         EDITOR.error('“立即填表”流程发生严重错误', e.message, e);
         finalStatus = 'error';
-    } finally {
-        // --- 保存锁：释放 ---
-        // [v6.0.2] 释放全局锁。
-        USER.isSaveLocked = false;
-        Logger.info('[Save Lock] Lock released by manualSummaryChat.');
-
-        // [v6.0.3] 检查在锁定期间是否有被延迟的保存请求。
-        if (finalStatus === 'success') {
-            // 如果手动流程成功，它自己的保存会覆盖所有内容，所以只需重置标志即可。
-            Logger.info('[Save Lock] Performing final, consolidated save.');
-            await USER.saveChat();
-            USER.debouncedSaveRequired = false;
-        } else if (USER.debouncedSaveRequired) {
-            // 如果手动流程失败，但有待处理的保存，则执行它以确保其他更改不丢失。
-            Logger.info('[Save Lock] Main operation failed, but executing a postponed save for other changes.');
-            await USER.saveChat();
-            USER.debouncedSaveRequired = false;
-        }
     }
     
     return finalStatus; // 返回最终状态
@@ -288,12 +268,6 @@ export async function triggerTableFillFromLastMessage() {
     let finalStatus = 'error';
 
     try {
-        // --- 保存锁：启动 ---
-        // [v6.0.2] 使用新的全局锁状态，并取消待处理的自动保存。
-        USER.debouncedSaveChat.cancel();
-        USER.isSaveLocked = true;
-        Logger.info('[Save Lock] Lock acquired by triggerTableFillFromLastMessage.');
-        
         // 1. 获取当前最新消息（AI的回复），这是需要分析以更新表格的内容。
         const { piece: messagePiece } = USER.getChatPiece();
         if (!messagePiece || !messagePiece.mes) {
@@ -344,14 +318,14 @@ export async function triggerTableFillFromLastMessage() {
             }
 
             try {
-                const latestTableData = ext_hashSheetsToJson(messagePiece.hash_sheets);
-                if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableUpdate === 'function') {
-                    globalThis.stMemoryEnhancement._notifyTableUpdate(latestTableData);
-                }
+                // [v9.0.5] 修复：统一调用内部和外部UI刷新
+                triggerTableUpdateCallbacks();
+                BASE.refreshContextView();
             } catch (e) {
                 Logger.error('[Memory Enhancement] 外部触发填表后，通知UI更新失败:', e);
             }
             Logger.info('[Memory Enhancement] 外部触发填表成功。');
+
         } else {
             finalStatus = r || 'error';
             Logger.error('[Memory Enhancement] 外部触发填表失败。结果:', r);
@@ -359,24 +333,11 @@ export async function triggerTableFillFromLastMessage() {
     } catch (e) {
         finalStatus = 'error';
         Logger.error('[Memory Enhancement] 外部触发填表流程发生严重错误', e);
-    } finally {
-        // --- 保存锁：释放 ---
-        // [v6.0.2] 释放全局锁。
-        USER.isSaveLocked = false;
-        Logger.info('[Save Lock] Lock released by triggerTableFillFromLastMessage.');
-
-        // [v6.0.3] 检查在锁定期间是否有被延迟的保存请求。
-        if (finalStatus === 'success') {
-            // 如果手动流程成功，它自己的保存会覆盖所有内容，所以只需重置标志即可。
-            Logger.info('[Save Lock] Performing final, consolidated save after external trigger.');
-            await USER.saveChat();
-            USER.debouncedSaveRequired = false;
-        } else if (USER.debouncedSaveRequired) {
-            // 如果手动流程失败，但有待处理的保存，则执行它以确保其他更改不丢失。
-            Logger.info('[Save Lock] Main operation failed, but executing a postponed save for other changes.');
-            await USER.saveChat();
-            USER.debouncedSaveRequired = false;
-        }
+    }
+    
+    // [v9.0.6] 修复：在操作成功后直接保存
+    if (finalStatus === 'success') {
+        await USER.saveChat();
     }
     
     return finalStatus;

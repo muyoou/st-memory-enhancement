@@ -1,5 +1,6 @@
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../manager.js';
 import {getColumnLetter} from "./utils.js";
+import {SheetBase} from "./base.js";
 
 const CellAction = {
     editCell: 'editCell',
@@ -25,8 +26,8 @@ const CellType = {
  * @description 单元格类是 Sheet 类的子类，用于管理 Sheet 中的单元格数据
  */
 export class Cell {
-    CellType = CellType;
-    CellAction = CellAction;
+    static CellType = CellType;
+    static CellAction = CellAction;
 
     constructor(parent, target = null) {
         this.uid = undefined;
@@ -101,14 +102,14 @@ export class Cell {
                 this.element.textContent = this.data.value || getColumnLetter(colIndex - 1); // Column headers (A, B, C...)
                 this.element.classList.add('sheet-header-cell-top');
             } else if (colIndex === 0) {
-                if (this.parent.type === this.parent.SheetType.dynamic || this.parent.type === this.parent.SheetType.fixed) {
+                if (this.parent.type === SheetBase.SheetType.dynamic || this.parent.type === SheetBase.SheetType.fixed) {
                     this.element.textContent = 'i'
                 } else {
                     this.element.textContent = this.data.value || rowIndex; // Row headers (1, 2, 3...)
                 }
                 this.element.classList.add('sheet-header-cell-left');
             } else {
-                if (this.parent.type === this.parent.SheetType.static) {
+                if (this.parent.type === SheetBase.SheetType.static) {
                     const pos = [getColumnLetter(colIndex - 1), rowIndex].join(''); // Cell position (A1, B2, C3...)
                     this.element.textContent = this.data.value || pos; // 显示单元格值，默认为位置
                     this.element.style.fontSize = '0.8rem';

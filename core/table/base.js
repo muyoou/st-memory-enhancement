@@ -1,6 +1,5 @@
 import {Cell} from "./cell.js";
 import {filterSavingData} from "./utils.js";
-import { Logger } from "../../services/logger.js";
 
 const SheetDomain = {
     global: 'global',
@@ -22,8 +21,8 @@ const customStyleConfig = {
 }
 
 export class SheetBase {
-    SheetDomain = SheetDomain;
-    SheetType = SheetType;
+    static SheetDomain = SheetDomain;
+    static SheetType = SheetType;
 
     constructor() {
         // 以下为基本属性
@@ -33,6 +32,7 @@ export class SheetBase {
         this.type = SheetType.dynamic;
         this.enable = true;                     // 用于标记是否启用
         this.required = false;                  // 用于标记是否必填
+        this.tochat = true;                     // 用于标记是否发送到聊天
         this.triggerSend = false;               // 用于标记是否触发发送给AI
         this.triggerSendDeep = 1;               // 用于记录触发发送的深度
 
@@ -78,7 +78,7 @@ export class SheetBase {
                         });
                     });
                     this._cellPositionCacheDirty = false;   // 更新完成，标记为干净
-                    Logger.debug('重新计算 positionCache: ', map);
+                    console.log('重新计算 positionCache: ', map);
                 }
                 return map.get(uid);
             },
@@ -104,11 +104,11 @@ export class SheetBase {
             this.cells.set(cell.uid, cell);
             this.cellHistory.push(cell);
             if (i === 0 && j === 0) {
-                cell.type = cell.CellType.sheet_origin;
+                cell.type = Cell.CellType.sheet_origin;
             } else if (i === 0) {
-                cell.type = cell.CellType.column_header;
+                cell.type = Cell.CellType.column_header;
             } else if (j === 0) {
-                cell.type = cell.CellType.row_header;
+                cell.type = Cell.CellType.row_header;
             }
             return cell.uid;
         }));
@@ -126,11 +126,11 @@ export class SheetBase {
             this.cellHistory.push(cell);
             cell.data.value = valueSheet[i][j] || ''; // 设置单元格的值
             if (i === 0 && j === 0) {
-                cell.type = cell.CellType.sheet_origin;
+                cell.type = Cell.CellType.sheet_origin;
             } else if (i === 0) {
-                cell.type = cell.CellType.column_header;
+                cell.type = Cell.CellType.column_header;
             } else if (j === 0) {
-                cell.type = cell.CellType.row_header;
+                cell.type = Cell.CellType.row_header;
             }
             return cell.uid;
         }));
@@ -147,6 +147,19 @@ export class SheetBase {
         this.markPositionCacheDirty();
     }
 
+    getCellTypeByPosition(rowIndex, colIndex) {
+        if (rowIndex === 0 && colIndex === 0) {
+            return Cell.CellType.sheet_origin;
+        }
+        if (rowIndex === 0) {
+            return Cell.CellType.column_header;
+        }
+        if (colIndex === 0) {
+            return Cell.CellType.row_header;
+        }
+        return Cell.CellType.cell;
+    }
+
     loadCells() {
         // 从 cellHistory 遍历加载 Cell 对象
         try {
@@ -157,7 +170,7 @@ export class SheetBase {
                 this.cells.set(cell.uid, cell);
             });
         } catch (e) {
-            Logger.error(`加载失败：${e}`);
+            console.error(`加载失败：${e}`);
             return false;
         }
 
@@ -174,19 +187,19 @@ export class SheetBase {
                             this.cells.set(cell.uid, cell);
                         }
                         if (rowIndex === 0 && colIndex === 0) {
-                            cell.type = cell.CellType.sheet_origin;
+                            cell.type = Cell.CellType.sheet_origin;
                         } else if (rowIndex === 0) {
-                            cell.type = cell.CellType.column_header;
+                            cell.type = Cell.CellType.column_header;
                         } else if (colIndex === 0) {
-                            cell.type = cell.CellType.row_header;
+                            cell.type = Cell.CellType.row_header;
                         } else {
-                            cell.type = cell.CellType.cell;
+                            cell.type = Cell.CellType.cell;
                         }
                     });
                 });
             }
         } catch (e) {
-            Logger.error(`加载失败：${e}`);
+            console.error(`加载失败：${e}`);
             return false;
         }
     }
@@ -201,7 +214,7 @@ export class SheetBase {
 
     findCellByPosition(rowIndex, colIndex) {
         if (rowIndex < 0 || colIndex < 0 || rowIndex >= this.hashSheet.length || colIndex >= this.hashSheet[0].length) {
-            Logger.warn('无效的行列索引');
+            console.warn('无效的行列索引');
             return null;
         }
         const hash = this.hashSheet[rowIndex][colIndex]
@@ -209,12 +222,12 @@ export class SheetBase {
         if (!target) {
             const cell = new Cell(this);
             cell.data.value = '空数据';
-            cell.type = colIndex === 0 ? cell.CellType.row_header : rowIndex === 0 ? cell.CellType.column_header : cell.CellType.cell;
+            cell.type = colIndex === 0 ? Cell.CellType.row_header : rowIndex === 0 ? Cell.CellType.column_header : Cell.CellType.cell;
             cell.uid = hash;
             this.cells.set(cell.uid, cell);
             return cell;
         }
-        Logger.debug('找到单元格',target);
+        console.log('找到单元格',target);
         return target;
     }
     /**
@@ -224,7 +237,7 @@ export class SheetBase {
      */
     getCellsByRowIndex(rowIndex) {
         if (rowIndex < 0 || rowIndex >= this.hashSheet.length) {
-            Logger.warn('无效的行索引');
+            console.warn('无效的行索引');
             return null;
         }
         return this.hashSheet[rowIndex].map(uid => this.cells.get(uid));
@@ -235,11 +248,11 @@ export class SheetBase {
      */
     getSheetCSV( removeHeader = true,key = 'value') {
         if (this.isEmpty()) return '（此表格当前为空）\n'
-        Logger.debug("测试获取map", this.cells)
+        console.log("测试获取map", this.cells)
         const content = this.hashSheet.slice(removeHeader?1:0).map((row, index) => row.map(cellUid => {
             const cell = this.cells.get(cellUid)
             if (!cell) return ""
-            return cell.type === cell.CellType.row_header ? index : cell.data[key]
+            return cell.type === Cell.CellType.row_header ? index : cell.data[key]
         }).join(',')).join('\n');
         return content + "\n";
     }

@@ -407,7 +407,7 @@ export async function openTableRendererPopup() {
     const sheets = BASE.hashSheetsToSheets(sheetsData)[0];
     let sheetElements = '';
     for (let sheet of sheets) {
-        if (!sheet.toChat) continue;
+        if (!sheet.tochat) continue;
         if (!sheet.data.customStyle || sheet.data.customStyle === '') {
             sheetElements += sheet.renderSheet().outerHTML;
             continue;

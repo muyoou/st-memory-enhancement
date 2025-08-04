@@ -18,21 +18,19 @@ export function getColumnLetter(colIndex) {
     return letter;
 }
 
-export function filterSavingData(sheet, key=["uid", "name", "domain", "type", "enable", "required", "toChat", "triggerSend", "triggerSendDeep", "hashSheet", "cellHistory", "config"], withHead = false) {
+export function filterSavingData(sheet, key=["uid", "name", "domain", "type", "enable", "required", "tochat", "triggerSend", "triggerSendDeep", "hashSheet", "cellHistory", "config"], withHead = false) {
     const r = {}
     key.forEach(k => {
         if(k === 'cellHistory') {
             r.cellHistory = sheet.cellHistory.map((
                 {
-                    CellAction,
-                    CellType,
-                    bridge,
-                    parent,
-                    element,
-                    customEventListeners,
-                    ...filter
+                    uid, type, status, coordUid, data, targetUid
                 }) => {
-                return filter;
+                const obj = { uid, coordUid, data };
+                if (status !== '') obj.status = status;
+                if (targetUid !== '') obj.targetUid = targetUid;
+                if (type !== 'cell') obj.type = type;
+                return obj;
             });
             return
         }

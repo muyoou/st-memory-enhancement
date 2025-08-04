@@ -1,4 +1,4 @@
-import {EDITOR, SYSTEM, USER} from '../../core/manager.js';
+import {EDITOR, SYSTEM, USER, BASE} from '../../core/manager.js';
 import JSON5 from '../../utils/json5.min.mjs'
 
 let isPopupOpening = false; // 防止在弹窗打开时推送日志导致循环
@@ -157,6 +157,8 @@ export async function openTableDebugLogPopup() {
     const $debugLogContainer = $dlg.find('#debugLogContainer');
     const $onlyErrorLogCheckbox = $dlg.find('#only_error_log'); // 获取 checkbox
     const $exportButton = $dlg.find('#table_debug_log_export_button'); // 获取导出按钮
+    const $exportInfoButton = $dlg.find('#table_debug_info_export_button'); // 获取导出调试信息按钮
+    const $importInfoButton = $dlg.find('#table_debug_info_import_button'); // 获取导入调试信息按钮
 
     $debugLogContainer.empty(); // 清空容器，避免重复显示旧日志
     toastr.clear()
@@ -186,6 +188,48 @@ export async function openTableDebugLogPopup() {
         a.click();
         URL.revokeObjectURL(url);
     })
+
+    $exportInfoButton.on('click', () => {
+        const infoData = {
+            chatMate: BASE.sheetsData.context,
+            lastestSheet: BASE.getLastSheetsPiece(),
+            allHash: USER.getContext().chat.map(chat => chat.hash_sheets ?? null),
+        };
+        const infoDataString = JSON.stringify(infoData, null, 2);
+        const blob = new Blob([infoDataString], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'table_debug_info.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    })
+
+    $importInfoButton.on('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    BASE.sheetsData.context = json.chatMate;
+                    const lastestPiece = USER.getChatPiece().piece
+                    lastestPiece.hash_sheets = json.lastestSheet.piece.hash_sheets;
+                    console.log('导入的调试信息：', json);
+                    USER.saveChat()
+                } catch (error) {
+                    console.error('导入失败：', error);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    });
 
     await tableDebugLogPopup.show();
     isPopupOpening = false;

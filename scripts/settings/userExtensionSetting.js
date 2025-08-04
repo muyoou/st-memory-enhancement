@@ -160,8 +160,11 @@ async function importTableSet() {
                     }
                     // 从导入数据中移除暂存数据，以防它被错误地写入设置
                     delete importedData.__stashData;
+                } else {
+                    // 如果导入的数据中不包含暂存数据，则清空现有的暂存数据
+                    localStorage.setItem('table_stash_data', '');
                 }
-
+                
                 // 获取导入 JSON 的第一级 key
                 const firstLevelKeys = Object.keys(importedData);
 
@@ -191,17 +194,17 @@ async function importTableSet() {
                 renderSetting(); // 重新渲染设置界面，应用新的设置
                 // 重新转换模板
                 initTableStructureToTemplate()
-                BASE.refreshTempView() // 刷新模板视图
+                BASE.refreshTempView(true) // 刷新模板视图
                 EDITOR.success('导入成功并已重置所选设置'); // 提示用户导入成功
 
             } catch (error) {
-                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。'); // 提示 JSON 解析失败
+                EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。', error.message, error); // 提示 JSON 解析失败
                 console.error("文件读取或解析错误:", error); // 打印详细错误信息到控制台
             }
         };
 
         reader.onerror = (error) => {
-            EDITOR.error(`文件读取失败: ${error}`); // 提示文件读取失败
+            EDITOR.error(`文件读取失败`, error.message, error); // 提示文件读取失败
         };
 
         reader.readAsText(file); // 以文本格式读取文件内容
@@ -216,20 +219,31 @@ async function importTableSet() {
  */
 async function exportTableSet() {
     templateToTableStructure()
-    const { filterData, confirmation } = await filterTableDataPopup(USER.tableBaseSetting,"请选择需要导出的数据","")
+    // 为 filterTableDataPopup 准备一份包含当前暂存数据的副本
+    const dataToFilter = { ...USER.tableBaseSetting };
+    const stashDataRaw = localStorage.getItem('table_stash_data');
+    if (stashDataRaw) {
+        try {
+            dataToFilter.__stashData = JSON.parse(stashDataRaw);
+        } catch (e) {
+            console.warn("解析暂存数据失败，导出时将忽略。", e);
+        }
+    }
+
+    const { filterData, confirmation } = await filterTableDataPopup(dataToFilter, "请选择需要导出的数据", "");
     if (!confirmation) return;
 
     try {
         const blob = new Blob([JSON.stringify(filterData)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a')
+        const a = document.createElement('a');
         a.href = url;
         a.download = `tableCustomConfig-${SYSTEM.generateRandomString(8)}.json`;
         a.click();
         URL.revokeObjectURL(url);
         EDITOR.success('导出成功');
     } catch (error) {
-        EDITOR.error(`导出失败: ${error}`);
+        EDITOR.error(`导出失败`, error.message, error);
     }
 }
 
@@ -247,16 +261,30 @@ async function resetSettings() {
         renderSetting()
         if('tableStructure' in filterData){
             initTableStructureToTemplate()
-            BASE.refreshTempView()
+            BASE.refreshTempView(true)
         }
         EDITOR.success('已重置所选设置');
     } catch (error) {
-        EDITOR.error(`重置设置失败: ${error}`);
+        EDITOR.error(`重置设置失败`, error.message, error);
     }
 }
 
 function InitBinging() {
-    console.log('初始化绑定')
+    console.log('初始化绑定');
+
+    // 动态注入后端代理模式的勾选框
+    const apiSettingsContainer = $('#table_test_api_button').parent();
+    if (apiSettingsContainer.length > 0 && $('#custom_api_use_backend_proxy').length === 0) {
+        const proxyCheckboxHtml = `
+            <div class="checkbox flex-container">
+                <input id="custom_api_use_backend_proxy" type="checkbox">
+                <label for="custom_api_use_backend_proxy" style="margin-left: 5px;">使用自定义API的后端代理模式</label>
+            </div>
+        `;
+        // 将其插入到“测试API”按钮之前
+        $('#table_test_api_button').before(proxyCheckboxHtml);
+    }
+	
     // 开始绑定事件
     // 导入预设
     $('#table-set-import').on('click', () => importTableSet());
@@ -342,6 +370,12 @@ function InitBinging() {
     $('#step_by_step_use_main_api').change(function() {
         USER.tableBaseSetting.step_by_step_use_main_api = this.checked;
     });
+    // 自定义API后端代理模式切换
+    $('#custom_api_use_backend_proxy').change(function() {
+        USER.tableBaseSetting.custom_api_use_backend_proxy = this.checked;
+        USER.saveSettings && USER.saveSettings();
+        EDITOR.success(this.checked ? '自定义API已切换至后端代理模式' : '自定义API已切换至前端直连模式');
+    });
     // 根据下拉列表选择的模型更新自定义模型名称
     $('#model_selector').change(function(event) {
         $('#custom_model_name').val(event.target.value);
@@ -409,7 +443,7 @@ function InitBinging() {
                 EDITOR.success(result.message);
             } catch (error) {
                 console.error('API Key 处理失败:', error);
-                EDITOR.error('未能获取到API KEY，请重新输入~');
+                EDITOR.error('未能获取到API KEY，请重新输入~', error.message, error);
             }
         }, 500); // 500ms防抖延迟
     })
@@ -441,16 +475,6 @@ function InitBinging() {
         USER.tableBaseSetting.separateReadLorebook = this.checked;
         USER.saveSettings && USER.saveSettings();
     });
-    // 独立填表时，是否等待填表完成后再发送到酒馆
-    $('#wait_for_fill_then_send').change(function() {
-        USER.tableBaseSetting.wait_for_fill_then_send = this.checked;
-        USER.saveSettings && USER.saveSettings();
-    });
-    // 独立填表时，是否等待填表完成后再发送到酒馆
-    $('#wait_for_fill_then_send').change(function() {
-        USER.tableBaseSetting.wait_for_fill_then_send = this.checked;
-        USER.saveSettings && USER.saveSettings();
-    });
     // 重置分步填表提示词为默认值
     $('#reset_step_by_step_user_prompt').on('click', function() {
         const defaultValue = USER.tableBaseDefaultSettings.step_by_step_user_prompt;
@@ -476,11 +500,6 @@ function InitBinging() {
         const value = $(this).val();
         $('#custom_temperature_value').text(value);
         USER.tableBaseSetting.custom_temperature = Number(value);
-    });
-
-    // 如果是Claw轮询就勾选这个
-    $('#custom_api_use_backend_proxy').change(function() {
-        USER.tableBaseSetting.custom_api_use_backend_proxy = this.checked;
     });
 
     // 代理地址
@@ -558,10 +577,6 @@ export function renderSetting() {
     $('#separateReadContextLayers').val(USER.tableBaseSetting.separateReadContextLayers);
     // 分步填表是否读取世界书
     updateSwitch('#separateReadLorebook', USER.tableBaseSetting.separateReadLorebook);
-    // 独立填表时，是否等待填表完成后再发送到酒馆
-    updateSwitch('#wait_for_fill_then_send', USER.tableBaseSetting.wait_for_fill_then_send);
-    // 独立填表时，是否等待填表完成后再发送到酒馆
-    updateSwitch('#wait_for_fill_then_send', USER.tableBaseSetting.wait_for_fill_then_send);
     $("#fill_table_time").val(USER.tableBaseSetting.step_by_step ? 'after' : 'chat');
     refreshRebuildTemplate()
 
@@ -582,6 +597,7 @@ export function renderSetting() {
     updateSwitch('#confirm_before_execution', USER.tableBaseSetting.confirm_before_execution);
     updateSwitch('#use_main_api', USER.tableBaseSetting.use_main_api);
     updateSwitch('#step_by_step_use_main_api', USER.tableBaseSetting.step_by_step_use_main_api);
+    updateSwitch('#custom_api_use_backend_proxy', USER.tableBaseSetting.custom_api_use_backend_proxy);
     updateSwitch('#ignore_del', USER.tableBaseSetting.bool_ignore_del);
     // updateSwitch('#bool_force_refresh', USER.tableBaseSetting.bool_force_refresh);
     updateSwitch('#bool_silent_refresh', USER.tableBaseSetting.bool_silent_refresh);
@@ -591,7 +607,6 @@ export function renderSetting() {
     updateSwitch('#alternate_switch', USER.tableBaseSetting.alternate_switch);
     updateSwitch('#show_drawer_in_extension_list', USER.tableBaseSetting.show_drawer_in_extension_list);
     updateSwitch('#table_to_chat_can_edit', USER.tableBaseSetting.table_to_chat_can_edit);
-    updateSwitch('#custom_api_use_backend_proxy', USER.tableBaseSetting.custom_api_use_backend_proxy);
     $('#reply_options').toggle(!USER.tableBaseSetting.step_by_step);
     $('#step_by_step_options').toggle(USER.tableBaseSetting.step_by_step);
     $('#table_to_chat_options').toggle(USER.tableBaseSetting.isTableToChat);
@@ -649,7 +664,6 @@ export function initTableStructureToTemplate() {
         newTemplate.required = defaultTemplate.Required
         newTemplate.triggerSend = defaultTemplate.triggerSend
         newTemplate.triggerSendDeep = defaultTemplate.triggerSendDeep
-        newTemplate.isSendToContext = defaultTemplate.isSendToContext
         if(defaultTemplate.config)
             newTemplate.config = JSON.parse(JSON.stringify(defaultTemplate.config))
         newTemplate.source.data.note = defaultTemplate.note
@@ -681,7 +695,6 @@ function templateToTableStructure() {
             enable: template.enable,
             triggerSend: template.triggerSend,
             triggerSendDeep: template.triggerSendDeep,
-            isSendToContext:template.isSendToContext,
         }
     })
     USER.tableBaseSetting.tableStructure = tableTemplates

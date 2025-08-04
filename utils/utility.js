@@ -158,32 +158,12 @@ export async function calculateStringHash(string) {
     return hashHex;
 }
 
-/**
- * 防抖函数
- * @param {Function} func 需要进行防抖处理的函数
- * @param {number} delay 延迟时间，单位毫秒
- * @returns {Function} 返回一个新的函数，该函数具有防抖功能
- */
-export function debounce(func, delay) {
-    let timeoutId;
-
-    const debounced = function(...args) {
-        // 如果已经设置了定时器，就清除它
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-
-        // 设置一个新的定时器
-        timeoutId = setTimeout(() => {
-            func.apply(this, args);
-        }, delay);
-    };
-
-    // 添加 cancel 方法
-    debounced.cancel = function() {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-    };
-
-    return debounced;
+export function generateRandomSeed() {
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const length = 300; // 强力混淆
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return 'System Seed=' + result;
 }
