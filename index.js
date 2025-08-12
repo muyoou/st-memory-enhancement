@@ -16,6 +16,7 @@ import { functionToBeRegistered } from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import { reloadCurrentChat } from "/script.js";
 import {executeTranslation} from "./services/translate.js";
+import { getCombinedWorldbookContent } from './core/lore.js';
 import applicationFunctionManager from "./services/appFuncManager.js";
 
 
@@ -28,6 +29,10 @@ const tableFillStartCallbacks = []; // 新增：用于通知填表开始的回�
 window.stMemoryEnhancement = {
     // 新增：触发“填表开始”的通知
     _notifyTableFillStart: function() {
+        Logger.info(`[Memory Enhancement] _notifyTableFillStart called. Notifying ${tableFillStartCallbacks.length} callbacks.`);
+        if (tableFillStartCallbacks.length === 0) {
+            Logger.warn('[Memory Enhancement] No table fill start callbacks are registered.');
+        }
         Logger.debug(`[Memory Enhancement] Notifying ${tableFillStartCallbacks.length} callbacks about table fill start.`);
         tableFillStartCallbacks.forEach(callback => {
             try {
@@ -41,7 +46,8 @@ window.stMemoryEnhancement = {
     registerTableFillStartCallback: function(callback) {
         if (typeof callback === 'function' && !tableFillStartCallbacks.includes(callback)) {
             tableFillStartCallbacks.push(callback);
-            Logger.info('[Memory Enhancement] A new table fill start callback has been registered.');
+            Logger.info(`[Memory Enhancement] A new table fill start callback has been registered. Total callbacks: ${tableFillStartCallbacks.length}`);
+            console.log('Registered callbacks:', tableFillStartCallbacks);
         }
     },
     // 新增：注销“填表开始”的回调
@@ -325,11 +331,24 @@ export function findNextChatWhitTableData(startIndex, isIncludeStartIndex = fals
  * 搜寻最后一个含有表格数据的消息，并生成提示词
  * @returns 生成的完整提示词
  */
-export function initTableData(eventData) {
-    const allPrompt = USER.tableBaseSetting.message_template.replace('{{tableData}}', getTablePrompt(eventData))
-    const promptContent = replaceUserTag(allPrompt)  //替换所有的<user>标签
-    Logger.debug("完整提示", promptContent)
-    return promptContent
+export async function initTableData(eventData) {
+    const tablePrompt = getTablePrompt(eventData);
+    const worldbookPrompt = await getCombinedWorldbookContent();
+
+    let combinedData = tablePrompt;
+    if (worldbookPrompt) {
+        // 如果两个部分都有内容，用分隔符隔开
+        if (tablePrompt) {
+            combinedData = `${worldbookPrompt}\n\n---\n\n${tablePrompt}`;
+        } else {
+            combinedData = worldbookPrompt;
+        }
+    }
+
+    const allPrompt = USER.tableBaseSetting.message_template.replace('{{tableData}}', combinedData);
+    const promptContent = replaceUserTag(allPrompt); //替换所有的<user>标签
+    Logger.debug("完整提示 (表格+世界书)", promptContent);
+    return promptContent;
 }
 
 /**
@@ -724,7 +743,7 @@ async function onChatCompletionPromptReady(eventData) {
         }
 
         Logger.debug("生成提示词前", USER.getContext().chat)
-        const promptContent = initTableData(eventData)
+        const promptContent = await initTableData(eventData)
         if (USER.tableBaseSetting.deep === 0)
             eventData.chat.push({ role: getMesRole(), content: promptContent })
         else
@@ -740,14 +759,19 @@ async function onChatCompletionPromptReady(eventData) {
 /**
   * 宏获取提示词
   */
-function getMacroPrompt() {
+async function getMacroPrompt() {
     try {
         if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false) return ""
         if (USER.tableBaseSetting.step_by_step === true) {
-            const promptContent = replaceUserTag(getTablePrompt(undefined, true))
-            return `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${promptContent}`
+            const tablePrompt = replaceUserTag(getTablePrompt(undefined, true));
+            const worldbookPrompt = await getCombinedWorldbookContent();
+            let combinedPrompt = tablePrompt;
+            if (worldbookPrompt) {
+                combinedPrompt = tablePrompt ? `${worldbookPrompt}\n\n---\n\n${tablePrompt}` : worldbookPrompt;
+            }
+            return `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${combinedPrompt}`
         }
-        const promptContent = initTableData()
+        const promptContent = await initTableData()
         return promptContent
     }catch (error) {
         EDITOR.error(`记忆插件：宏提示词注入失败\n原因：`, error.message, error);

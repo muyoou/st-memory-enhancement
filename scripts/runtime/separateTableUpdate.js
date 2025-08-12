@@ -1,7 +1,7 @@
 import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
 import { Logger } from '../../services/logger.js';
 import { executeIncrementalUpdateFromSummary, sheetsToTables } from "./absoluteRefresh.js";
-import { newPopupConfirm, alwaysConfirmPopups } from '../../components/popupConfirm.js';
+import { newPopupConfirm } from '../../components/popupConfirm.js';
 import { clearStepData } from '../../services/stepByStepStorage.js';
 import { reloadCurrentChat } from "/script.js"
 import {getTablePrompt,initTableData, undoSheets} from "../../index.js"
@@ -101,13 +101,15 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
     const popupId = 'stepwiseSummaryConfirm';
     let confirmResult;
 
-    // 核心修复：在调用弹窗前，先检查 "一直选是" 的状态
-    const alwaysConfirm = alwaysConfirmPopups[popupId];
+    // Check sessionStorage for user's preference
+    const disabledPopups = JSON.parse(sessionStorage.getItem('disabledPopups')) || {};
+    const alwaysConfirmPopups = JSON.parse(sessionStorage.getItem('alwaysConfirmPopups')) || {};
 
-    if (alwaysConfirm) {
-        // 如果用户已经选择“一直选是”，则跳过弹窗，直接设置为 true
+    if (disabledPopups[popupId]) {
+        confirmResult = 'dont_remind_active';
+    } else if (alwaysConfirmPopups[popupId]) {
         confirmResult = true;
-        Logger.info(`[Memory Enhancement] 检测到 “${popupId}” 已设置为 '一直选是'，跳过弹窗。`);
+        Logger.info(`[Memory Enhancement] Detected "${popupId}" as always confirm, skipping popup.`);
     } else {
         // 否则，正常显示弹窗
         const popupContentHtml = `<p>累计 ${todoChats.length} 长度的文本，是否开始独立填表？</p>`;
@@ -153,12 +155,12 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
                     if (messageElement) {
                         // 找到元素后，再短暂延迟，确保渲染稳定
                         await new Promise(resolve => setTimeout(resolve, 150));
-                        // [新增] 通知前端UI显示加载动画
-                        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
-                            globalThis.stMemoryEnhancement._notifyTableFillStart();
-                        }
                         Logger.info(`[Memory Enhancement] 分步填表开始，执行跳转: /chat-jump ${lastMessageId}`);
                         globalThis.TavernHelper.triggerSlash(`/chat-jump ${lastMessageId}`);
+                        // [新增] 通知前端UI显示加载动画
+                        if (confirmResult !== 'dont_remind_active' && globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
+                            globalThis.stMemoryEnhancement._notifyTableFillStart();
+                        }
                     } else {
                         Logger.warn(`[Memory Enhancement] 轮询3秒后，仍无法找到目标消息 (ID: ${lastMessageId})，跳转取消。`);
                     }

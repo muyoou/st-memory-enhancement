@@ -1,23 +1,10 @@
 import {SYSTEM, USER} from "../core/manager.js";
 
-// Static map to track temporarily disabled popups by ID
-let disabledPopups = {};
-// Static map to track popups that should always be confirmed for the current session
-export let alwaysConfirmPopups = {};
-
-/**
- * Resets the state of "don't remind" and "always confirm" popups.
- * This is intended to be called on a page refresh or similar event.
- */
+// Use sessionStorage for persistence within a session
 export function resetPopupConfirmations() {
-    // 使用 for...in 循环来清空对象，因为它们是 let 声明的
-    for (const key in disabledPopups) {
-        delete disabledPopups[key];
-    }
-    for (const key in alwaysConfirmPopups) {
-        delete alwaysConfirmPopups[key];
-    }
-    console.log('[Memory Enhancement] Popup confirmation states have been reset.');
+    sessionStorage.removeItem('disabledPopups');
+    sessionStorage.removeItem('alwaysConfirmPopups');
+    console.log('[Memory Enhancement] Popup confirmation states have been reset for this session.');
 }
 
 const bgc = '#3736bb'
@@ -27,6 +14,9 @@ const bgcg = '#de81f1'
 const tc = '#fff'
 
 export async function newPopupConfirm(text, cancelText = 'Cancel', confirmText = 'Confirm', id = '', dontRemindText = null, alwaysConfirmText = null) {
+    const disabledPopups = JSON.parse(sessionStorage.getItem('disabledPopups')) || {};
+    const alwaysConfirmPopups = JSON.parse(sessionStorage.getItem('alwaysConfirmPopups')) || {};
+
     if (id && disabledPopups[id]) {
         // 如果“不再提醒”已激活，则返回特殊值，不显示弹窗
         return Promise.resolve('dont_remind_active'); 
@@ -58,10 +48,14 @@ export class PopupConfirm {
     _handleAction(resolutionValue) {
         let actualResolutionValue = resolutionValue;
         if (resolutionValue === 'dont_remind_selected' && this.id) {
+            const disabledPopups = JSON.parse(sessionStorage.getItem('disabledPopups')) || {};
             disabledPopups[this.id] = true;
+            sessionStorage.setItem('disabledPopups', JSON.stringify(disabledPopups));
             actualResolutionValue = true; // Act as if "Confirm" was pressed
         } else if (resolutionValue === 'always_confirm_selected' && this.id) {
+            const alwaysConfirmPopups = JSON.parse(sessionStorage.getItem('alwaysConfirmPopups')) || {};
             alwaysConfirmPopups[this.id] = true;
+            sessionStorage.setItem('alwaysConfirmPopups', JSON.stringify(alwaysConfirmPopups));
             actualResolutionValue = true; // Act as if "Confirm" was pressed
         }
 

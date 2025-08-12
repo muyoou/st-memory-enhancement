@@ -1,5 +1,6 @@
 // absoluteRefresh.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
+import { getCombinedWorldbookContent } from '../../core/lore.js';
 import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEditActions, getTableEditTag } from "../../index.js";
 import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
 import JSON5 from '../../utils/json5.min.mjs'
@@ -1533,29 +1534,13 @@ export async function executeIncrementalUpdateFromSummary(
         const contextChats = await getRecentChatHistory(USER.getContext().chat, separateReadContextLayers, true);
         const summaryChats = chatToBeUsed;
 
-        // 获取角色世界书内容
+        // 获取角色世界书内容 (已重构)
         let lorebookContent = '';
-        if (USER.tableBaseSetting.separateReadLorebook && window.TavernHelper) {
+        if (USER.tableBaseSetting.separateReadLorebook) {
             try {
-                const charLorebooks = await window.TavernHelper.getCharLorebooks({ type: 'all' });
-                const bookNames = [];
-                if (charLorebooks.primary) {
-                    bookNames.push(charLorebooks.primary);
-                }
-                if (charLorebooks.additional && charLorebooks.additional.length > 0) {
-                    bookNames.push(...charLorebooks.additional);
-                }
-
-                for (const bookName of bookNames) {
-                    if (bookName) {
-                        const entries = await window.TavernHelper.getLorebookEntries(bookName);
-                        if (entries && entries.length > 0) {
-                            lorebookContent += entries.map(entry => entry.content).join('\n');
-                        }
-                    }
-                }
+                lorebookContent = await getCombinedWorldbookContent();
             } catch (e) {
-                console.error('[Memory Enhancement] Error fetching lorebook content:', e);
+                console.error('[Memory Enhancement] Error fetching combined lorebook content:', e);
             }
         }
 

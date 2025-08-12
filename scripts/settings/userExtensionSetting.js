@@ -478,9 +478,56 @@ function InitBinging() {
         USER.tableBaseSetting.custom_temperature = Number(value);
     });
 
+    // 新增：API模式
+    $('#custom_api_mode').on('change', function() {
+        const selectedMode = $(this).val();
+        USER.tableBaseSetting.custom_api_mode = selectedMode;
+        // 根据选择的模式显示/隐藏API URL输入框
+        if (selectedMode === 'google') {
+            $('#custom_api_url').hide();
+        } else {
+            $('#custom_api_url').show();
+        }
+    });
+
+    // 新增：Top P
+    $('#custom_top_p').on('input', function() {
+        const value = $(this).val();
+        $('#custom_top_p_value').text(value);
+        USER.tableBaseSetting.custom_top_p = Number(value);
+    });
+
+    // 新增：Presence Penalty
+    $('#custom_presence_penalty').on('input', function() {
+        const value = $(this).val();
+        $('#custom_presence_penalty_value').text(value);
+        USER.tableBaseSetting.custom_presence_penalty = Number(value);
+    });
+
+    // 新增：Frequency Penalty
+    $('#custom_frequency_penalty').on('input', function() {
+        const value = $(this).val();
+        $('#custom_frequency_penalty_value').text(value);
+        USER.tableBaseSetting.custom_frequency_penalty = Number(value);
+    });
+
+    // 新增：Max Tokens
+    $('#custom_max_tokens').on('input', function() {
+        const value = $(this).val();
+        $('#custom_max_tokens_value').text(value);
+        USER.tableBaseSetting.custom_max_tokens = Number(value);
+    });
+
     // 如果是Claw轮询就勾选这个
     $('#custom_api_use_backend_proxy').change(function() {
         USER.tableBaseSetting.custom_api_use_backend_proxy = this.checked;
+    });
+
+    // 世界书字符限制
+    $('#world_book_limit').on('input', function() {
+        const value = $(this).val();
+        $('#world_book_limit_value').text(value);
+        USER.tableBaseSetting.world_book_limit = Number(value);
     });
 
     // 代理地址
@@ -498,11 +545,19 @@ function InitBinging() {
     $('#fetch_models_button').on('click', updateModelList);
 
     // 测试API
-    $(document).on('click', '#table_test_api_button',async () => {
-        const apiUrl = $('#custom_api_url').val();
-        const modelName = $('#custom_model_name').val();
-        const encryptedApiKeys = USER.IMPORTANT_USER_PRIVACY_DATA.custom_api_key;
-        const results = await handleApiTestRequest(apiUrl, encryptedApiKeys, modelName);
+    $(document).on('click', '#table_test_api_button', async () => {
+        const apiSettings = {
+            api_mode: $('#custom_api_mode').val(),
+            api_url: $('#custom_api_url').val(),
+            model_name: $('#custom_model_name').val(),
+            encryptedApiKeys: USER.IMPORTANT_USER_PRIVACY_DATA.custom_api_key,
+            temperature: Number($('#custom_temperature').val()),
+            top_p: Number($('#custom_top_p').val()),
+            presence_penalty: Number($('#custom_presence_penalty').val()),
+            frequency_penalty: Number($('#custom_frequency_penalty').val()),
+            max_tokens: Number($('#custom_max_tokens').val()),
+        };
+        const results = await handleApiTestRequest(apiSettings);
     });
 
     // 开始整理表格
@@ -550,8 +605,30 @@ export function renderSetting() {
     $('#clear_up_stairs_value').text(USER.tableBaseSetting.clear_up_stairs);
     $('#rebuild_token_limit').val(USER.tableBaseSetting.rebuild_token_limit_value);
     $('#rebuild_token_limit_value').text(USER.tableBaseSetting.rebuild_token_limit_value);
+
+    // 更新：渲染所有API参数
+    const currentApiMode = USER.tableBaseSetting.custom_api_mode || 'frontend';
+    $('#custom_api_mode').val(currentApiMode);
+    if (currentApiMode === 'google') {
+        $('#custom_api_url').hide();
+    } else {
+        $('#custom_api_url').show();
+    }
     $('#custom_temperature').val(USER.tableBaseSetting.custom_temperature);
     $('#custom_temperature_value').text(USER.tableBaseSetting.custom_temperature);
+    $('#custom_top_p').val(USER.tableBaseSetting.custom_top_p);
+    $('#custom_top_p_value').text(USER.tableBaseSetting.custom_top_p);
+    $('#custom_presence_penalty').val(USER.tableBaseSetting.custom_presence_penalty);
+    $('#custom_presence_penalty_value').text(USER.tableBaseSetting.custom_presence_penalty);
+    $('#custom_frequency_penalty').val(USER.tableBaseSetting.custom_frequency_penalty);
+    $('#custom_frequency_penalty_value').text(USER.tableBaseSetting.custom_frequency_penalty);
+    $('#custom_max_tokens').val(USER.tableBaseSetting.custom_max_tokens);
+    $('#custom_max_tokens_value').text(USER.tableBaseSetting.custom_max_tokens);
+    
+    // 世界书字符限制
+    $('#world_book_limit').val(USER.tableBaseSetting.world_book_limit);
+    $('#world_book_limit_value').text(USER.tableBaseSetting.world_book_limit);
+
     // Load step-by-step user prompt
     $('#step_by_step_user_prompt').val(USER.tableBaseSetting.step_by_step_user_prompt || '');
     // 分步填表读取的上下文层数
@@ -605,7 +682,47 @@ export function renderSetting() {
 /**
  * 加载设置
  */
+function showLoadingIndicator() {
+    console.log('showLoadingIndicator called');
+    let loadingIndicator = document.getElementById('table-fill-loading-indicator');
+    if (!loadingIndicator) {
+        console.log('Creating loading indicator');
+        loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'table-fill-loading-indicator';
+        loadingIndicator.style.position = 'fixed';
+        loadingIndicator.style.top = '70px';
+        loadingIndicator.style.left = '50%';
+        loadingIndicator.style.transform = 'translateX(-50%)';
+        loadingIndicator.style.padding = '10px 20px';
+        loadingIndicator.style.backgroundColor = '#4CAF50';
+        loadingIndicator.style.color = 'white';
+        loadingIndicator.style.borderRadius = '5px';
+        loadingIndicator.style.zIndex = '10001';
+        loadingIndicator.innerHTML = '<span>正在填表，请稍后...</span>';
+        document.body.appendChild(loadingIndicator);
+    }
+    loadingIndicator.style.display = 'block';
+    console.log('Loading indicator displayed');
+}
+
+function hideLoadingIndicator() {
+    console.log('hideLoadingIndicator called');
+    const loadingIndicator = document.getElementById('table-fill-loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+        console.log('Loading indicator hidden');
+    }
+}
+
 export function loadSettings() {
+    // 注册回调
+    if (window.stMemoryEnhancement) {
+        window.stMemoryEnhancement.registerTableFillStartCallback(showLoadingIndicator);
+        // Assuming there's a callback for when the process finishes.
+        // If not, this part needs to be adapted. Let's assume a general update callback hides it.
+        window.stMemoryEnhancement.registerTableUpdateCallback(hideLoadingIndicator);
+    }
+
     USER.IMPORTANT_USER_PRIVACY_DATA = USER.IMPORTANT_USER_PRIVACY_DATA || {};
 
     // 旧版本提示词变更兼容

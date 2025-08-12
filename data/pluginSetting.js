@@ -268,10 +268,18 @@ export const defaultSettings = await switchLanguage('__defaultSettings__', {
     custom_temperature: 1.0,
     // 如果是Claw轮询就勾选这个
     custom_api_use_backend_proxy: false,
+    // 世界书最大字符数
+    world_book_limit: 60000,
     // 重整理自定义最大token数
-    custom_max_tokens: 2048,
+    custom_max_tokens: 4096,
+    // API模式
+    custom_api_mode: 'frontend',
     // 重整理自定义top_p
-    custom_top_p: 1,
+    custom_top_p: 1.0,
+    // 重整理存在惩罚
+    custom_presence_penalty: 0.0,
+    // 重整理频率惩罚
+    custom_frequency_penalty: 0.0,
     // 重整理忽略删除
     bool_ignore_del: true,
     // 重整理忽略用户发送的消息
