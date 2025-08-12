@@ -1,3 +1,27 @@
+v6.3.0-hotfix-stepwise-loading-robustness
+- **核心修复: 彻底解决了分步填表加载提示在失败或取消时无法消失的健壮性问题。**
+  - **问题:** 在v6.1.0修复后，虽然大部分情况下的加载提示可以正常工作，但在某些边缘场景（如AI返回空、API调用失败、用户取消）下，结束通知未能正确发出，导致加载提示框会一直卡在界面上。
+  - **根本原因:** 通知的触发逻辑不够全面。只在流程的入口和部分成功路径上有“开始”通知，而缺少一个能覆盖所有执行路径（成功、失败、取消、异常）的“结束”通知机制。
+  - **解决方案:**
+    1.  **建立完整的“开始-结束”通知闭环:**
+        - 在 `index.js` 中新增了 `_notifyTableFillEnd`、`registerTableFillEndCallback` 和 `unregisterTableFillEndCallback` 接口，专门用于广播填表流程的结束事件。
+    2.  **保证通知在所有情况下都会被触发:**
+        - 修改了 `scripts/runtime/separateTableUpdate.js` 中的 `TableTwoStepSummary` 和 `triggerTableFillFromLastMessage` 函数。
+        - **关键修改:** 在这两个核心函数的 `try...finally` 块的 `finally` 部分，增加了对 `_notifyTableFillEnd(finalStatus)` 的调用。
+        - 这确保了无论函数内部的逻辑走向何方（是成功返回、是提前 `return`、还是抛出异常），`finally` 块中的代码都必定会执行，从而保证了“结束”通知的可靠发送。
+  - **实现方式:**
+    - **1. 修改 `index.js`:**
+        - 增加了 `_notifyTableFillEnd` 相关的三个函数，建立起完整的通知机制。
+    - **2. 修改 `scripts/runtime/separateTableUpdate.js`:**
+        - 在 `TableTwoStepSummary` 和 `triggerTableFillFromLastMessage` 的 `finally` 块中添加了对 `_notifyTableFillEnd` 的调用。
+        - 同时在函数入口处也补充了 `_notifyTableFillStart` 的调用，确保开始和结束成对出现。
+  - **结果:**
+    - **提升了健壮性:** 加载提示现在可以在任何情况下（包括填表失败、AI空回、用户取消等）被可靠地移除，显著改善了分步填表功能的用户体验和稳定性。
+  - **受影响文件:**
+    - `index.js` (新增了“填表结束”的回调机制)
+    - `scripts/runtime/separateTableUpdate.js` (在 `finally` 块中确保了结束回调的触发)
+    - `项目文档.txt` (新增此条目)
+
 v6.2.0-hotfix-mobile-slider-fix
 - **核心修复: 修复了在部分移动设备上，自定义API和世界书设置中的部分滑块（如Top P、最大Token等）无法正常显示和拖动的问题。**
   - **问题:** 在小屏幕设备上，用于布局滑块的 `flex-container` 样式与 `input[type="range"]` 存在兼容性问题，导致滑块的轨道（拉动槽）无法正确渲染。
@@ -495,3 +519,34 @@ v5.9.1-feature-log-grouping
     - `index.js` (应用分组)
     - `scripts/runtime/separateTableUpdate.js` (应用分组)
     - `项目文档.txt` (新增此条目)
+</file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+st-memory-enhancement/scripts/runtime/separateTableUpdate.js
+
+# VSCode Open Tabs
+st-memory-enhancement/data/pluginSetting.js
+st-memory-enhancement/assets/templates/setting.html
+st-memory-enhancement/core/lore.js
+st-memory-enhancement/scripts/runtime/absoluteRefresh.js
+项目文档.txt
+st-memory-enhancement/components/popupConfirm.js
+st-memory-enhancement/scripts/settings/userExtensionSetting.js
+st-memory-enhancement/assets/templates/index.html
+st-memory-enhancement/assets/styles/style.css
+st-memory-enhancement/项目文档.txt
+st-memory-enhancement/index.js
+st-memory-enhancement/scripts/runtime/separateTableUpdate.js
+
+# Current Time
+2025/8/12 下午9:44:33 (Asia/Shanghai, UTC+8:00)
+
+# Context Window Usage
+0 / 128K tokens used (0%)
+
+# Current Mode
+ACT MODE
+</environment_details>

@@ -79,8 +79,16 @@ function MarkChatAsWaiting(chat, swipeUid) {
  * */
 export async function TableTwoStepSummary(mode, messageContent = null) {
     Logger.group(`TableTwoStepSummary - mode: ${mode}`);
+    let finalStatus = 'initiated'; // 用于跟踪最终状态
+    // [新增] 保证在所有执行路径后都触发“开始”和“结束”通知
+    if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
+        globalThis.stMemoryEnhancement._notifyTableFillStart();
+    }
     try {
-        if (mode !== "manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) return;
+        if (mode !== "manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) {
+            finalStatus = 'skipped';
+            return;
+        }
 
         let todoChats;
 
@@ -126,9 +134,8 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
 
     if (confirmResult === false) {
         Logger.info('用户取消执行独立填表: ', `(${todoChats.length}) `, toBeExecuted);
-        // MarkChatAsWaiting is not fully implemented, commenting out for now
-        // MarkChatAsWaiting(currentPiece, swipeUid);
-        return 'cancelled'; // 返回取消状态
+        finalStatus = 'cancelled';
+        return finalStatus;
     } else {
         // [新增功能] 在确认填表后，如果“填完再发”未开启，则自动跳转
         if (USER.tableBaseSetting.wait_for_fill_then_send === false) {
@@ -174,9 +181,14 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
         const shouldReload = mode !== 'auto_wait';
         // 移除 “检测到自动确认设置...” 的提示
         // 核心修复：返回 manualSummaryChat 的执行结果
-        return manualSummaryChat(todoChats, confirmResult, shouldReload);
+        finalStatus = await manualSummaryChat(todoChats, confirmResult, shouldReload);
+        return finalStatus;
     }
     } finally {
+        // [新增] 保证在所有执行路径后都触发“结束”通知
+        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillEnd === 'function') {
+            globalThis.stMemoryEnhancement._notifyTableFillEnd(finalStatus);
+        }
         Logger.groupEnd();
     }
 }
@@ -288,7 +300,10 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
  */
 export async function triggerTableFillFromLastMessage() {
     let finalStatus = 'error';
-
+    // [新增] 保证在所有执行路径后都触发“开始”和“结束”通知
+    if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
+        globalThis.stMemoryEnhancement._notifyTableFillStart();
+    }
     try {
         // --- 保存锁：启动 ---
         // [v6.0.2] 使用新的全局锁状态，并取消待处理的自动保存。
@@ -378,6 +393,11 @@ export async function triggerTableFillFromLastMessage() {
             Logger.info('[Save Lock] Main operation failed, but executing a postponed save for other changes.');
             await USER.saveChat();
             USER.debouncedSaveRequired = false;
+        }
+        
+        // [新增] 保证在所有执行路径后都触发“结束”通知
+        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillEnd === 'function') {
+            globalThis.stMemoryEnhancement._notifyTableFillEnd(finalStatus);
         }
     }
     
