@@ -1,3 +1,22 @@
+v6.2.0-hotfix-mobile-slider-fix
+- **核心修复: 修复了在部分移动设备上，自定义API和世界书设置中的部分滑块（如Top P、最大Token等）无法正常显示和拖动的问题。**
+  - **问题:** 在小屏幕设备上，用于布局滑块的 `flex-container` 样式与 `input[type="range"]` 存在兼容性问题，导致滑块的轨道（拉动槽）无法正确渲染。
+  - **解决方案:**
+    1.  **统一布局:** 参照SillyTavern中原生、可正常工作的滑块（如温度设置），将所有自定义滑块的HTML结构从 `flex-container` 修改为标准的 `range-block` 布局。
+    2.  **移除冗余CSS:** 删除了之前为解决此问题而添加的、针对移动设备的CSS媒体查询和自定义滑块样式，因为新的布局不再需要它们。
+  - **实现方式:**
+    - **1. 修改 `assets/templates/index.html`:**
+        - 将所有 `flex-container slider-container` 的div替换为 `range-block justifyLeft`。
+        - 为所有滑块 `input[type="range"]` 元素添加了 `wide100p` 类，使其能自适应宽度。
+    - **2. 修改 `assets/styles/style.css`:**
+        - 移除了所有与 `.slider-container` 和移动端滑块修复相关的 `@media (max-width: 600px)` 代码块。
+  - **结果:**
+    - **提升了兼容性:** 所有滑块现在在桌面端和移动端都能正确、一致地显示和操作，解决了移动端UI的可用性问题。
+  - **受影响文件:**
+    - `assets/templates/index.html` (重构了滑块的HTML布局)
+    - `assets/styles/style.css` (移除了不再需要的移动端CSS修复代码)
+    - `项目文档.txt` (新增此条目)
+
 v6.1.0-hotfix-stepwise-loading-indicator
 - **核心修复: 解决了在分步填表流程中，“正在填表”的加载提示在点击确认后不显示的问题。**
   - **问题:** 当用户在分步填表模式下点击“执行填表”的确认按钮后，界面上没有任何加载状态的反馈，导致用户不知道后台是否正在处理，影响了交互体验。

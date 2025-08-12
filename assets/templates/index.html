@@ -94,25 +94,25 @@
                                                 <option value="google" data-i18n="Google AI">Google AI</option>
                                             </select>
                                         </div>
-                                        <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                                            <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;" data-i18n="Custom API temperature setting">温度 (Temperature)：<span id="custom_temperature_value">1.0</span></label>
-                                            <input type="range" id="custom_temperature" min="0.0" max="2.0" step="0.1" value="1.0" style="flex-grow: 1;">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 15px;">
+                                            <label for="custom_temperature" data-i18n="Custom API temperature setting">温度 (Temperature)：<span id="custom_temperature_value">1.0</span></label>
+                                            <input type="range" id="custom_temperature" min="0.0" max="2.0" step="0.1" value="1.0" class="wide100p">
                                         </div>
-                                        <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                                            <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;">Top P：<span id="custom_top_p_value">1.0</span></label>
-                                            <input type="range" id="custom_top_p" min="0.0" max="1.0" step="0.05" value="1.0" style="flex-grow: 1;">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 15px;">
+                                            <label for="custom_top_p">Top P：<span id="custom_top_p_value">1.0</span></label>
+                                            <input type="range" id="custom_top_p" min="0.0" max="1.0" step="0.05" value="1.0" class="wide100p">
                                         </div>
-                                        <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                                            <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;">存在惩罚 (Presence)：<span id="custom_presence_penalty_value">0.0</span></label>
-                                            <input type="range" id="custom_presence_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" style="flex-grow: 1;">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 15px;">
+                                            <label for="custom_presence_penalty">存在惩罚 (Presence)：<span id="custom_presence_penalty_value">0.0</span></label>
+                                            <input type="range" id="custom_presence_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" class="wide100p">
                                         </div>
-                                        <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                                            <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;">频率惩罚 (Frequency)：<span id="custom_frequency_penalty_value">0.0</span></label>
-                                            <input type="range" id="custom_frequency_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" style="flex-grow: 1;">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 15px;">
+                                            <label for="custom_frequency_penalty">频率惩罚 (Frequency)：<span id="custom_frequency_penalty_value">0.0</span></label>
+                                            <input type="range" id="custom_frequency_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" class="wide100p">
                                         </div>
-                                        <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                                            <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;">最大Token输出：<span id="custom_max_tokens_value">4096</span></label>
-                                            <input type="range" id="custom_max_tokens" min="256" max="65536" step="256" value="4096" style="flex-grow: 1;">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 15px;">
+                                            <label for="custom_max_tokens">最大Token输出：<span id="custom_max_tokens_value">4096</span></label>
+                                            <input type="range" id="custom_max_tokens" min="256" max="65536" step="256" value="4096" class="wide100p">
                                         </div>
                                         <!-- 代理设置 -->
                                         <div class="inline-drawer wide100p">
@@ -183,9 +183,9 @@
                                         <label for="wait_for_fill_then_send" style="margin-left: 10px;">填完再发</label>
                                         <input type="checkbox" id="wait_for_fill_then_send" class="margin0"/>
                                     </div>
-                                    <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding-left: 5px;">
-                                        <label style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;">世界书最大字符数: <span id="world_book_limit_value">60000</span></label>
-                                        <input type="range" id="world_book_limit" min="1000" max="200000" step="1000" value="60000" style="flex-grow: 1;">
+                                    <div class="range-block justifyLeft" style="margin-bottom: 15px; padding-left: 5px;">
+                                        <label for="world_book_limit">世界书最大字符数: <span id="world_book_limit_value">60000</span></label>
+                                        <input type="range" id="world_book_limit" min="1000" max="200000" step="1000" value="60000" class="wide100p">
                                     </div>
                                     <div style="padding-left: 5px; margin-bottom: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
