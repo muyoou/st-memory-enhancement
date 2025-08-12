@@ -25,15 +25,15 @@ Logger.info("______________________记忆插件：开始加载__________________
 // --- [核心改造] 回调函数管理器 ---
 // 将其定义在顶层作用域，确保在脚本加载后立即对其他窗口可用。
 const tableUpdateCallbacks = [];
-const tableFillStartCallbacks = [];
-const tableFillEndCallbacks = []; // 新增：用于通知填表结束的回调
+const tableFillStartCallbacks = []; // 新增：用于通知填表开始的回调
 window.stMemoryEnhancement = {
-    // 触发“填表开始”的通知
+    // 新增：触发“填表开始”的通知
     _notifyTableFillStart: function() {
         Logger.info(`[Memory Enhancement] _notifyTableFillStart called. Notifying ${tableFillStartCallbacks.length} callbacks.`);
         if (tableFillStartCallbacks.length === 0) {
             Logger.warn('[Memory Enhancement] No table fill start callbacks are registered.');
         }
+        Logger.debug(`[Memory Enhancement] Notifying ${tableFillStartCallbacks.length} callbacks about table fill start.`);
         tableFillStartCallbacks.forEach(callback => {
             try {
                 callback();
@@ -42,48 +42,20 @@ window.stMemoryEnhancement = {
             }
         });
     },
-    // 注册“填表开始”的回调
+    // 新增：注册“填表开始”的回调
     registerTableFillStartCallback: function(callback) {
         if (typeof callback === 'function' && !tableFillStartCallbacks.includes(callback)) {
             tableFillStartCallbacks.push(callback);
             Logger.info(`[Memory Enhancement] A new table fill start callback has been registered. Total callbacks: ${tableFillStartCallbacks.length}`);
+            console.log('Registered callbacks:', tableFillStartCallbacks);
         }
     },
-    // 注销“填表开始”的回调
+    // 新增：注销“填表开始”的回调
     unregisterTableFillStartCallback: function(callback) {
         const index = tableFillStartCallbacks.indexOf(callback);
         if (index > -1) {
             tableFillStartCallbacks.splice(index, 1);
             Logger.info('[Memory Enhancement] A table fill start callback has been unregistered.');
-        }
-    },
-    // 新增：触发“填表结束”的通知
-    _notifyTableFillEnd: function(status) {
-        Logger.info(`[Memory Enhancement] _notifyTableFillEnd called with status: ${status}. Notifying ${tableFillEndCallbacks.length} callbacks.`);
-        if (tableFillEndCallbacks.length === 0) {
-            Logger.warn('[Memory Enhancement] No table fill end callbacks are registered.');
-        }
-        tableFillEndCallbacks.forEach(callback => {
-            try {
-                callback(status);
-            } catch (e) {
-                Logger.error('[Memory Enhancement] Error executing a table fill end callback:', e);
-            }
-        });
-    },
-    // 新增：注册“填表结束”的回调
-    registerTableFillEndCallback: function(callback) {
-        if (typeof callback === 'function' && !tableFillEndCallbacks.includes(callback)) {
-            tableFillEndCallbacks.push(callback);
-            Logger.info(`[Memory Enhancement] A new table fill end callback has been registered. Total callbacks: ${tableFillEndCallbacks.length}`);
-        }
-    },
-    // 新增：注销“填表结束”的回调
-    unregisterTableFillEndCallback: function(callback) {
-        const index = tableFillEndCallbacks.indexOf(callback);
-        if (index > -1) {
-            tableFillEndCallbacks.splice(index, 1);
-            Logger.info('[Memory Enhancement] A table fill end callback has been unregistered.');
         }
     },
     ext_getAllTables,

@@ -694,12 +694,31 @@ function showLoadingIndicator() {
         loadingIndicator.style.left = '50%';
         loadingIndicator.style.transform = 'translateX(-50%)';
         loadingIndicator.style.padding = '10px 20px';
-        loadingIndicator.style.backgroundColor = '#4CAF50';
+        loadingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
         loadingIndicator.style.color = 'white';
-        loadingIndicator.style.borderRadius = '5px';
+        loadingIndicator.style.borderRadius = '8px';
         loadingIndicator.style.zIndex = '10001';
-        loadingIndicator.innerHTML = '<span>正在填表，请稍后...</span>';
+        loadingIndicator.style.cursor = 'pointer';
+        loadingIndicator.innerHTML = '<span>正在填表，请稍后... (点击关闭)</span>';
+
+        // Add close button
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '2px';
+        closeBtn.style.right = '8px';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.style.cursor = 'pointer';
+        
+        loadingIndicator.appendChild(closeBtn);
         document.body.appendChild(loadingIndicator);
+
+        // Add click event to the entire indicator and the close button
+        loadingIndicator.onclick = (event) => {
+            event.stopPropagation();
+            hideLoadingIndicator();
+        };
     }
     loadingIndicator.style.display = 'block';
     console.log('Loading indicator displayed');

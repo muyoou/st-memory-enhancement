@@ -110,6 +110,7 @@ export class PopupConfirm {
         this.toastElement.style.padding = '6px 12px';
         this.toastElement.style.pointerEvents = 'auto';
         this.toastElement.style.cursor = 'normal';
+        this.toastElement.style.position = 'relative'; // For positioning the close button
         this.toastElement.style.boxShadow = '0 0 10px rgba(0, 0, 0, 1)';
         this.toastElement.style.transform = 'translateY(-30px)';
         this.toastElement.style.opacity = '0';
@@ -217,6 +218,34 @@ export class PopupConfirm {
 
         this.toastElement.appendChild(messageEl);
         this.toastElement.appendChild(buttons);
+
+        // Create close button
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '&times;'; // Using a 'times' symbol for the 'X'
+        closeBtn.classList.add('popup-close-btn'); // Add class for identification
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '2px';
+        closeBtn.style.right = '8px';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.color = tc;
+        closeBtn.style.textShadow = '0 1px 0 #000';
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            this._handleAction(false); // Triggers the cancel action
+        };
+        this.toastElement.appendChild(closeBtn);
+
+        // [新增] 允许用户点击提示框本身（非按钮区域）来关闭它
+        this.toastElement.onclick = (event) => {
+            // 如果点击的目标不是一个按钮，并且不是关闭按钮，则视为取消操作
+            if (event.target.tagName.toLowerCase() !== 'button' && !event.target.classList.contains('popup-close-btn')) {
+                event.stopPropagation(); // 防止事件冒泡
+                this._handleAction(false); // 触发取消操作
+            }
+        };
+
         // this.toastContainer.appendChild(this.toastElement);
         // 插入到容器的顶部而不是底部
         this.toastContainer.insertBefore(this.toastElement, this.toastContainer.firstChild);

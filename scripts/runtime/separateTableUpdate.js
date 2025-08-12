@@ -78,17 +78,13 @@ function MarkChatAsWaiting(chat, swipeUid) {
  * 执行两步总结
  * */
 export async function TableTwoStepSummary(mode, messageContent = null) {
-    Logger.group(`TableTwoStepSummary - mode: ${mode}`);
-    let finalStatus = 'initiated'; // 用于跟踪最终状态
-    // [新增] 保证在所有执行路径后都触发“开始”和“结束”通知
-    if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
-        globalThis.stMemoryEnhancement._notifyTableFillStart();
+    // [v6.1.0] 修复：在流程开始时立即通知UI，以便显示加载提示
+    if (window.stMemoryEnhancement) {
+        window.stMemoryEnhancement._notifyTableFillStart();
     }
+    Logger.group(`TableTwoStepSummary - mode: ${mode}`);
     try {
-        if (mode !== "manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) {
-            finalStatus = 'skipped';
-            return;
-        }
+        if (mode !== "manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) return;
 
         let todoChats;
 
@@ -134,8 +130,13 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
 
     if (confirmResult === false) {
         Logger.info('用户取消执行独立填表: ', `(${todoChats.length}) `, toBeExecuted);
-        finalStatus = 'cancelled';
-        return finalStatus;
+        // MarkChatAsWaiting is not fully implemented, commenting out for now
+        // MarkChatAsWaiting(currentPiece, swipeUid);
+        // [修复] 当用户取消时，也通知UI更新，以隐藏可能已显示的加载提示
+        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableUpdate === 'function') {
+            globalThis.stMemoryEnhancement._notifyTableUpdate(ext_hashSheetsToJson({}));
+        }
+        return 'cancelled'; // 返回取消状态
     } else {
         // [新增功能] 在确认填表后，如果“填完再发”未开启，则自动跳转
         if (USER.tableBaseSetting.wait_for_fill_then_send === false) {
@@ -181,14 +182,9 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
         const shouldReload = mode !== 'auto_wait';
         // 移除 “检测到自动确认设置...” 的提示
         // 核心修复：返回 manualSummaryChat 的执行结果
-        finalStatus = await manualSummaryChat(todoChats, confirmResult, shouldReload);
-        return finalStatus;
+        return manualSummaryChat(todoChats, confirmResult, shouldReload);
     }
     } finally {
-        // [新增] 保证在所有执行路径后都触发“结束”通知
-        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillEnd === 'function') {
-            globalThis.stMemoryEnhancement._notifyTableFillEnd(finalStatus);
-        }
         Logger.groupEnd();
     }
 }
@@ -288,6 +284,13 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
             await USER.saveChat();
             USER.debouncedSaveRequired = false;
         }
+        
+        // [修复] 无论成功与否，最后都通知UI更新，以确保加载提示等状态能被正确重置
+        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableUpdate === 'function') {
+            const { piece: finalPiece } = USER.getChatPiece();
+            const latestTableData = finalPiece ? ext_hashSheetsToJson(finalPiece.hash_sheets) : ext_hashSheetsToJson({});
+            globalThis.stMemoryEnhancement._notifyTableUpdate(latestTableData);
+        }
     }
     
     return finalStatus; // 返回最终状态
@@ -300,10 +303,7 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
  */
 export async function triggerTableFillFromLastMessage() {
     let finalStatus = 'error';
-    // [新增] 保证在所有执行路径后都触发“开始”和“结束”通知
-    if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillStart === 'function') {
-        globalThis.stMemoryEnhancement._notifyTableFillStart();
-    }
+
     try {
         // --- 保存锁：启动 ---
         // [v6.0.2] 使用新的全局锁状态，并取消待处理的自动保存。
@@ -393,11 +393,6 @@ export async function triggerTableFillFromLastMessage() {
             Logger.info('[Save Lock] Main operation failed, but executing a postponed save for other changes.');
             await USER.saveChat();
             USER.debouncedSaveRequired = false;
-        }
-        
-        // [新增] 保证在所有执行路径后都触发“结束”通知
-        if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableFillEnd === 'function') {
-            globalThis.stMemoryEnhancement._notifyTableFillEnd(finalStatus);
         }
     }
     
