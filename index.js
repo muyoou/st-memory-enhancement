@@ -220,7 +220,10 @@ export async function buildSheetsByTemplates(targetPiece) {
 
     // 如果不是新对话，或者暂存区为空，则按原计划从模板创建
     BASE.sheetsData.context = [];
-    // USER.getChatPiece().hash_sheets = {};
+    // [修复] 在从模板重建表格时，必须清空目标piece中的旧哈希表，以防状态不一致
+    if (targetPiece && targetPiece.hash_sheets) {
+        targetPiece.hash_sheets = {};
+    }
     const templates = BASE.templates
     templates.forEach(template => {
         if(template.enable === false) return
@@ -239,6 +242,7 @@ export async function buildSheetsByTemplates(targetPiece) {
     })
     BASE.updateSelectBySheetStatus()
     USER.saveChat()
+    updateSheetsView();
 }
 
 /**

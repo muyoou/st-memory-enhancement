@@ -1552,7 +1552,10 @@ export async function executeIncrementalUpdateFromSummary(
         let promptMessages;
 
         try {
-            promptMessages = JSON5.parse(stepByStepPromptString);
+            // **核心修复**: 在解析之前，对字符串进行预处理，将多行字符串处理为单行，
+            // 以解决因内容中包含未转义的换行符而导致的 JSON5 解析错误。
+            const singleLinePromptString = stepByStepPromptString.replace(/(\r\n|\n|\r)/gm, " ");
+            promptMessages = JSON5.parse(singleLinePromptString);
             if (!Array.isArray(promptMessages) || promptMessages.length === 0) {
                 throw new Error("Parsed prompt is not a valid non-empty array.");
             }

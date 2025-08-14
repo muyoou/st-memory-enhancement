@@ -214,13 +214,28 @@ export class Sheet extends SheetBase {
         if (typeof target === 'object') {
             if (target.domain === this.SheetDomain.global) {
                 Logger.info('从模板转化表格', target, this);
-                this.loadJson(target)
-                this.domain = 'chat'
+                // 修复：手动从模板复制属性，而不是使用不安全的 `loadJson`
+                this.name = (target.name || '新表格').replace('模板', '表格');
+                this.type = target.type;
+                this.enable = target.enable;
+                this.required = target.required;
+                this.triggerSend = target.triggerSend;
+                this.triggerSendDeep = target.triggerSendDeep;
+                // 使用深拷贝确保配置和数据隔离
+                this.config = JSON.parse(JSON.stringify(target.config || {}));
+                this.hashSheet = JSON.parse(JSON.stringify(target.hashSheet || []));
+                this.cellHistory = JSON.parse(JSON.stringify(target.cellHistory || []));
+                this.loadCells(); // 关键：从复制的 cellHistory 重建内部 cells Map
+
+                // 为这个聊天专用的表格实例设置新的身份
+                this.domain = 'chat';
                 this.uid = `sheet_${SYSTEM.generateRandomString(8)}`;
-                this.name = this.name.replace('模板', '表格');
-                this.template = target;
-                return this
+                this.template = target; // 保留对原始模板的引用
+                this.markPositionCacheDirty();
+                return this;
+
             } else {
+                // 对于非模板对象，继续使用现有的加载逻辑
                 this.loadJson(target)
                 return this;
             }
