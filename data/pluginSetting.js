@@ -264,6 +264,11 @@ export const defaultSettings = await switchLanguage("__defaultSettings__", {
 	custom_max_tokens: 2048,
 	// 重整理自定义top_p
 	custom_top_p: 1,
+	// 高级模型参数
+	custom_top_k: 40,
+	custom_frequency_penalty: 0.0,
+	custom_presence_penalty: 0.0,
+	custom_system_prompt: "",
 	// 重整理忽略删除
 	bool_ignore_del: true,
 	// 重整理忽略用户发送的消息
@@ -337,13 +342,7 @@ export const defaultSettings = await switchLanguage("__defaultSettings__", {
 	 */
 	// API格式
 	api_format: "auto",
-	// 高级模型参数
-	custom_max_tokens: 63000,
-	custom_top_p: 1.0,
-	custom_top_k: 40,
-	custom_frequency_penalty: 0.0,
-	custom_presence_penalty: 0.0,
-	custom_system_prompt: "",
+
 	/**
 	 * ===========================
 	 * 双步设置

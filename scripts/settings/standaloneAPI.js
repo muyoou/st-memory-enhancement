@@ -348,6 +348,12 @@ export async function testApiConnection(apiUrl, apiKeys, modelName) {
 				model_name: modelName || "gpt-3.5-turbo", // 使用用户设置的模型名称
 				system_prompt: "You are a test assistant.",
 				temperature: 0.1, // 使用用户设置的温度
+				max_tokens: USER.tableBaseSetting.custom_max_tokens,
+				top_p: USER.tableBaseSetting.custom_top_p,
+				top_k: USER.tableBaseSetting.custom_top_k,
+				frequency_penalty:
+					USER.tableBaseSetting.custom_frequency_penalty,
+				presence_penalty: USER.tableBaseSetting.custom_presence_penalty,
 			});
 
 			// 调用API
@@ -500,6 +506,12 @@ export async function handleCustomAPIRequest(
 				model_name: USER_API_MODEL,
 				system_prompt: Array.isArray(promptData) ? "" : systemPrompt,
 				temperature: USER.tableBaseSetting.custom_temperature,
+				max_tokens: USER.tableBaseSetting.custom_max_tokens,
+				top_p: USER.tableBaseSetting.custom_top_p,
+				top_k: USER.tableBaseSetting.custom_top_k,
+				frequency_penalty:
+					USER.tableBaseSetting.custom_frequency_penalty,
+				presence_penalty: USER.tableBaseSetting.custom_presence_penalty,
 				table_proxy_address:
 					USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address,
 				table_proxy_key:
@@ -692,6 +704,12 @@ export async function updateModelList() {
 	const multiApiService = new MultiApiService({
 		api_url: apiUrl,
 		api_format: "auto", // 自动检测API格式
+		temperature: USER.tableBaseSetting.custom_temperature,
+		max_tokens: USER.tableBaseSetting.custom_max_tokens,
+		top_p: USER.tableBaseSetting.custom_top_p,
+		top_k: USER.tableBaseSetting.custom_top_k,
+		frequency_penalty: USER.tableBaseSetting.custom_frequency_penalty,
+		presence_penalty: USER.tableBaseSetting.custom_presence_penalty,
 	});
 
 	// 根据检测到的API格式补全models URL
@@ -757,13 +775,13 @@ export async function updateModelList() {
 			const headers = {
 				"Content-Type": "application/json",
 			};
-			
+
 			if (apiFormat === "gemini") {
 				headers["X-goog-api-key"] = currentApiKey;
 			} else {
 				headers["Authorization"] = `Bearer ${currentApiKey}`;
 			}
-			
+
 			const response = await fetch(modelsUrl, {
 				headers: headers,
 			});

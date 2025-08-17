@@ -162,7 +162,9 @@ export class MultiApiService {
 
 		const rawModelName = this.config.model_name || "gemini-pro";
 		// 智能处理模型名称：如果已经包含 models/ 前缀，则直接使用；否则添加前缀
-		const modelName = rawModelName.startsWith("models/") ? rawModelName.substring(7) : rawModelName;
+		const modelName = rawModelName.startsWith("models/")
+			? rawModelName.substring(7)
+			: rawModelName;
 
 		// 如果已经包含完整的 generateContent 端点，直接返回
 		if (generateContentEndpoint.test(url)) {
@@ -229,7 +231,10 @@ export class MultiApiService {
 
 			case "gemini":
 				headers["X-goog-api-key"] = this.config.api_key;
-				console.log("[MultiApiService] buildHeaders: Gemini headers", headers);
+				console.log(
+					"[MultiApiService] buildHeaders: Gemini headers",
+					headers
+				);
 				break;
 
 			case "claude":
@@ -238,7 +243,11 @@ export class MultiApiService {
 				break;
 		}
 
-		console.log("[MultiApiService] buildHeaders: Final headers for", format, headers);
+		console.log(
+			"[MultiApiService] buildHeaders: Final headers for",
+			format,
+			headers
+		);
 		return headers;
 	}
 
@@ -262,6 +271,8 @@ export class MultiApiService {
 				// 添加可选参数
 				if (this.config.top_p !== 1.0)
 					openaiBody.top_p = this.config.top_p;
+				if (this.config.top_k !== 40)
+					openaiBody.top_k = this.config.top_k;
 				if (this.config.frequency_penalty !== 0.0)
 					openaiBody.frequency_penalty =
 						this.config.frequency_penalty;
@@ -286,6 +297,13 @@ export class MultiApiService {
 					geminiBody.generationConfig.topP = this.config.top_p;
 				if (this.config.top_k !== 40)
 					geminiBody.generationConfig.topK = this.config.top_k;
+				// Gemini支持frequency_penalty和presence_penalty，但需要转换为不同的参数名
+				if (this.config.frequency_penalty !== 0.0)
+					geminiBody.generationConfig.frequencyPenalty =
+						this.config.frequency_penalty;
+				if (this.config.presence_penalty !== 0.0)
+					geminiBody.generationConfig.presencePenalty =
+						this.config.presence_penalty;
 
 				return geminiBody;
 
@@ -309,7 +327,18 @@ export class MultiApiService {
 					claudeBody.system = systemMessage.content;
 				}
 
-				// Claude不支持top_p、frequency_penalty等参数，只使用基本参数
+				// Claude支持top_p参数
+				if (this.config.top_p !== 1.0)
+					claudeBody.top_p = this.config.top_p;
+				// Claude支持top_k参数（在某些版本中）
+				if (this.config.top_k !== 40)
+					claudeBody.top_k = this.config.top_k;
+				// Claude 3+支持frequency_penalty和presence_penalty参数
+				if (this.config.frequency_penalty !== 0.0)
+					claudeBody.frequency_penalty =
+						this.config.frequency_penalty;
+				if (this.config.presence_penalty !== 0.0)
+					claudeBody.presence_penalty = this.config.presence_penalty;
 
 				return claudeBody;
 
@@ -518,7 +547,8 @@ export class MultiApiService {
 			format,
 			apiEndpoint,
 			headers,
-			hasApiKey: !!this.config.api_key
+			hasApiKey: !!this.config.api_key,
+			requestBody,
 		});
 
 		try {
@@ -585,6 +615,11 @@ export class MultiApiService {
 				max_tokens: this.config.max_tokens,
 				model: this.config.model_name,
 				temperature: this.config.temperature,
+				// 添加高级模型参数
+				top_p: this.config.top_p,
+				top_k: this.config.top_k,
+				frequency_penalty: this.config.frequency_penalty,
+				presence_penalty: this.config.presence_penalty,
 				chat_completion_source:
 					this.config.api_format === "openai" ? "openai" : "custom",
 				custom_url: this.config.api_url,
@@ -877,14 +912,14 @@ export class MultiApiService {
 		let m;
 		while ((m = re.exec(text)) !== null)
 			tableEditTags.push(`<tableEdit>${m[1]}</tableEdit>`);
-		
+
 		// 如果有tableEdit标签，只返回这些标签
 		if (tableEditTags.length > 0) {
 			return tableEditTags.join("\n");
 		}
-		
+
 		// 如果没有tableEdit标签，返回原始文本（去除其他HTML标签）
-		return text.replace(/<[^>]*>/g, '').trim();
+		return text.replace(/<[^>]*>/g, "").trim();
 	}
 
 	/**
