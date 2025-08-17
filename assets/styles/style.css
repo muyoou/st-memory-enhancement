@@ -618,6 +618,36 @@ td.selected {
 /*    min-height: 20px; !* Example minimum row height to accommodate cell height and padding, adjust if needed *!*/
 /*}*/
 
+/* ========================================
+   统一下拉菜单箭头设计
+   ======================================== */
+
+/* 默认状态：抽屉关闭，箭头朝下 */
+.inline-drawer-icon {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+/* 当抽屉内容显示时，箭头朝上 */
+.inline-drawer-content:not([style*="display: none"]) ~ .inline-drawer-header .inline-drawer-icon::before,
+.inline-drawer-content[style*="display: block"] ~ .inline-drawer-header .inline-drawer-icon::before {
+    content: "\f139"; /* fa-circle-chevron-up */
+}
+
+/* JavaScript动态切换箭头方向的类 */
+.inline-drawer-icon.expanded::before {
+    content: "\f139"; /* fa-circle-chevron-up */
+}
+
+.inline-drawer-icon.collapsed::before {
+    content: "\f13a"; /* fa-circle-chevron-down */
+}
+
+/* 确保所有下拉菜单的箭头在默认状态下都朝下 */
+.inline-drawer .inline-drawer-icon:not(.expanded):not(.collapsed)::before {
+    content: "\f13a"; /* fa-circle-chevron-down */
+}
+
 
 
 

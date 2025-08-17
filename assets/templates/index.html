@@ -72,11 +72,20 @@
                                 <div class="inline-drawer wide100p">
                                     <div class="inline-drawer-toggle inline-drawer-header">
                                         <h4 data-i18n="Custom independent API">自定义独立API</h4>
-                                        <div class="fa-solid inline-drawer-icon interactable up fa-circle-chevron-up" tabindex="0"></div>
+                                        <div class="fa-solid inline-drawer-icon interactable fa-circle-chevron-down" tabindex="0"></div>
                                     </div>
                                     <div class="inline-drawer-content" style="display: none; padding-left: 20px; width: calc(100% - 20px)">
                                         <!-- 自定义API设置 -->
-                                        <input type="text" id="custom_api_url" class="text_pole" placeholder="API URL（请以/v1结尾）">
+                                        <div class="range-block justifyLeft" style="margin-bottom: 10px;">
+                                            <label for="api_format_selector" style="min-width: 80px;">API格式：</label>
+                                            <select id="api_format_selector" class="text_pole" style="min-width: 120px;">
+                                                <option value="auto">自动检测</option>
+                                                <option value="openai">OpenAI</option>
+                                                <option value="gemini">Gemini</option>
+                                                <option value="claude">Claude</option>
+                                            </select>
+                                        </div>
+                                        <input type="text" id="custom_api_url" class="text_pole" placeholder="API URL（会根据格式自动补全）">
                                         <input type="password" id="custom_api_key" class="text_pole" placeholder="API Key(多个key用逗号隔开)">
                                         <input type="text" id="custom_model_name" class="text_pole" placeholder="Model Name（模型名称，可手动输入或自动获取）">
                                         <div class="range-block justifyLeft" >
@@ -95,11 +104,56 @@
                                             <input type="range" id="custom_temperature" min="0.1" max="2.0" step="0.1" value="1.0" style="flex-grow: 1;">
                                         </div>
 
+                                        <!-- 高级模型参数设置 -->
+                                        <div class="inline-drawer wide100p">
+                                            <div class="inline-drawer-toggle inline-drawer-header">
+                                                <h4>高级模型参数</h4>
+                                                <div class="fa-solid inline-drawer-icon interactable fa-circle-chevron-down" tabindex="0"></div>
+                                            </div>
+                                            <div class="inline-drawer-content" style="display: none; padding-left: 20px; width: calc(100% - 20px)">
+                                                <!-- Max Tokens -->
+                                                <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                                    <label style="min-width: 120px; margin: 0; white-space: nowrap; flex-shrink: 0;">最大Token数：<span id="custom_max_tokens_value">63000</span></label>
+                                                    <input type="range" id="custom_max_tokens" min="1000" max="128000" step="1000" value="63000" style="flex-grow: 1;">
+                                                </div>
+                                                
+                                                <!-- Top P -->
+                                                <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                                    <label style="min-width: 120px; margin: 0; white-space: nowrap; flex-shrink: 0;">Top P设定：<span id="custom_top_p_value">1.0</span></label>
+                                                    <input type="range" id="custom_top_p" min="0.1" max="1.0" step="0.05" value="1.0" style="flex-grow: 1;">
+                                                </div>
+                                                
+                                                <!-- Top K (主要用于某些模型) -->
+                                                <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                                    <label style="min-width: 120px; margin: 0; white-space: nowrap; flex-shrink: 0;">Top K设定：<span id="custom_top_k_value">40</span></label>
+                                                    <input type="range" id="custom_top_k" min="1" max="100" step="1" value="40" style="flex-grow: 1;">
+                                                </div>
+                                                
+                                                <!-- Frequency Penalty -->
+                                                <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                                    <label style="min-width: 120px; margin: 0; white-space: nowrap; flex-shrink: 0;">频率惩罚：<span id="custom_frequency_penalty_value">0.0</span></label>
+                                                    <input type="range" id="custom_frequency_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" style="flex-grow: 1;">
+                                                </div>
+                                                
+                                                <!-- Presence Penalty -->
+                                                <div class="flex-container slider-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                                    <label style="min-width: 120px; margin: 0; white-space: nowrap; flex-shrink: 0;">存在惩罚：<span id="custom_presence_penalty_value">0.0</span></label>
+                                                    <input type="range" id="custom_presence_penalty" min="-2.0" max="2.0" step="0.1" value="0.0" style="flex-grow: 1;">
+                                                </div>
+                                                
+                                                <!-- System Prompt -->
+                                                <div style="margin-bottom: 10px;">
+                                                    <label for="custom_system_prompt">系统提示词：</label>
+                                                    <textarea id="custom_system_prompt" class="text_pole wide100p" rows="3" placeholder="You are a helpful assistant."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- 代理设置 -->
                                         <div class="inline-drawer wide100p">
                                             <div class="inline-drawer-toggle inline-drawer-header">
                                                 <h4 data-i18n="Proxy settings">代理设置<span style="color: red">(未完成，不能用，请留空)</span></h4>
-                                                <div class="fa-solid inline-drawer-icon interactable up fa-circle-chevron-up" tabindex="0"></div>
+                                                <div class="fa-solid inline-drawer-icon interactable fa-circle-chevron-down" tabindex="0"></div>
                                             </div>
                                             <div class="inline-drawer-content" style="display: none; padding-left: 20px; width: calc(100% - 20px)">
                                                 <input type="text" id="table_proxy_address" class="text_pole" placeholder="代理地址 (例如：http://127.0.0.1:7890)" data-i18n="[placeholder]Proxy address (e.g., http://127.0.0.1:7890)">
@@ -153,7 +207,7 @@
                                 <!-- 分步填表 -->
                                 <div id="step_by_step_options" style="padding-left: 20px; width: calc(100% - 20px);">
                                     <div class="checkbox_label" style="display: flex; align-items: center;">
-                                        <input type="checkbox" id="step_by_step_use_main_api" checked><span data-i18n="Use main API">使用主API</span>
+                                        <input type="checkbox" id="step_by_step_use_main_api"><span data-i18n="Use main API">使用主API</span>
                                         <div class="menu_button menu_button_icon" id="trigger_step_by_step_button" style="margin-left: 10px;">
                                             <i class="fa-solid fa-play"></i><a data-i18n="Fill now">立即填表</a>
                                         </div>
@@ -191,7 +245,7 @@
                                 </div>
                                 <div class="inline-drawer-content" style="display: none; ">
                                     <div class="checkbox_label">
-                                        <input type="checkbox" id="use_main_api" checked><span data-i18n="Use main API">使用主API</span>
+                                        <input type="checkbox" id="use_main_api"><span data-i18n="Use main API">使用主API</span>
                                     </div>
 
                                     <!-- 高级设置选项 -->
@@ -285,7 +339,7 @@
                                 <div class="inline-drawer wide100p">
                                     <div class="inline-drawer-toggle inline-drawer-header">
                                         <h4 data-i18n="Advanced rendering settings">高级渲染设置</h4>
-                                        <div class="fa-solid inline-drawer-icon interactable up fa-circle-chevron-up" tabindex="0"></div>
+                                        <div class="fa-solid inline-drawer-icon interactable fa-circle-chevron-down" tabindex="0"></div>
                                     </div>
                                     <div class="inline-drawer-content" style="display: none; padding-left: 20px; width: calc(100% - 20px)">
                                         <!-- 高级设置选项 -->
