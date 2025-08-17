@@ -160,7 +160,9 @@ export class MultiApiService {
 		const modelsEndpoint = /\/models$/;
 		const v1betaEndpoint = /\/v1beta$/;
 
-		const modelName = this.config.model_name || "gemini-pro";
+		const rawModelName = this.config.model_name || "gemini-pro";
+		// 智能处理模型名称：如果已经包含 models/ 前缀，则直接使用；否则添加前缀
+		const modelName = rawModelName.startsWith("models/") ? rawModelName.substring(7) : rawModelName;
 
 		// 如果已经包含完整的 generateContent 端点，直接返回
 		if (generateContentEndpoint.test(url)) {
@@ -226,7 +228,8 @@ export class MultiApiService {
 				break;
 
 			case "gemini":
-				// Gemini使用查询参数传递API key，不在header中
+				headers["X-goog-api-key"] = this.config.api_key;
+				console.log("[MultiApiService] buildHeaders: Gemini headers", headers);
 				break;
 
 			case "claude":
@@ -235,6 +238,7 @@ export class MultiApiService {
 				break;
 		}
 
+		console.log("[MultiApiService] buildHeaders: Final headers for", format, headers);
 		return headers;
 	}
 
@@ -507,14 +511,15 @@ export class MultiApiService {
 		const format = this.config.api_format;
 		let apiEndpoint = this.completeApiUrl(this.config.api_url, format);
 
-		// 对于Gemini API，需要在URL中添加API key
-		if (format === "gemini") {
-			const separator = apiEndpoint.includes("?") ? "&" : "?";
-			apiEndpoint += `${separator}key=${this.config.api_key}`;
-		}
-
 		const headers = this.buildHeaders(format);
 		const requestBody = this.buildRequestBody(messages, format);
+
+		console.log("[MultiApiService] callDirectly: Request details", {
+			format,
+			apiEndpoint,
+			headers,
+			hasApiKey: !!this.config.api_key
+		});
 
 		try {
 			if (this.config.stream) {
@@ -868,11 +873,18 @@ export class MultiApiService {
 	 */
 	smartCleanTags(text) {
 		const re = /<tableEdit>([\s\S]*?)<\/tableEdit>/gi;
-		const out = [];
+		const tableEditTags = [];
 		let m;
 		while ((m = re.exec(text)) !== null)
-			out.push(`<tableEdit>${m[1]}</tableEdit>`);
-		return out.join("\n");
+			tableEditTags.push(`<tableEdit>${m[1]}</tableEdit>`);
+		
+		// 如果有tableEdit标签，只返回这些标签
+		if (tableEditTags.length > 0) {
+			return tableEditTags.join("\n");
+		}
+		
+		// 如果没有tableEdit标签，返回原始文本（去除其他HTML标签）
+		return text.replace(/<[^>]*>/g, '').trim();
 	}
 
 	/**

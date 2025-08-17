@@ -696,8 +696,9 @@ export async function updateModelList() {
 
 	// 根据检测到的API格式补全models URL
 	let modelsUrl;
+	let apiFormat; // 将apiFormat声明移到外层作用域
 	try {
-		const apiFormat = multiApiService.detectApiFormat(apiUrl);
+		apiFormat = multiApiService.detectApiFormat(apiUrl);
 
 		if (apiFormat === "gemini") {
 			// Gemini API的models端点 - 避免重复添加v1beta
@@ -752,11 +753,19 @@ export async function updateModelList() {
 	for (let i = 0; i < apiKeys.length; i++) {
 		const currentApiKey = apiKeys[i];
 		try {
+			// 根据API格式构建正确的请求头
+			const headers = {
+				"Content-Type": "application/json",
+			};
+			
+			if (apiFormat === "gemini") {
+				headers["X-goog-api-key"] = currentApiKey;
+			} else {
+				headers["Authorization"] = `Bearer ${currentApiKey}`;
+			}
+			
 			const response = await fetch(modelsUrl, {
-				headers: {
-					Authorization: `Bearer ${currentApiKey}`,
-					"Content-Type": "application/json",
-				},
+				headers: headers,
 			});
 
 			if (!response.ok) {
