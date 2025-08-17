@@ -1,4 +1,5 @@
 import { EDITOR, USER } from "../core/manager.js";
+import { debugLog, debugWarn, debugError } from "./debugs.js";
 
 /**
  * 多格式API服务类
@@ -231,7 +232,7 @@ export class MultiApiService {
 
 			case "gemini":
 				headers["X-goog-api-key"] = this.config.api_key;
-				console.log(
+				debugLog(
 					"[MultiApiService] buildHeaders: Gemini headers",
 					headers
 				);
@@ -243,7 +244,7 @@ export class MultiApiService {
 				break;
 		}
 
-		console.log(
+		debugLog(
 			"[MultiApiService] buildHeaders: Final headers for",
 			format,
 			headers
@@ -386,7 +387,7 @@ export class MultiApiService {
 	 * @returns {string} - 提取的文本内容
 	 */
 	parseResponse(responseData, format) {
-		console.log("[MultiApiService] parseResponse: 开始解析响应", {
+		debugLog("[MultiApiService] parseResponse: 开始解析响应", {
 			format,
 			responseData: JSON.stringify(responseData, null, 2),
 		});
@@ -402,7 +403,7 @@ export class MultiApiService {
 					throw new Error("OpenAI API返回无效的响应结构");
 				}
 				const openaiContent = responseData.choices[0].message.content;
-				console.log(
+				debugLog(
 					"[MultiApiService] parseResponse: OpenAI内容",
 					openaiContent
 				);
@@ -423,13 +424,13 @@ export class MultiApiService {
 					responseData.candidates[0].content.parts.filter(
 						(part) => part.text && part.text.trim() !== ""
 					);
-				console.log("[MultiApiService] parseResponse: Gemini文本部分", {
+				debugLog("[MultiApiService] parseResponse: Gemini文本部分", {
 					allParts: responseData.candidates[0].content.parts,
 					textParts: textParts,
 				});
 
 				if (textParts.length === 0) {
-					console.warn(
+					debugWarn(
 						"[MultiApiService] parseResponse: Gemini没有有效文本内容"
 					);
 					return ""; // 返回空字符串而不是抛出错误
@@ -438,14 +439,14 @@ export class MultiApiService {
 					const combinedText = textParts
 						.map((part) => part.text)
 						.join("");
-					console.log(
+					debugLog(
 						"[MultiApiService] parseResponse: Gemini合并多个文本部分",
 						combinedText
 					);
 					return combinedText;
 				}
 				const singleText = textParts[0].text;
-				console.log(
+				debugLog(
 					"[MultiApiService] parseResponse: Gemini单个文本部分",
 					singleText
 				);
@@ -460,7 +461,7 @@ export class MultiApiService {
 					throw new Error("Claude API返回无效的响应结构");
 				}
 				const claudeContent = responseData.content[0].text;
-				console.log(
+				debugLog(
 					"[MultiApiService] parseResponse: Claude内容",
 					claudeContent
 				);
@@ -468,7 +469,7 @@ export class MultiApiService {
 
 			default:
 				// 默认使用OpenAI格式解析
-				console.log(
+				debugLog(
 					"[MultiApiService] parseResponse: 使用默认OpenAI格式解析"
 				);
 				return this.parseResponse(responseData, "openai");
@@ -543,7 +544,7 @@ export class MultiApiService {
 		const headers = this.buildHeaders(format);
 		const requestBody = this.buildRequestBody(messages, format);
 
-		console.log("[MultiApiService] callDirectly: Request details", {
+		debugLog("[MultiApiService] callDirectly: Request details", {
 			format,
 			apiEndpoint,
 			headers,
@@ -574,7 +575,7 @@ export class MultiApiService {
 				);
 			}
 		} catch (error) {
-			console.error(`调用${format.toUpperCase()} API错误:`, error);
+			debugError(`调用${format.toUpperCase()} API错误:`, error);
 			throw error;
 		}
 	}
@@ -586,7 +587,7 @@ export class MultiApiService {
 	 * @returns {Promise<string>} - API响应内容
 	 */
 	async callWithProxy(messages, streamCallback) {
-		console.log("检测到代理配置，将使用 SillyTavern 内部路由");
+		debugLog("检测到代理配置，将使用 SillyTavern 内部路由");
 
 		// 动态导入ChatCompletionService
 		let ChatCompletionService;
@@ -661,7 +662,7 @@ export class MultiApiService {
 				return this.cleanResponse(responseData.content);
 			}
 		} catch (error) {
-			console.error("通过 SillyTavern 内部路由调用API错误:", error);
+			debugError("通过 SillyTavern 内部路由调用API错误:", error);
 			throw error;
 		}
 	}
@@ -737,12 +738,12 @@ export class MultiApiService {
 		let fullResponse = "";
 
 		try {
-			console.log(`[Stream] 开始${format.toUpperCase()}流式处理...`);
+			debugLog(`[Stream] 开始${format.toUpperCase()}流式处理...`);
 
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) {
-					console.log(`[Stream] ${format.toUpperCase()}流式处理完成`);
+					debugLog(`[Stream] ${format.toUpperCase()}流式处理完成`);
 					break;
 				}
 
@@ -772,7 +773,7 @@ export class MultiApiService {
 							streamCallback(content);
 						}
 					} catch (e) {
-						console.warn(
+						debugWarn(
 							`[Stream] ${format.toUpperCase()}解析行错误:`,
 							e,
 							"行内容:",
@@ -784,7 +785,7 @@ export class MultiApiService {
 
 			return this.cleanResponse(fullResponse);
 		} catch (streamError) {
-			console.error(
+			debugError(
 				`[Stream] ${format.toUpperCase()}流式读取错误:`,
 				streamError
 			);
@@ -829,7 +830,7 @@ export class MultiApiService {
 					return text;
 				}
 			} catch (e) {
-				console.warn(
+				debugWarn(
 					"[Stream] Gemini JSON parsing error:",
 					e,
 					"Line:",
@@ -856,7 +857,7 @@ export class MultiApiService {
 					return jsonData.delta?.text || "";
 				}
 			} catch (e) {
-				console.warn("[Stream] Claude解析JSON失败:", e);
+				debugWarn("[Stream] Claude解析JSON失败:", e);
 			}
 		}
 		return "";
@@ -869,7 +870,7 @@ export class MultiApiService {
 	 */
 	cleanResponse(text) {
 		if (!text || typeof text !== "string") {
-			console.warn(
+			debugWarn(
 				"[MultiApiService] cleanResponse: 输入为空或非字符串",
 				text
 			);
@@ -878,7 +879,7 @@ export class MultiApiService {
 
 		// 如果文本为空或只包含空白字符
 		if (text.trim() === "") {
-			console.warn("[MultiApiService] cleanResponse: 输入为空白字符串");
+			debugWarn("[MultiApiService] cleanResponse: 输入为空白字符串");
 			return "";
 		}
 
@@ -891,7 +892,7 @@ export class MultiApiService {
 		// 再次清理首尾空白
 		cleaned = cleaned.trim();
 
-		console.log("[MultiApiService] cleanResponse: 清理结果", {
+		debugLog("[MultiApiService] cleanResponse: 清理结果", {
 			original: text,
 			cleaned: cleaned,
 			length: cleaned.length,
@@ -947,7 +948,7 @@ export class MultiApiService {
 				return await this.callDirectly(messages, null);
 			}
 		} catch (error) {
-			console.error(
+			debugError(
 				`测试${this.config.api_format.toUpperCase()} API连接错误:`,
 				error
 			);

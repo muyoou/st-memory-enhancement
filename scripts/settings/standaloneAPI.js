@@ -1,5 +1,6 @@
 // standaloneAPI.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from "../../core/manager.js";
+import { debugLog, debugError, debugWarn } from "../../services/debugs.js";
 import LLMApiService from "../../services/llmApi.js";
 import { PopupConfirm } from "../../components/popupConfirm.js";
 import { MultiApiService } from "../../services/multiApiService.js";
@@ -77,7 +78,7 @@ export function processApiKey(rawKey, deviceId) {
 			message: message,
 		};
 	} catch (error) {
-		console.error("API Key 处理失败:", error);
+		debugError("API Key 处理失败:", error);
 		throw error;
 	}
 }
@@ -95,7 +96,7 @@ export async function getDecryptedApiKey() {
 
 		return await decryptXor(encrypted, deviceId);
 	} catch (error) {
-		console.error("API Key 解密失败:", error);
+		debugError("API Key 解密失败:", error);
 		return null;
 	}
 }
@@ -113,7 +114,7 @@ async function decryptXor(encrypted, deviceId) {
 			...bytes.map((b, i) => b ^ deviceId.charCodeAt(i % deviceId.length))
 		);
 	} catch (e) {
-		console.error("解密失败:", e);
+		debugError("解密失败:", e);
 		return null;
 	}
 }
@@ -172,7 +173,7 @@ export async function handleMainAPIRequest(
 			});
 		}
 
-		console.log("主API请求的多消息数组:", messages); // Log the actual array
+		debugLog("主API请求的多消息数组:", messages); // Log the actual array
 		// Use TavernHelper.generateRaw with the array, enabling streaming
 
 		if (!TavernHelper)
@@ -286,7 +287,7 @@ export async function handleApiTestRequest(
 				} else {
 					failureCount++;
 					// 记录详细错误，如果可用则使用原始密钥索引
-					console.error(
+					debugError(
 						`Key ${
 							result.keyIndex !== undefined
 								? result.keyIndex + 1
@@ -317,7 +318,7 @@ export async function handleApiTestRequest(
 		return results; // 返回结果数组
 	} catch (error) {
 		EDITOR.error(`API 测试过程中发生错误`, error.message, error);
-		console.error("API Test Error:", error);
+		debugError("API Test Error:", error);
 		// 发生一般错误时返回一个表示所有测试密钥失败的数组
 		return keysToTest.map((_, index) => ({
 			keyIndex: apiKeys.indexOf(keysToTest[index]), // 如果需要则查找原始索引
@@ -340,7 +341,7 @@ export async function testApiConnection(apiUrl, apiKeys, modelName) {
 
 	for (let i = 0; i < apiKeys.length; i++) {
 		const apiKey = apiKeys[i];
-		console.log(`Testing API Key index: ${i}`);
+		debugLog(`Testing API Key index: ${i}`);
 		try {
 			const llmService = new LLMApiService({
 				api_url: apiUrl,
@@ -360,7 +361,7 @@ export async function testApiConnection(apiUrl, apiKeys, modelName) {
 			const response = await llmService.callLLM(testPrompt);
 
 			if (response && typeof response === "string") {
-				console.log(
+				debugLog(
 					`API Key index ${i} test successful. Response: ${response}`
 				);
 				results.push({ keyIndex: i, success: true });
@@ -368,7 +369,7 @@ export async function testApiConnection(apiUrl, apiKeys, modelName) {
 				throw new Error("Invalid or empty response received.");
 			}
 		} catch (error) {
-			console.error(
+			debugError(
 				`API Key index ${i} test failed (raw error object):`,
 				error
 			); // Log the raw error object
@@ -443,7 +444,7 @@ export async function handleCustomAPIRequest(
 		const currentApiKey = apiKeys[keyIndexToTry];
 		currentApiKeyIndex++; // 移动到下一个密钥，用于下一次整体请求
 
-		console.log(`尝试使用API密钥索引进行API调用: ${keyIndexToTry}`);
+		debugLog(`尝试使用API密钥索引进行API调用: ${keyIndexToTry}`);
 		if (loadingToast) {
 			loadingToast.text = `尝试使用第 ${
 				keyIndexToTry + 1
@@ -451,20 +452,9 @@ export async function handleCustomAPIRequest(
 		}
 
 		try {
-			// console.log('handleCustomAPIRequest - 参数验证:');
-			// console.log('systemPrompt类型:', typeof systemPrompt);
-			// console.log('systemPrompt值:', systemPrompt);
-			// console.log('userPrompt类型:', typeof userPrompt);
-			// console.log('userPrompt值:', userPrompt);
-
-			// Outer try for the whole attempt with the current key
 			const promptData = Array.isArray(systemPrompt)
 				? systemPrompt
 				: userPrompt;
-
-			// console.log('promptData类型:', typeof promptData);
-			// console.log('promptData值:', promptData);
-			// console.log('promptData长度:', typeof promptData === 'string' ? promptData.length : (Array.isArray(promptData) ? promptData.length : 'N/A'));
 
 			// 验证promptData是否为空或无效
 			if (!promptData) {
@@ -489,7 +479,7 @@ export async function handleCustomAPIRequest(
 			}
 			let response;
 
-			console.log(
+			debugLog(
 				`自定义API: 使用 llmService.callLLM (输入类型: ${
 					Array.isArray(promptData) ? "多消息数组" : "单条消息"
 				})`
@@ -545,7 +535,7 @@ export async function handleCustomAPIRequest(
 				}
 
 				if (response && response.trim() !== "") {
-					console.log(
+					debugLog(
 						`请求成功 (llmService, 密钥索引: ${keyIndexToTry}):`,
 						response
 					);
@@ -555,7 +545,7 @@ export async function handleCustomAPIRequest(
 					throw new Error("API返回空响应。");
 				}
 			} catch (llmServiceError) {
-				console.error(
+				debugError(
 					`API调用失败 (llmService)，密钥索引 ${keyIndexToTry}:`,
 					llmServiceError
 				);
@@ -569,10 +559,7 @@ export async function handleCustomAPIRequest(
 				);
 			}
 		} catch (error) {
-			console.error(
-				`处理密钥索引 ${keyIndexToTry} 时发生意外错误:`,
-				error
-			);
+			debugError(`处理密钥索引 ${keyIndexToTry} 时发生意外错误:`, error);
 			lastError = error;
 			EDITOR.error(
 				`处理第 ${keyIndexToTry + 1} 个 Key 时发生意外错误`,
@@ -593,7 +580,7 @@ export async function handleCustomAPIRequest(
 		lastError?.message || "未知错误"
 	}`;
 	EDITOR.error(errorMessage, "", lastError);
-	console.error("所有API调用尝试均失败。", lastError);
+	debugError("所有API调用尝试均失败。", lastError);
 	return `错误: ${errorMessage}`; // 返回一个明确的错误字符串
 
 	// // 公共请求配置 (Commented out original code remains unchanged)
@@ -629,7 +616,7 @@ export async function handleCustomAPIRequest(
 	//     modifiedUrl.pathname = modifiedUrl.pathname.replace(/\/$/, '') + '/chat/completions';
 	//     const result = await makeRequest(modifiedUrl.href);
 	//     if (result?.choices?.[0]?.message?.content) {
-	//         console.log('请求成功:', result.choices[0].message.content)
+	//         debugLog('请求成功:', result.choices[0].message.content)
 	//         return result.choices[0].message.content;
 	//     }
 	// } catch (error) {
@@ -764,7 +751,7 @@ export async function updateModelList() {
 		}
 	} catch (e) {
 		EDITOR.error(`无效的API URL: ${apiUrl}`, "", e);
-		console.error("URL解析失败:", e);
+		debugError("URL解析失败:", e);
 		return;
 	}
 
@@ -833,7 +820,7 @@ export async function updateModelList() {
 			}
 			// 如果已经找到有效key并更新了列表，后续的key只做有效性检查，不再更新UI
 		} catch (error) {
-			console.error(`使用第 ${i + 1} 个 Key 获取模型失败:`, error);
+			debugError(`使用第 ${i + 1} 个 Key 获取模型失败:`, error);
 			invalidKeysInfo.push({
 				index: i + 1,
 				key: currentApiKey,
@@ -942,7 +929,7 @@ export function ext_getAllTables() {
 	// 1. 获取最新的 piece
 	const { piece } = BASE.getLastSheetsPiece();
 	if (!piece || !piece.hash_sheets) {
-		console.warn(
+		debugWarn(
 			"[Memory Enhancement] ext_getAllTables: 未找到任何有效的表格数据。"
 		);
 		return [];
@@ -985,7 +972,7 @@ export function ext_exportAllTablesAsJson() {
 
 	const { piece } = BASE.getLastSheetsPiece();
 	if (!piece || !piece.hash_sheets) {
-		console.warn(
+		debugWarn(
 			"[Memory Enhancement] ext_exportAllTablesAsJson: 未找到任何有效的表格数据。"
 		);
 		return {};
@@ -1019,7 +1006,7 @@ export function ext_exportAllTablesAsJson() {
 				content: sanitizedContent,
 			};
 		} catch (error) {
-			console.error(
+			debugError(
 				`[Memory Enhancement] 导出表格 ${table.name} (UID: ${table.uid}) 时出错:`,
 				error
 			);
@@ -1032,7 +1019,7 @@ export function ext_exportAllTablesAsJson() {
 		// 为了避免外层宏解析失败，我们直接返回字符串，让宏自己去解析。
 		return exportData;
 	} catch (e) {
-		console.error("[Memory Enhancement] 最终JSON序列化失败:", e);
+		debugError("[Memory Enhancement] 最终JSON序列化失败:", e);
 		return {}; // 发生意外时返回空对象
 	}
 }

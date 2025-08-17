@@ -12,6 +12,7 @@
  */
 
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from "../../core/manager.js";
+import { debugLog, debugError } from "../../services/debugs.js";
 import {
 	updateSystemMessageTableStatus,
 	updateAlternateTable,
@@ -260,7 +261,7 @@ async function importTableSet() {
 					error.message,
 					error
 				); // 提示 JSON 解析失败
-				console.error("文件读取或解析错误:", error); // 打印详细错误信息到控制台
+				debugError("文件读取或解析错误:", error); // 打印详细错误信息到控制台
 			}
 		};
 
@@ -337,7 +338,7 @@ async function resetSettings() {
  * - 下拉菜单和抽屉展开事件
  */
 function InitBinging() {
-	console.log("初始化绑定");
+	debugLog("初始化绑定");
 	// 开始绑定事件
 	// 导入预设
 	$("#table-set-import").on("click", () => importTableSet());
@@ -502,7 +503,7 @@ function InitBinging() {
 				USER.saveSettings && USER.saveSettings(); // 保存设置
 				EDITOR.success(result.message);
 			} catch (error) {
-				console.error("API Key 处理失败:", error);
+				debugError("API Key 处理失败:", error);
 				EDITOR.error(
 					"未能获取到API KEY，请重新输入~",
 					error.message,
@@ -852,7 +853,7 @@ export function renderSetting() {
 
 	// 不再在设置中显示表格结构
 	// updateTableStructureDOM()
-	console.log("设置已渲染");
+	debugLog("设置已渲染");
 }
 
 /**
@@ -877,7 +878,7 @@ export function loadSettings() {
 	}
 
 	// 2版本表格结构兼容
-	console.log("updateIndex", USER.tableBaseSetting.updateIndex);
+	debugLog("updateIndex", USER.tableBaseSetting.updateIndex);
 	if (USER.tableBaseSetting.updateIndex < 4) {
 		// tableStructureToTemplate(USER.tableBaseSetting.tableStructure)
 		initTableStructureToTemplate();
@@ -1005,7 +1006,7 @@ export function refreshRebuildTemplate() {
 	);
 	// 设置默认选中项
 	if (USER.tableBaseSetting.lastSelectedTemplate) {
-		console.log("默认", USER.tableBaseSetting.lastSelectedTemplate);
+		debugLog("默认", USER.tableBaseSetting.lastSelectedTemplate);
 		$("#rebuild--select").val(USER.tableBaseSetting.lastSelectedTemplate);
 	}
 }

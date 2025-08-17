@@ -1,4 +1,5 @@
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from "../core/manager.js";
+import { debugLog, debugError } from "../services/debugs.js";
 
 /**
  * @description 辅助函数，递归创建 Proxy
@@ -22,13 +23,14 @@ export const createProxyWithUserSetting = (target, allowEmpty = false) => {
 		{},
 		{
 			get: (_, property) => {
-				// console.log(`创建代理对象 ${target}`, property)
 				// 最优先从用户设置数据中获取
 				if (
 					USER.getSettings()[target] &&
 					property in USER.getSettings()[target]
 				) {
-					console.log(`变量 ${property} 已从用户设置中获取`);
+					if (typeof DEBUG_MODE !== "undefined" && DEBUG_MODE) {
+						debugLog(`变量 ${property} 已从用户设置中获取`);
+					}
 					return USER.getSettings()[target][property];
 				}
 				// 尝试从老版本的数据位置 USER.getExtensionSettings().muyoo_dataTable 中获取
@@ -36,9 +38,9 @@ export const createProxyWithUserSetting = (target, allowEmpty = false) => {
 					USER.getExtensionSettings()[target] &&
 					property in USER.getExtensionSettings()[target]
 				) {
-					console.log(
-						`变量 ${property} 未在用户配置中找到, 已从老版本数据中获取`
-					);
+					if (typeof DEBUG_MODE !== "undefined" && DEBUG_MODE) {
+						debugLog(`变量 ${property} 未找到, 已从默认设置中获取`);
+					}
 					const value = USER.getExtensionSettings()[target][property];
 					if (!USER.getSettings()[target]) {
 						USER.getSettings()[target] = {}; // 初始化，如果不存在
@@ -53,9 +55,7 @@ export const createProxyWithUserSetting = (target, allowEmpty = false) => {
 				) {
 					// 只在开发模式下输出调试信息，避免日志过多
 					if (typeof DEBUG_MODE !== "undefined" && DEBUG_MODE) {
-						console.log(
-							`变量 ${property} 未找到, 已从默认设置中获取`
-						);
+						debugLog(`变量 ${property} 未找到, 已从默认设置中获取`);
 					}
 					return USER.tableBaseDefaultSettings[property];
 				}
@@ -68,7 +68,7 @@ export const createProxyWithUserSetting = (target, allowEmpty = false) => {
 				return undefined;
 			},
 			set: (_, property, value) => {
-				console.log(`设置变量 ${property} 为 ${value}`);
+				debugLog(`设置变量 ${property} 为 ${value}`);
 				if (!USER.getSettings()[target]) {
 					USER.getSettings()[target] = {}; // 初始化，如果不存在
 				}

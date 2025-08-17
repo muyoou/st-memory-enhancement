@@ -20,6 +20,7 @@ import { profile_prompts } from "../../data/profile_prompts.js";
 import { Form } from "../../components/formManager.js";
 import { refreshRebuildTemplate } from "../settings/userExtensionSetting.js";
 import { safeParse } from "../../utils/stringUtil.js";
+import { debugError } from "../../services/debugs.js";
 
 /**
  * 验证操作指令的格式和内容

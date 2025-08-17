@@ -20,14 +20,18 @@ import {
 	refreshTempView,
 	updateTableContainerPosition,
 } from "./scripts/editor/tableTemplateEditView.js";
-import { functionToBeRegistered } from "./services/debugs.js";
+import {
+	debugError,
+	debugLog,
+	functionToBeRegistered,
+} from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import { executeTranslation } from "./services/translate.js";
 import applicationFunctionManager from "./services/appFuncManager.js";
 import { SheetBase } from "./core/table/base.js";
 import { Cell } from "./core/table/cell.js";
 
-console.log("______________________记忆插件：开始加载______________________");
+debugLog("______________________记忆插件：开始加载______________________");
 
 const VERSION = "2.2.0";
 
@@ -92,7 +96,7 @@ export function buildSheetsByTemplates(targetPiece) {
 			!template.cellHistory ||
 			!Array.isArray(template.cellHistory)
 		) {
-			console.error(
+			debugError(
 				`[Memory Enhancement] 在 buildSheetsByTemplates 中遇到无效的模板结构 (缺少 hashSheet 或 cellHistory)。跳过模板:`,
 				template
 			);
@@ -132,7 +136,7 @@ export function convertOldTablesToNewSheets(oldTableList, targetPiece) {
 		if (targetSheetUid) {
 			// 如果表格已存在，则更新表格数据
 			const targetSheet = BASE.getChatSheet(targetSheetUid);
-			console.log("表格已存在，更新表格数据", targetSheet);
+			debugLog("表格已存在，更新表格数据", targetSheet);
 			targetSheet.rebuildHashSheetByValueSheet(valueSheet);
 			targetSheet.save(targetPiece);
 			addOldTablePrompt(targetSheet);
@@ -164,7 +168,7 @@ export function convertOldTablesToNewSheets(oldTableList, targetPiece) {
 		sheets.push(newSheet);
 	}
 	// USER.saveChat()
-	console.log("转换旧表格数据为新表格数据", sheets);
+	debugLog("转换旧表格数据为新表格数据", sheets);
 	return sheets;
 }
 
@@ -176,7 +180,7 @@ function addOldTablePrompt(sheet) {
 	const tableStructure = USER.tableBaseSetting.tableStructure.find(
 		(table) => table.tableName === sheet.name
 	);
-	console.log(
+	debugLog(
 		"添加旧表格提示词",
 		tableStructure,
 		USER.tableBaseSetting.tableStructure,
@@ -227,7 +231,7 @@ export function initTableData(eventData) {
 		getTablePrompt(eventData)
 	);
 	const promptContent = replaceUserTag(allPrompt); //替换所有的<user>标签
-	console.log("完整提示", promptContent);
+	debugLog("完整提示", promptContent);
 	return promptContent;
 }
 
@@ -238,7 +242,7 @@ export function initTableData(eventData) {
 export function getTablePrompt(eventData, isPureData = false) {
 	const lastSheetsPiece = BASE.getReferencePiece();
 	if (!lastSheetsPiece) return "";
-	console.log("获取到的参考表格数据", lastSheetsPiece);
+	debugLog("获取到的参考表格数据", lastSheetsPiece);
 	return getTablePromptByPiece(lastSheetsPiece, isPureData);
 }
 
@@ -252,7 +256,7 @@ export function getTablePromptByPiece(piece, isPureData = false) {
 	const sheets = BASE.hashSheetsToSheets(hash_sheets)
 		.filter((sheet) => sheet.enable)
 		.filter((sheet) => sheet.sendToContext !== false);
-	console.log("构建提示词时的信息 (已过滤)", hash_sheets, sheets);
+	debugLog("构建提示词时的信息 (已过滤)", hash_sheets, sheets);
 	const customParts = isPureData
 		? ["title", "headers", "rows"]
 		: ["title", "node", "headers", "rows", "editRules"];
@@ -368,7 +372,7 @@ export function parseTableEditTag(piece, mesIndex = -1, ignoreCheck = false) {
 				formatParams(action.param)
 			))
 	);
-	console.log("解析到的表格编辑指令", tableEditActions);
+	debugLog("解析到的表格编辑指令", tableEditActions);
 
 	// 获取上一个表格数据
 	const { piece: prePiece } =
@@ -378,14 +382,14 @@ export function parseTableEditTag(piece, mesIndex = -1, ignoreCheck = false) {
 	const sheets = BASE.hashSheetsToSheets(prePiece.hash_sheets).filter(
 		(sheet) => sheet.enable
 	);
-	console.log("执行指令时的信息", sheets);
+	debugLog("执行指令时的信息", sheets);
 	for (const EditAction of sortActions(tableEditActions)) {
 		executeAction(EditAction, sheets);
 	}
 	sheets.forEach((sheet) => sheet.save(piece, true));
-	console.log("聊天模板：", BASE.sheetsData.context);
-	console.log("获取到的表格数据", prePiece);
-	console.log("测试总chat", USER.getContext().chat);
+	debugLog("聊天模板：", BASE.sheetsData.context);
+	debugLog("获取到的表格数据", prePiece);
+	debugLog("测试总chat", USER.getContext().chat);
 	return true;
 }
 
@@ -401,18 +405,18 @@ export function executeTableEditActions(matches, referencePiece) {
 				formatParams(action.param)
 			))
 	);
-	console.log("解析到的表格编辑指令", tableEditActions);
+	debugLog("解析到的表格编辑指令", tableEditActions);
 
 	// 核心修复：不再信任传入的 referencePiece.hash_sheets，而是直接从 BASE 获取当前激活的、唯一的 Sheet 实例。
 	const sheets = BASE.getChatSheets().filter((sheet) => sheet.enable);
 	if (!sheets || sheets.length === 0) {
-		console.error(
+		debugError(
 			"executeTableEditActions: 未找到任何启用的表格实例，操作中止。"
 		);
 		return false;
 	}
 
-	console.log("执行指令时的信息 (来自 BASE.getChatSheets)", sheets);
+	debugLog("执行指令时的信息 (来自 BASE.getChatSheets)", sheets);
 	for (const EditAction of sortActions(tableEditActions)) {
 		executeAction(EditAction, sheets);
 	}
@@ -420,15 +424,15 @@ export function executeTableEditActions(matches, referencePiece) {
 	// 核心修复：确保修改被保存到当前最新的聊天片段中。
 	const { piece: currentPiece } = USER.getChatPiece();
 	if (!currentPiece) {
-		console.error(
+		debugError(
 			"executeTableEditActions: 无法获取当前聊天片段，保存操作失败。"
 		);
 		return false;
 	}
 	sheets.forEach((sheet) => sheet.save(currentPiece, true));
 
-	console.log("聊天模板：", BASE.sheetsData.context);
-	console.log("测试总chat", USER.getContext().chat);
+	debugLog("聊天模板：", BASE.sheetsData.context);
+	debugLog("测试总chat", USER.getContext().chat);
 	return true; // 返回 true 表示成功
 }
 
@@ -439,7 +443,7 @@ function executeAction(EditAction, sheets) {
 	const action = EditAction.action;
 	const sheet = sheets[action.tableIndex];
 	if (!sheet) {
-		console.error("表格不存在，无法执行编辑操作", EditAction);
+		debugError("表格不存在，无法执行编辑操作", EditAction);
 		return -1;
 	}
 
@@ -489,7 +493,7 @@ function executeAction(EditAction, sheets) {
 			cell.newAction(Cell.CellAction.deleteSelfRow, {}, false);
 			break;
 	}
-	console.log("执行表格编辑操作", EditAction);
+	debugLog("执行表格编辑操作", EditAction);
 	return 1;
 }
 
@@ -668,10 +672,7 @@ async function onChatCompletionPromptReady(eventData) {
 							content: finalPrompt,
 						});
 					}
-					console.log(
-						"分步填表模式：注入只读表格数据",
-						eventData.chat
-					);
+					debugLog("分步填表模式：注入只读表格数据", eventData.chat);
 				}
 			}
 			return; // 处理完分步模式后直接退出，不执行后续的常规注入
@@ -687,7 +688,7 @@ async function onChatCompletionPromptReady(eventData) {
 			return;
 		}
 
-		console.log("生成提示词前", USER.getContext().chat);
+		debugLog("生成提示词前", USER.getContext().chat);
 		const promptContent = initTableData(eventData);
 		if (USER.tableBaseSetting.deep === 0)
 			eventData.chat.push({ role: getMesRole(), content: promptContent });
@@ -705,7 +706,7 @@ async function onChatCompletionPromptReady(eventData) {
 			error
 		);
 	}
-	console.log("注入表格总体提示词", eventData.chat);
+	debugLog("注入表格总体提示词", eventData.chat);
 }
 
 /**
@@ -829,7 +830,7 @@ async function onMessageReceived(chat_id) {
 	} else {
 		if (USER.tableBaseSetting.isAiWriteTable === false) return;
 		const chat = USER.getContext().chat[chat_id];
-		// console.log("收到消息", chat_id)
+		// debugLog("收到消息", chat_id)
 		try {
 			handleEditStrInMessage(chat);
 		} catch (error) {
@@ -922,7 +923,7 @@ async function onMessageSwiped(chat_id) {
 	)
 		return;
 	const chat = USER.getContext().chat[chat_id];
-	console.log("滑动切换消息", chat);
+	debugLog("滑动切换消息", chat);
 	if (!chat.swipe_info[chat.swipe_id]) return;
 	try {
 		handleEditStrInMessage(chat);
@@ -939,7 +940,7 @@ async function onMessageSwiped(chat_id) {
 export async function undoSheets(deep) {
 	const { piece, deep: findDeep } = BASE.getLastSheetsPiece(deep);
 	if (findDeep === -1) return;
-	console.log("撤回表格数据", piece, findDeep);
+	debugLog("撤回表格数据", piece, findDeep);
 	handleEditStrInMessage(piece, findDeep, true);
 	updateSheetsView();
 }
@@ -952,11 +953,9 @@ export async function undoSheets(deep) {
 async function updateSheetsView(mesId) {
 	try {
 		// 刷新表格视图
-		console.log("========================================\n更新表格视图");
+		debugLog("========================================\n更新表格视图");
 		refreshTempView(true);
-		console.log(
-			"========================================\n更新表格内容视图"
-		);
+		debugLog("========================================\n更新表格内容视图");
 		BASE.refreshContextView(mesId);
 
 		// 更新系统消息中的表格状态
@@ -1028,10 +1027,10 @@ jQuery(async () => {
 			navigator.userAgent
 		)
 	) {
-		console.log("手机端");
+		debugLog("手机端");
 		// 手机端事件
 	} else {
-		console.log("电脑端");
+		debugLog("电脑端");
 		// 电脑端事件
 		initTest();
 	}
@@ -1070,17 +1069,14 @@ jQuery(async () => {
 			// 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
 			return JSON.stringify(jsonData);
 		} catch (error) {
-			console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
+			debugError("GET_ALL_TABLES_JSON 宏执行出错:", error);
 			EDITOR.error("导出所有表格数据时出错。", "", error);
 			return "{}"; // 出错时返回空JSON对象
 		}
 	});
 
 	// 设置表格编辑按钮
-	console.log(
-		"设置表格编辑按钮",
-		applicationFunctionManager.doNavbarIconClick
-	);
+	debugLog("设置表格编辑按钮", applicationFunctionManager.doNavbarIconClick);
 	if (isDrawerNewVersion()) {
 		$("#table_database_settings_drawer .drawer-toggle").on(
 			"click",
@@ -1139,7 +1135,5 @@ jQuery(async () => {
 	APP.eventSource.on(APP.event_types.MESSAGE_SWIPED, onMessageSwiped);
 	APP.eventSource.on(APP.event_types.MESSAGE_DELETED, onChatChanged);
 
-	console.log(
-		"______________________记忆插件：加载完成______________________"
-	);
+	debugLog("______________________记忆插件：加载完成______________________");
 });

@@ -6,6 +6,7 @@ import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
 import { compareDataDiff } from "../../utils/utility.js";
 import { SheetBase } from "../../core/table/base.js";
 import { Cell } from "../../core/table/cell.js";
+import { debugLog, debugWarn } from "../../services/debugs.js";
 
 let drag = null;
 let currentPopupMenu = null;
@@ -148,7 +149,7 @@ const formConfigs = {
 
 async function updateDropdownElement() {
 	const templates = getSheets();
-	// console.log("下滑模板", templates)
+	// debugLog("下滑模板", templates)
 	if (dropdownElement === null) {
 		dropdownElement = document.createElement("select");
 		dropdownElement.id = "table_template";
@@ -196,7 +197,7 @@ function initChatScopeSelectedSheets() {
 function updateSelectedSheetUids() {
 	if (scope === "chat") {
 		USER.saveChat();
-		console.log("这里触发的");
+		debugLog("这里触发的");
 		BASE.refreshContextView();
 	} else USER.saveSettings();
 	updateDragTables();
@@ -231,7 +232,7 @@ function initializeSelect2Dropdown(dropdownElement) {
 
 	$(dropdownElement).on("change", function (e, silent) {
 		//if(silent || scope === 'chat') return
-		console.log("选择了", silent, $(this).val());
+		debugLog("选择了", silent, $(this).val());
 		if (silent) return;
 		setSelectedSheetUids($(this).val());
 		updateSelectedSheetUids();
@@ -326,11 +327,11 @@ function bindSheetSetting(sheet, index) {
 				formInstance.result(),
 				initialData
 			);
-			console.log(diffData);
+			debugLog(diffData);
 			let needRerender = false;
 			// 将比较数据差异的结果更新至表格
 			Object.keys(diffData).forEach((key) => {
-				console.log(key);
+				debugLog(key);
 				if (
 					[
 						"domain",
@@ -341,7 +342,7 @@ function bindSheetSetting(sheet, index) {
 					].includes(key) &&
 					diffData[key] != null
 				) {
-					console.log("对比成功将更新" + key);
+					debugLog("对比成功将更新" + key);
 					sheet[key] = diffData[key];
 					if (key === "name") needRerender = true;
 				} else if (
@@ -359,7 +360,7 @@ function bindSheetSetting(sheet, index) {
 					["triggerSendDeep"].includes(key) &&
 					diffData[key] != null
 				) {
-					console.log("对比成功将更新" + key);
+					debugLog("对比成功将更新" + key);
 					sheet[key] = Math.max(0, Math.floor(diffData[key]));
 				}
 			});
@@ -396,7 +397,7 @@ function bindSheetSetting(sheet, index) {
 		.on("change", function () {
 			sheet.sendToContext = $(this).prop("checked");
 			sheet.save();
-			console.log(
+			debugLog(
 				`表格 "${sheet.name}" 的 sendToContext 状态已更新为: ${sheet.sendToContext}`
 			);
 		});
@@ -428,7 +429,7 @@ async function templateCellDataEdit(cell) {
 	await popup.show();
 	if (popup.result) {
 		const diffData = compareDataDiff(formInstance.result(), initialData);
-		console.log(diffData);
+		debugLog(diffData);
 		Object.keys(diffData).forEach((key) => {
 			cell.data[key] = diffData[key];
 		});
@@ -442,9 +443,9 @@ async function templateCellDataEdit(cell) {
 }
 
 function handleAction(cell, action) {
-	console.log("开始执行操作");
+	debugLog("开始执行操作");
 	cell.newAction(action);
-	console.log("执行操作然后刷新");
+	debugLog("执行操作然后刷新");
 	refreshTempView();
 	// 如果是chat域，则刷新表格
 	if (scope === "chat") BASE.refreshContextView();
@@ -627,7 +628,7 @@ async function updateDragTables() {
 		}
 		// 如果数据不存在，则记录警告并跳过此 uid
 		if (!sheetDataExists) {
-			console.warn(
+			debugWarn(
 				`在 updateDragTables 中未找到 UID 为 ${uid} 的表格数据 (scope: ${scope})。跳过此表格。`
 			);
 			return;
@@ -640,7 +641,7 @@ async function updateDragTables() {
 		sheet.currentPopupMenu = currentPopupMenu;
 
 		// if (!sheet || !sheet.hashSheet) {
-		//     console.warn(`无法加载模板或模板数据为空，UID: ${uid}`);
+		//     debugWarn(`无法加载模板或模板数据为空，UID: ${uid}`);
 		//     return
 		// }
 
@@ -670,12 +671,12 @@ export function updateTableContainerPosition() {
 	const windowHeight = window.innerHeight;
 	const contentContainer =
 		table_editor_container.querySelector("#contentContainer");
-	// console.log("contentContainer", contentContainer)
+	// debugLog("contentContainer", contentContainer)
 	const sendFormHeight =
 		document.querySelector("#send_form")?.getBoundingClientRect().height ||
 		0;
 	const rect = contentContainer.getBoundingClientRect();
-	// console.log("contentContainer 位置变化", rect, windowHeight, sendFormHeight)
+	// debugLog("contentContainer 位置变化", rect, windowHeight, sendFormHeight)
 	contentContainer.style.position = "flex";
 	contentContainer.style.bottom = "0";
 	contentContainer.style.left = "0";
@@ -685,7 +686,7 @@ export function updateTableContainerPosition() {
 
 export async function refreshTempView(ignoreGlobal = false) {
 	if (ignoreGlobal && scope === "global") return;
-	console.log("刷新表格模板视图");
+	debugLog("刷新表格模板视图");
 	await updateDropdownElement();
 	initializeSelect2Dropdown(dropdownElement);
 	await updateDragTables();
@@ -726,12 +727,12 @@ async function initTableEdit(mesId) {
 		.val(scope)
 		.on("change", async function () {
 			scope = $(this).val();
-			console.log("切换到", scope);
+			debugLog("切换到", scope);
 			await refreshTempView();
 		});
 
 	$(document).on("click", "#add_table_template_button", async function () {
-		console.log("触发");
+		debugLog("触发");
 		let newTemplateUid = null;
 		let newTemplate = null;
 		if (scope === "chat") {
@@ -749,7 +750,7 @@ async function initTableEdit(mesId) {
 		else USER.saveSettings();
 		await updateDropdownElement();
 		//updateDragTables();
-		console.log("测试", [...currentSelectedValues, newTemplateUid]);
+		debugLog("测试", [...currentSelectedValues, newTemplateUid]);
 		$(dropdownElement)
 			.val([...currentSelectedValues, newTemplateUid])
 			.trigger("change", [true]);
