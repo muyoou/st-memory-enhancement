@@ -921,7 +921,7 @@ jQuery(async () => {
     executeTranslation(); // 执行翻译函数
 
     // 监听主程序事件
-    APP.eventSource.on(APP.event_types.MESSAGE_RECEIVED, onMessageReceived);
+    APP.eventSource.on(APP.event_types.CHARACTER_MESSAGE_RENDERED, onMessageReceived);
     APP.eventSource.on(APP.event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
     APP.eventSource.on(APP.event_types.CHAT_CHANGED, onChatChanged);
     APP.eventSource.on(APP.event_types.MESSAGE_EDITED, onMessageEdited);

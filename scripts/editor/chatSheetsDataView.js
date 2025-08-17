@@ -1,6 +1,6 @@
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
-import { findNextChatWhitTableData,undoSheets } from "../../index.js";
+import { findNextChatWhitTableData, undoSheets } from "../../index.js";
 import { rebuildSheets } from "../runtime/absoluteRefresh.js";
 import { openTableHistoryPopup } from "./tableHistory.js";
 import { PopupMenu } from "../../components/popupMenu.js";
@@ -14,7 +14,6 @@ let copyTableData = null
 let selectedCell = null
 let editModeSelectedRows = []
 let viewSheetsContainer = null
-let lastCellsHashSheet = null
 const userTableEditInfo = {
     chatIndex: null,
     editAble: false,
@@ -29,8 +28,8 @@ const userTableEditInfo = {
  * @param {*} tables 所有表格数据
  */
 export async function copyTable() {
-    copyTableData = JSON.stringify(getTableJson({type:'chatSheets', version: 1}))
-    if(!copyTableData) return
+    copyTableData = JSON.stringify(getTableJson({ type: 'chatSheets', version: 1 }))
+    if (!copyTableData) return
     $('#table_drawer_icon').click()
 
     EDITOR.confirm(`正在复制表格数据 (#${SYSTEM.generateRandomString(4)})`, '取消', '粘贴到当前对话').then(async (r) => {
@@ -57,7 +56,7 @@ async function pasteTable() {
     if (confirmation) {
         if (copyTableData) {
             const tables = JSON.parse(copyTableData)
-            if(!tables.mate === 'chatSheets')  return EDITOR.error("导入失败：文件格式不正确")
+            if (!tables.mate === 'chatSheets') return EDITOR.error("导入失败：文件格式不正确")
             BASE.applyJsonToChatSheets(tables)
             await renderSheetsDOM()
             EDITOR.success('粘贴成功')
@@ -100,18 +99,18 @@ async function importTable(mesId, viewSheetsContainer) {
             // 当文件读取成功后，会触发 onload 事件
             reader.onload = async function (loadEvent) {
                 const button = { text: '导入模板及数据', result: 3 }
-                const popup = new EDITOR.Popup("请选择导入的部分", EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "导入模板及数据", cancelButton: "取消"});
+                const popup = new EDITOR.Popup("请选择导入的部分", EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "导入模板及数据", cancelButton: "取消" });
                 const result = await popup.show()
                 if (result) {
-                        const tables = JSON.parse(loadEvent.target.result)
-                        console.log("导入内容", tables, tables.mate, !(tables.mate === 'chatSheets'))
-                        if(!(tables.mate?.type === 'chatSheets'))  return EDITOR.error("导入失败：文件格式不正确", "请检查你导入的是否是表格数据")
-                        if(result === 3)
-                            BASE.applyJsonToChatSheets(tables, "data")
-                        else
-                            BASE.applyJsonToChatSheets(tables)
-                        await renderSheetsDOM()
-                        EDITOR.success('导入成功')
+                    const tables = JSON.parse(loadEvent.target.result)
+                    console.log("导入内容", tables, tables.mate, !(tables.mate === 'chatSheets'))
+                    if (!(tables.mate?.type === 'chatSheets')) return EDITOR.error("导入失败：文件格式不正确", "请检查你导入的是否是表格数据")
+                    if (result === 3)
+                        BASE.applyJsonToChatSheets(tables, "data")
+                    else
+                        BASE.applyJsonToChatSheets(tables)
+                    await renderSheetsDOM()
+                    EDITOR.success('导入成功')
                 }
             };
             reader.readAsText(file, 'UTF-8'); // 建议指定 UTF-8 编码，确保中文等字符正常读取
@@ -125,8 +124,8 @@ async function importTable(mesId, viewSheetsContainer) {
  * @param {Array} tables 所有表格数据
  */
 async function exportTable() {
-    const jsonTables = getTableJson({type:'chatSheets', version: 1})
-    if(!jsonTables) return
+    const jsonTables = getTableJson({ type: 'chatSheets', version: 1 })
+    if (!jsonTables) return
     const bom = '\uFEFF';
     const blob = new Blob([bom + JSON.stringify(jsonTables)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -213,7 +212,7 @@ async function cellDataEdit(cell) {
     if (result) {
         cell.editCellData({ value: result })
         refreshContextView();
-        if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
+        if (cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
     }
 }
 
@@ -328,66 +327,6 @@ async function confirmAction(event, text = '是否继续该操作？') {
     event()
 }
 
-/**
- * 单元格高亮
- */
-export function cellHighlight(sheet) {
-    if(!lastCellsHashSheet) return;
-    const lastHashSheet = lastCellsHashSheet[sheet.uid] || []
-    if ((sheet.hashSheet.length < 2) && (lastHashSheet.length < 2)) return;    //表格内容为空的时候不执行后续函数,提高健壮性
-    const hashSheetFlat = sheet.hashSheet.flat()
-    const lastHashSheetFlat = lastHashSheet.flat()
-    let deleteRow = []
-    lastHashSheet.forEach((row, index) => {
-        if (!hashSheetFlat.includes(row[0])) {
-            deleteRow.push(row[0])
-            sheet.hashSheet.splice(index,0,lastHashSheet[index])
-        }
-    })
-
-    const changeSheet = sheet.hashSheet.map((row) => {
-        const isNewRow = !lastHashSheetFlat.includes(row[0])
-        const isDeletedRow = deleteRow.includes(row[0])
-        return row.map((hash) => {
-            if (isNewRow) return { hash, type: "newRow" }
-            if (isDeletedRow) return { hash, type: "deletedRow" }
-            if (!lastHashSheetFlat.includes(hash)) return { hash, type: "update" }
-            return { hash, type: "keep" }
-        })
-    })
-    changeSheet.forEach((row, index) => {
-        if (index === 0)
-            return
-        let isKeepAll = true
-        row.forEach((cell) => {
-            let sheetCell = sheet.cells.get(cell.hash)
-            const cellElement = sheetCell.element
-            if (cell.type === "newRow") {
-                cellElement.classList.add('insert-item')
-                isKeepAll = false
-            } else if (cell.type === "update") {
-                cellElement.classList.add('update-item')
-                isKeepAll = false
-            } else if (cell.type === "deletedRow") {
-                sheetCell.isDeleted = true
-                cellElement.classList.add('delete-item')
-                isKeepAll = false
-            } else if (sheetCell.isDeleted === true) {
-                cellElement.classList.add('delete-item')
-                isKeepAll = false
-            } else {
-                cellElement.classList.add('keep-item')
-            }
-        })
-        if (isKeepAll) {
-            row.forEach((cell) => {
-                const cellElement = sheet.cells.get(cell.hash).element
-                cellElement.classList.add('keep-all-item')
-            })
-        }
-    })
-}
-
 async function cellHistoryView(cell) {
     await openCellHistoryPopup(cell)
 }
@@ -403,15 +342,6 @@ async function customSheetStyle(cell) {
 
 function cellClickEvent(cell) {
     cell.element.style.cursor = 'pointer'
-
-    // 判断是否需要根据历史数据进行高亮
-    /* const lastCellUid = lastCellsHashSheet.has(cell.uid)
-    if (!lastCellUid) {
-        cell.element.style.backgroundColor = '#00ff0011'
-    }
-    else if (cell.parent.cells.get(lastCellUid).data.value !== cell.data.value) {
-        cell.element.style.backgroundColor = '#0000ff11'
-    } */
 
     cell.on('click', async (event) => {
         event.stopPropagation();
@@ -499,7 +429,7 @@ function cellClickEvent(cell) {
 function handleAction(cell, action) {
     cell.newAction(action)
     refreshContextView();
-    if(cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
+    if (cell.type === Cell.CellType.column_header) BASE.refreshTempView(true)
 }
 
 export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _cellClickEvent = cellClickEvent) {
@@ -529,7 +459,7 @@ export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _ce
         } else {
             sheetElement = await instance.renderSheet(_cellClickEvent)
         }
-        cellHighlight(instance)
+        // 已集成到 Sheet.renderSheet 内部，这里无需再次调用
         console.log("渲染表格：", sheetElement)
         $(sheetContainer).append(sheetElement)
 
@@ -561,11 +491,11 @@ async function renderSheetsDOM(mesId = -1) {
     DERIVED.any.renderingMesId = mesId
     updateSystemMessageTableStatus();
     task.log()
-    const {deep: lastestDeep, piece: lastestPiece} = BASE.getLastSheetsPiece()
-    const { piece, deep } = mesId === -1 ? {piece:lastestPiece, deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
+    const { deep: lastestDeep, piece: lastestPiece } = BASE.getLastSheetsPiece()
+    const { piece, deep } = mesId === -1 ? { piece: lastestPiece, deep: lastestDeep } : { piece: USER.getContext().chat[mesId], deep: mesId }
     if (!piece || !piece.hash_sheets) return;
 
-    if( deep === lastestDeep) DERIVED.any.isRenderLastest = true;
+    if (deep === lastestDeep) DERIVED.any.isRenderLastest = true;
     else DERIVED.any.isRenderLastest = false;
     DERIVED.any.renderDeep = deep;
 
@@ -580,19 +510,11 @@ async function renderSheetsDOM(mesId = -1) {
     })
     console.log('renderSheetsDOM:', piece, sheets)
     DERIVED.any.renderingSheets = sheets
-    task.log()
-    // 用于记录上一次的hash_sheets，渲染时根据上一次的hash_sheets进行高亮
-    if(deep != 0) {
-        lastCellsHashSheet = BASE.getLastSheetsPiece(deep - 1, 3, false)?.piece.hash_sheets;
-        if (lastCellsHashSheet) {
-            lastCellsHashSheet = BASE.copyHashSheets(lastCellsHashSheet)
-        }
-    }
-    
+
     task.log()
     $(viewSheetsContainer).empty()
     viewSheetsContainer.style.paddingBottom = '150px'
-    renderEditableSheetsDOM(sheets, viewSheetsContainer,DERIVED.any.isRenderLastest?undefined:()=>{})
+    renderEditableSheetsDOM(sheets, viewSheetsContainer, DERIVED.any.isRenderLastest ? undefined : () => { })
     $("#table_indicator").text(DERIVED.any.isRenderLastest ? "现在是可修改的活动表格" : `现在是第${deep}轮对话中的旧表格，不可被更改`)
     task.log()
 }
@@ -642,7 +564,7 @@ async function initTableView(mesId) {
     // 点击前表按钮
     $(document).on('click', '#table_prev_button', function () {
         const deep = DERIVED.any.renderDeep;
-        const { deep: prevDeep }  = BASE.getLastSheetsPiece(deep - 1, 20, false);
+        const { deep: prevDeep } = BASE.getLastSheetsPiece(deep - 1, 20, false);
         if (prevDeep === -1) {
             EDITOR.error("没有更多的表格数据了")
             return
@@ -654,7 +576,7 @@ async function initTableView(mesId) {
     $(document).on('click', '#table_next_button', function () {
         const deep = DERIVED.any.renderDeep;
         console.log("当前深度：", deep)
-        const { deep: nextDeep }  = BASE.getLastSheetsPiece(deep + 1, 20, false, "down");
+        const { deep: nextDeep } = BASE.getLastSheetsPiece(deep + 1, 20, false, "down");
         if (nextDeep === -1) {
             EDITOR.error("没有更多的表格数据了")
             return
@@ -666,7 +588,7 @@ async function initTableView(mesId) {
 }
 
 export async function refreshContextView(mesId = -1) {
-    if(BASE.contextViewRefreshing) return
+    if (BASE.contextViewRefreshing) return
     BASE.contextViewRefreshing = true
     await renderSheetsDOM(mesId);
     console.log("刷新表格视图")

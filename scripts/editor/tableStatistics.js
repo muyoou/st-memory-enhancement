@@ -96,7 +96,6 @@ async function clearTableStatisticsButton(statisticsContainer) {
             lastCellHistoryHashNum++
             if (cell && cell.uid && filterDuplicateMap.has(cell.uid)) {
                 cellHistoryHashNum++;
-                delete Cell.CellAction;
                 delete cell.bridge;
             } else {
                 cellHistories[index].splice(cellIndex, 1);

@@ -1,7 +1,6 @@
 // tablePushToChat.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
 import { parseSheetRender, loadValueSheetBySheetHashSheet } from "./sheetCustomRenderer.js";
-import { cellClickEditModeEvent, cellHighlight } from "../editor/chatSheetsDataView.js";
 import { replaceUserTag } from "../../utils/stringUtil.js";
 
 
@@ -102,7 +101,6 @@ function defaultStyleRender(index, sheet, _viewSheetsContainer) {
 
     let sheetElement = null
     sheetElement = instance.renderSheet(cell => cell.element.style.cursor = 'default')
-    cellHighlight(instance)
     $(sheetContainer).append(sheetElement)
 
     $(_viewSheetsContainer).append(sheetTitleText)
