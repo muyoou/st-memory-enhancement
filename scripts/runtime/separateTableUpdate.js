@@ -281,6 +281,11 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
                 break;
             } else {
                 finalStatus = r || 'error';
+                // 如果是用户手动中止，则直接跳出循环，不再重试
+                if (finalStatus === 'suspended') {
+                    EDITOR.info('填表操作已由用户手动中止。');
+                    break;
+                }
             }
         }
 
