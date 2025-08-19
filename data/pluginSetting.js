@@ -274,6 +274,8 @@ export const defaultSettings = await switchLanguage('__defaultSettings__', {
     custom_max_tokens: 4096,
     // API模式
     custom_api_mode: 'frontend',
+    // (v6.2.4) 新增：酒馆API预设ID
+    tavern_api_profile: '',
     // 重整理自定义top_p
     custom_top_p: 1.0,
     // 重整理存在惩罚
@@ -376,6 +378,10 @@ export const defaultSettings = await switchLanguage('__defaultSettings__', {
     separateReadLorebook: false,
     // 独立填表时，是否等待填表完成后再发送到酒馆
     wait_for_fill_then_send: false,
+    // (v.next) 分步填表自动重试次数
+    step_by_step_retry_count: 3,
+    // (v.next) 分步填表最低触发字符数
+    step_by_step_min_char_trigger: 200,
     /**
      * ===========================
      * 表格结构

@@ -451,6 +451,18 @@ function InitBinging() {
         USER.tableBaseSetting.wait_for_fill_then_send = this.checked;
         USER.saveSettings && USER.saveSettings();
     });
+    // (v.next) 分步填表自动重试次数
+    $('#step_by_step_retry_count').on('input', function() {
+        const value = $(this).val();
+        $('#step_by_step_retry_count_value').text(value);
+        USER.tableBaseSetting.step_by_step_retry_count = Number(value);
+    });
+    // (v.next) 分步填表最低触发字符数
+    $('#step_by_step_min_char_trigger').on('input', function() {
+        const value = $(this).val();
+        $('#step_by_step_min_char_trigger_value').text(value);
+        USER.tableBaseSetting.step_by_step_min_char_trigger = Number(value);
+    });
     // 重置分步填表提示词为默认值
     $('#reset_step_by_step_user_prompt').on('click', function() {
         const defaultValue = USER.tableBaseDefaultSettings.step_by_step_user_prompt;
@@ -482,12 +494,18 @@ function InitBinging() {
     $('#custom_api_mode').on('change', function() {
         const selectedMode = $(this).val();
         USER.tableBaseSetting.custom_api_mode = selectedMode;
-        // 根据选择的模式显示/隐藏API URL输入框
-        if (selectedMode === 'google') {
-            $('#custom_api_url').hide();
-        } else {
-            $('#custom_api_url').show();
-        }
+        updateApiModeView(selectedMode);
+    });
+
+    // 新增：酒馆预设刷新按钮
+    $('#refresh_tavern_api_profiles').on('click', function() {
+        loadTavernApiProfiles();
+    });
+
+    // 新增：酒馆预设选择
+    $('#tavern_api_profile_select').on('change', function() {
+        USER.tableBaseSetting.tavern_api_profile = $(this).val();
+        USER.saveSettings && USER.saveSettings();
     });
 
     // 新增：Top P
@@ -594,6 +612,69 @@ function InitBinging() {
 /**
  * 渲染设置
  */
+/**
+ * 根据API模式更新UI元素的可见性
+ * @param {string} mode - 当前选择的API模式 ('frontend', 'backend', 'google', 'tavern')
+ */
+function updateApiModeView(mode) {
+    const customApiControls = $('#custom_api_url, #custom_api_key, #custom_model_name').parent();
+    const modelSelectorControls = $('#model_selector, #fetch_models_button').closest('.range-block');
+    const tavernProfileBlock = $('#tavern_api_profile_block');
+    const customApiUrlInput = $('#custom_api_url');
+
+    // 隐藏所有特定于模式的块
+    customApiControls.show();
+    modelSelectorControls.show();
+    tavernProfileBlock.hide();
+    customApiUrlInput.show();
+
+    if (mode === 'tavern') {
+        customApiControls.hide();
+        modelSelectorControls.hide();
+        tavernProfileBlock.show();
+    } else if (mode === 'google') {
+        customApiUrlInput.hide();
+    }
+}
+
+/**
+ * 从SillyTavern后端加载可用的API连接预设
+ */
+async function loadTavernApiProfiles() {
+    const select = $('#tavern_api_profile_select');
+    select.empty();
+
+    try {
+        // 直接从全局上下文读取，这是最可靠的方法
+        const profiles = USER.getContext().extensionSettings?.connectionManager?.profiles || [];
+        
+        if (!profiles || profiles.length === 0) {
+            select.append($('<option>', { value: '', text: '未找到任何预设' }));
+            return;
+        }
+
+        profiles.forEach(profile => {
+            // 确保只添加有效的API预设
+            if (profile.api && profile.preset) {
+                select.append($('<option>', {
+                    value: profile.id,
+                    text: profile.name || profile.id
+                }));
+            }
+        });
+
+        // 加载后，尝试恢复之前保存的选项
+        if (USER.tableBaseSetting.tavern_api_profile) {
+            select.val(USER.tableBaseSetting.tavern_api_profile);
+        }
+        
+    } catch (error) {
+        console.error('[Memory Enhancement] 加载酒馆API预设失败:', error);
+        EDITOR.error('加载酒馆API预设失败，请检查控制台。');
+        select.empty().append($('<option>', { value: '', text: '加载失败' }));
+    }
+}
+
 export function renderSetting() {
     // 初始化数值
     $(`#dataTable_injection_mode option[value="${USER.tableBaseSetting.injection_mode}"]`).prop('selected', true);
@@ -609,11 +690,16 @@ export function renderSetting() {
     // 更新：渲染所有API参数
     const currentApiMode = USER.tableBaseSetting.custom_api_mode || 'frontend';
     $('#custom_api_mode').val(currentApiMode);
-    if (currentApiMode === 'google') {
-        $('#custom_api_url').hide();
-    } else {
-        $('#custom_api_url').show();
-    }
+    
+    // 调用新的UI更新函数和加载函数
+    updateApiModeView(currentApiMode);
+    loadTavernApiProfiles().then(() => {
+        // 确保在加载完预设后设置已保存的值
+        if (USER.tableBaseSetting.tavern_api_profile) {
+            $('#tavern_api_profile_select').val(USER.tableBaseSetting.tavern_api_profile);
+        }
+    });
+
     $('#custom_temperature').val(USER.tableBaseSetting.custom_temperature);
     $('#custom_temperature_value').text(USER.tableBaseSetting.custom_temperature);
     $('#custom_top_p').val(USER.tableBaseSetting.custom_top_p);
@@ -639,6 +725,13 @@ export function renderSetting() {
     updateSwitch('#wait_for_fill_then_send', USER.tableBaseSetting.wait_for_fill_then_send);
     // 独立填表时，是否等待填表完成后再发送到酒馆
     updateSwitch('#wait_for_fill_then_send', USER.tableBaseSetting.wait_for_fill_then_send);
+
+    // (v.next) 更新新增的滑块UI
+    $('#step_by_step_retry_count').val(USER.tableBaseSetting.step_by_step_retry_count);
+    $('#step_by_step_retry_count_value').text(USER.tableBaseSetting.step_by_step_retry_count);
+    $('#step_by_step_min_char_trigger').val(USER.tableBaseSetting.step_by_step_min_char_trigger);
+    $('#step_by_step_min_char_trigger_value').text(USER.tableBaseSetting.step_by_step_min_char_trigger);
+
     $("#fill_table_time").val(USER.tableBaseSetting.step_by_step ? 'after' : 'chat');
     refreshRebuildTemplate()
 
@@ -683,10 +776,8 @@ export function renderSetting() {
  * 加载设置
  */
 function showLoadingIndicator() {
-    console.log('showLoadingIndicator called');
     let loadingIndicator = document.getElementById('table-fill-loading-indicator');
     if (!loadingIndicator) {
-        console.log('Creating loading indicator');
         loadingIndicator = document.createElement('div');
         loadingIndicator.id = 'table-fill-loading-indicator';
         loadingIndicator.style.position = 'fixed';
@@ -698,30 +789,38 @@ function showLoadingIndicator() {
         loadingIndicator.style.color = 'white';
         loadingIndicator.style.borderRadius = '8px';
         loadingIndicator.style.zIndex = '10001';
-        loadingIndicator.style.cursor = 'pointer';
-        loadingIndicator.innerHTML = '<span>正在填表，请稍后... (点击关闭)</span>';
-
-        // Add close button
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '2px';
-        closeBtn.style.right = '8px';
-        closeBtn.style.fontSize = '20px';
-        closeBtn.style.lineHeight = '1';
-        closeBtn.style.cursor = 'pointer';
         
-        loadingIndicator.appendChild(closeBtn);
-        document.body.appendChild(loadingIndicator);
+        const contentWrapper = document.createElement('div');
+        contentWrapper.style.display = 'flex';
+        contentWrapper.style.alignItems = 'center';
+        contentWrapper.style.gap = '15px';
 
-        // Add click event to the entire indicator and the close button
-        loadingIndicator.onclick = (event) => {
+        const textSpan = document.createElement('span');
+        textSpan.textContent = '正在填表，请稍后...';
+        
+        const abortBtn = document.createElement('button');
+        abortBtn.textContent = '中止';
+        abortBtn.style.padding = '3px 8px';
+        abortBtn.style.backgroundColor = '#d9534f';
+        abortBtn.style.color = 'white';
+        abortBtn.style.border = 'none';
+        abortBtn.style.borderRadius = '4px';
+        abortBtn.style.cursor = 'pointer';
+        
+        abortBtn.onclick = (event) => {
             event.stopPropagation();
+            if (window.stMemoryEnhancement && window.stMemoryEnhancement.fillProcessController) {
+                window.stMemoryEnhancement.fillProcessController.abort();
+            }
             hideLoadingIndicator();
         };
+
+        contentWrapper.appendChild(textSpan);
+        contentWrapper.appendChild(abortBtn);
+        loadingIndicator.appendChild(contentWrapper);
+        document.body.appendChild(loadingIndicator);
     }
     loadingIndicator.style.display = 'block';
-    console.log('Loading indicator displayed');
 }
 
 function hideLoadingIndicator() {

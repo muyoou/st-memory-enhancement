@@ -92,7 +92,15 @@
                                                 <option value="frontend" data-i18n="Frontend">前端</option>
                                                 <option value="backend" data-i18n="Backend">后端</option>
                                                 <option value="google" data-i18n="Google AI">Google AI</option>
+                                                <option value="tavern" data-i18n="Tavern Preset">酒馆预设</option>
                                             </select>
+                                        </div>
+                                        <div id="tavern_api_profile_block" class="range-block justifyLeft" style="display: none; margin-bottom: 15px;">
+                                            <label for="tavern_api_profile_select" data-i18n="Tavern API Preset">酒馆连接预设</label>
+                                            <div class="flex-container" style="gap: 10px;">
+                                                <select id="tavern_api_profile_select" class="text_pole flex1"></select>
+                                                <div class="menu_button button-square-icon fa-solid fa-sync" id="refresh_tavern_api_profiles" title="刷新预设列表" data-i18n="[title]Refresh preset list"></div>
+                                            </div>
                                         </div>
                                         <div class="range-block justifyLeft" style="margin-bottom: 15px;">
                                             <label for="custom_temperature" data-i18n="Custom API temperature setting">温度 (Temperature)：<span id="custom_temperature_value">1.0</span></label>
@@ -198,6 +206,14 @@
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="confirm_before_execution" checked><span data-i18n="Confirm before execution">执行时确认</span>
                                         <small class="toggle-description justifyLeft" data-i18n="Confirm before execution description">(独立填表流程遇到检查节点时会弹出确认框)</small>
+                                    </div>
+                                    <div class="range-block justifyLeft" style="margin-bottom: 15px; padding-left: 5px;">
+                                        <label for="step_by_step_retry_count">自动重试次数: <span id="step_by_step_retry_count_value">3</span></label>
+                                        <input type="range" id="step_by_step_retry_count" min="0" max="10" step="1" value="3" class="wide100p">
+                                    </div>
+                                    <div class="range-block justifyLeft" style="margin-bottom: 15px; padding-left: 5px;">
+                                        <label for="step_by_step_min_char_trigger">最低触发字符数: <span id="step_by_step_min_char_trigger_value">200</span></label>
+                                        <input type="range" id="step_by_step_min_char_trigger" min="0" max="5000" step="10" value="200" class="wide100p">
                                     </div>
                                 </div>
 

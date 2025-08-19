@@ -9,6 +9,12 @@ import { ext_hashSheetsToJson } from '../settings/standaloneAPI.js';
 
 let toBeExecuted = [];
 
+// A global controller to manage the cancellation of the current fill process.
+export let fillProcessController = {
+    abort: () => {},
+    isCancelled: () => false,
+};
+
 /**
  * 初始化两步总结所需的数据
  * @param chat
@@ -88,17 +94,29 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
 
         let todoChats;
 
-    if (messageContent) {
-        todoChats = messageContent;
-        Logger.info('使用提供的消息内容进行填表:', todoChats);
-    } else {
-        const { piece: todoPiece } = USER.getChatPiece();
-        if (!todoPiece || !todoPiece.mes) {
-            EDITOR.error('未找到待填表的对话片段，请检查当前对话是否正确。');
-            return;
+        if (messageContent) {
+            todoChats = messageContent;
+            Logger.info('使用提供的消息内容进行填表:', todoChats);
+        } else {
+            const { piece: todoPiece } = USER.getChatPiece();
+            if (!todoPiece || !todoPiece.mes) {
+                EDITOR.error('未找到待填表的对话片段，请检查当前对话是否正确。');
+                return;
+            }
+            todoChats = todoPiece.mes;
         }
-        todoChats = todoPiece.mes;
-    }
+
+        // [v.next] 字符数检查
+        if (mode === 'auto') {
+            const minChars = USER.tableBaseSetting.step_by_step_min_char_trigger;
+            if (todoChats && todoChats.length < minChars) {
+                Logger.info(`内容长度 (${todoChats.length}) 低于最低触发值 (${minChars})。跳过自动填表。`);
+                if (window.stMemoryEnhancement) {
+                    window.stMemoryEnhancement._notifyTableUpdate({}); // 通知UI隐藏加载提示
+                }
+                return 'skipped_char_limit';
+            }
+        }
 
     Logger.info('待填表的对话片段:', todoChats);
 
@@ -117,6 +135,7 @@ export async function TableTwoStepSummary(mode, messageContent = null) {
     } else {
         // 否则，正常显示弹窗
         const popupContentHtml = `<p>累计 ${todoChats.length} 长度的文本，是否开始独立填表？</p>`;
+        
         confirmResult = await newPopupConfirm(
             popupContentHtml,
             "取消",
@@ -204,63 +223,80 @@ export async function manualSummaryChat(todoChats, confirmResult, shouldReload =
 
     try {
         // --- 保存锁：启动 ---
-        // [v6.0.2] 使用新的全局锁状态，并取消待处理的自动保存。
         USER.debouncedSaveChat.cancel();
         USER.isSaveLocked = true;
         Logger.info('[Save Lock] Lock acquired by manualSummaryChat.');
-        
-        // 步骤一：检查是否需要执行“撤销”操作
+
         const { piece: initialPiece } = USER.getChatPiece();
         if (!initialPiece) {
             Logger.warn('[Memory Enhancement] 无法获取当前的聊天片段，自动填充已中止。');
             return 'no_carrier';
         }
-
         if (initialPiece.hash_sheets && Object.keys(initialPiece.hash_sheets).length > 0) {
-            Logger.info('[Memory Enhancement] 立即填表：检测到表格中有数据，执行恢复操作...');
-            await undoSheets(0); // 此操作内部的保存将被“保存锁”拦截
+            await undoSheets(0);
             EDITOR.success('表格已恢复到上一版本。');
-            Logger.info('[Memory Enhancement] 表格恢复成功，准备执行填表。');
         } else {
-            Logger.info('[Memory Enhancement] 立即填表：检测到为空表，跳过恢复步骤，直接执行填表。');
-        }
-
-        // 步骤二：以当前状态（可能已恢复）为基础，继续执行填表
-        const { piece: referencePiece } = USER.getChatPiece();
-        if (!referencePiece) {
-            EDITOR.error("无法获取用于操作的聊天片段，操作中止。");
-            return 'error';
+            Logger.info('[Memory Enhancement] 立即填表：检测到为空表，跳过恢复步骤。');
         }
         
-        const originText = getTablePrompt(referencePiece, false, true);
-        const finalPrompt = initTableData();
-        const useMainApiForStepByStep = USER.tableBaseSetting.step_by_step_use_main_api ?? true;
-        const isSilentMode = confirmResult === 'dont_remind_active';
+        // [v.next] 重试逻辑
+        const maxRetries = USER.tableBaseSetting.step_by_step_retry_count;
+        let success = false;
 
-        const r = await executeIncrementalUpdateFromSummary(
-            todoChats,
-            originText,
-            finalPrompt,
-            referencePiece,
-            useMainApiForStepByStep,
-            USER.tableBaseSetting.bool_silent_refresh,
-            isSilentMode
-        );
+        for (let i = 0; i <= maxRetries; i++) {
+            if (fillProcessController.isCancelled()) {
+                finalStatus = 'cancelled';
+                EDITOR.error('填表操作已被用户终止。');
+                break;
+            }
+            if (i > 0) {
+                Logger.info(`[Memory Enhancement] 填表失败，正在重试... (第 ${i} 次，共 ${maxRetries} 次)`);
+                EDITOR.info(`填表失败，正在进行第 ${i} 次重试...`);
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
+            }
 
-        Logger.info('执行独立填表（增量更新）结果:', r);
-        if (r === 'success') {
+            const { piece: referencePiece } = USER.getChatPiece();
+            if (!referencePiece) {
+                EDITOR.error("无法获取用于操作的聊天片段，操作中止。");
+                finalStatus = 'error';
+                break; 
+            }
+            const originText = getTablePrompt(referencePiece, false, true);
+            const finalPrompt = initTableData();
+            const useMainApiForStepByStep = USER.tableBaseSetting.step_by_step_use_main_api ?? true;
+            const isSilentMode = confirmResult === 'dont_remind_active';
+            
+            const r = await executeIncrementalUpdateFromSummary(
+                todoChats,
+                originText,
+                finalPrompt,
+                referencePiece,
+                useMainApiForStepByStep,
+                USER.tableBaseSetting.bool_silent_refresh,
+                isSilentMode
+            );
+
+            if (r === 'success') {
+                success = true;
+                break;
+            } else {
+                finalStatus = r || 'error';
+            }
+        }
+
+        if (success) {
             finalStatus = 'success';
             clearStepData();
             toBeExecuted = [];
-
-            // 通知UI更新
+            const { piece: referencePiece } = USER.getChatPiece();
             const latestTableData = ext_hashSheetsToJson(referencePiece.hash_sheets);
             if (globalThis.stMemoryEnhancement && typeof globalThis.stMemoryEnhancement._notifyTableUpdate === 'function') {
                 globalThis.stMemoryEnhancement._notifyTableUpdate(latestTableData);
             }
         } else {
-            finalStatus = r || 'error';
-            Logger.warn('执行增量独立填表失败或取消: ', `(${todoChats.length}) `, toBeExecuted);
+            if (finalStatus !== 'cancelled') {
+                 EDITOR.error(`自动重试 ${maxRetries} 次后，分步填表依然失败。`);
+            }
         }
 
     } catch (e) {
