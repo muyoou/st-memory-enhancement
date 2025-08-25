@@ -108,6 +108,11 @@ export class Sheet extends SheetBase {
 
         // 当当前或上一轮表格都只有表头（或为空）时，直接返回（不做 keep-all 处理）
         if ((currentHashSheet.length < 2) && (lastHashSheet.length < 2)) {
+            renderHashSheet[0].forEach((hash) => {
+                const sheetCell = this.cells.get(hash);
+                const cellElement = sheetCell?.element;
+                cellElement.classList.add('keep-all-item');
+            })
             return this.element; // 表格内容为空时不执行后续逻辑，提升健壮性
         }
 
@@ -125,25 +130,57 @@ export class Sheet extends SheetBase {
             })
         });
 
-        // 4) 根据变化类型为元素添加样式类（移除 keep-all-item 逻辑）
+        // 4) 根据变化类型为元素添加样式类
+        let isKeepAllSheet = true;
+        let isKeepAllCol = Array.from({ length: changeSheet[0].length }, (_, i) => i < 2 ? false : true);
         changeSheet.forEach((row, rowIndex) => {
             if (rowIndex === 0) return;
-            row.forEach((cell) => {
+            let isKeepAllRow = true;
+            row.forEach((cell, colIndex) => {
                 const sheetCell = this.cells.get(cell.hash);
                 const cellElement = sheetCell?.element;
                 if (!cellElement) return;
 
                 if (cell.type === 'newRow') {
                     cellElement.classList.add('insert-item');
+                    isKeepAllRow = false;
+                    isKeepAllCol[colIndex] = false;
                 } else if (cell.type === 'update') {
                     cellElement.classList.add('update-item');
+                    isKeepAllRow = false;
+                    isKeepAllCol[colIndex] = false;
                 } else if (cell.type === 'deletedRow') {
                     cellElement.classList.add('delete-item');
+                    isKeepAllRow = false;
                 } else {
                     cellElement.classList.add('keep-item');
                 }
             });
+            if (isKeepAllRow) {
+                row.forEach((cell) => {
+                    const sheetCell = this.cells.get(cell.hash);
+                    const cellElement = sheetCell?.element;
+                    cellElement.classList.add('keep-all-item');
+                })
+            } else {
+                isKeepAllSheet = false;
+            }
         });
+        if (isKeepAllSheet) {
+            renderHashSheet[0].forEach((hash) => {
+                const sheetCell = this.cells.get(hash);
+                const cellElement = sheetCell?.element;
+                cellElement.classList.add('keep-all-item');
+            })
+        } else {
+            renderHashSheet.forEach((row) => {
+                row.filter((_, i) => isKeepAllCol[i]).forEach((hash) => {
+                    const sheetCell = this.cells.get(hash);
+                    const cellElement = sheetCell?.element;
+                    cellElement.classList.add('keep-all-item');
+                })
+            })
+        }
 
         return this.element;
     }
@@ -364,8 +401,8 @@ export class Sheet extends SheetBase {
 
 /**
  * 获取制定深度的聊天历史内容
- * @param {当前聊天文件} chat 
- * @param {扫描深度} deep 
+ * @param {当前聊天文件} chat
+ * @param {扫描深度} deep
  * @returns string
  */
 function getLatestChatHistory(chat, deep) {
