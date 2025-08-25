@@ -120,7 +120,16 @@ export class SheetBase {
     rebuildHashSheetByValueSheet(valueSheet) {
         const cols = valueSheet[0].length
         const rows = valueSheet.length
+        const usedCellUids = []; // 跟踪已使用的单元格uid
         const newHashSheet = Array.from({ length: rows }, (_, i) => Array.from({ length: cols }, (_, j) => {
+            const value = valueSheet[i][j] || '';
+            const cellType = this.getCellTypeByPosition(i, j);
+            // 如果存在相同值的单元格，则复用该单元格，但排除已使用的单元格
+            const oldCell = this.findCellByValue(valueSheet[i][j] || '', cellType, usedCellUids)
+            if (oldCell) {
+                usedCellUids.push(oldCell.uid); // 标记为已使用
+                return oldCell.uid; // 复用已有单元格
+            }
             const cell = new Cell(this);
             this.cells.set(cell.uid, cell);
             this.cellHistory.push(cell);
@@ -132,6 +141,7 @@ export class SheetBase {
             } else if (j === 0) {
                 cell.type = Cell.CellType.row_header;
             }
+            usedCellUids.push(cell.uid); // 标记新创建的单元格为已使用
             return cell.uid;
         }));
         this.hashSheet = newHashSheet
@@ -204,8 +214,12 @@ export class SheetBase {
         }
     }
 
-    findCellByValue(value, cellType = null) {
-        const cell = this.cellHistory.find(cell => cell.data.value === value && (cellType === null || cell.type === cellType));
+    findCellByValue(value, cellType = null, excludeUids = []) {
+        const cell = this.cellHistory.find(cell => 
+            cell.data.value === value && 
+            (cellType === null || cell.type === cellType) &&
+            !excludeUids.includes(cell.uid)
+        );
         if (!cell) {
             return null;
         }
