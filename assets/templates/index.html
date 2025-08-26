@@ -62,7 +62,7 @@
                             </div>
 
                             <h4 data-i18n="Plugin switches">插件开关</h4>
-                            <div class="checkbox_label">
+                            <div class="checkbox_label range-block justifyLeft">
                                 <input type="checkbox" id="table_switch"><span data-i18n="Enable plugin">启用插件</span>
                             </div>
                             <!--                                <div class="checkbox_label">-->
@@ -82,6 +82,23 @@
                                     data-i18n="Message template description">(用于给AI说明怎么使用表格以及怎么修改表格，使用<code>{{tableData}}</code>宏指令来选择表格数据的插入位置)</small>
                                 <textarea id="dataTable_message_template" class="wide100p" rows="8"></textarea>
                             </div>
+                            <!-- 高级设置选项 -->
+                            <div style="padding-left: 5px;">
+                                <div style="display: flex; align-items: center;">
+                                    <label for="dataTable_injection_mode" style="min-width: 50px"
+                                        data-i18n="Injection">注入：</label>
+                                    <select id="dataTable_injection_mode">
+                                        <option value="injection_off" data-i18n="Turn off injection">关闭注入
+                                        </option>
+                                        <option value="deep_system">@D ⚙</option>
+                                        <option value="deep_user">@D 👤</option>
+                                        <option value="deep_assistant">@D 🤖</option>
+                                    </select>
+                                    <label for="dataTable_deep" style="min-width: 60px; padding-left: 10px;"
+                                        data-i18n="Depth">深度：</label>
+                                    <input id="dataTable_deep" class="text_pole" type="number">
+                                </div>
+                            </div>
                         </div>
                         <div class="flex1 wide50p" style="min-width: 300px">
                             <!-- 表格预设 -->
@@ -97,35 +114,15 @@
 
                                 <!-- 默认不分步填表 -->
                                 <div id="reply_options" style="padding-left: 20px; width: calc(100% - 20px);">
-                                    <div style="height: 5px;"></div>
                                     <!-- 分步填表 -->
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="table_read_switch"><span
                                             data-i18n="AI read table switch">AI读表开关</span>
                                     </div>
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="table_edit_switch"><span
                                             data-i18n="AI edit table switch">AI改表开关</span>
                                     </div>
-                                    <!-- 高级设置选项 -->
-                                    <div style="padding-left: 5px;">
-                                        <div style=" display: flex;">
-                                            <label for="dataTable_injection_mode" style="min-width: 50px"
-                                                data-i18n="Injection">注入：</label>
-                                            <select id="dataTable_injection_mode">
-                                                <option value="injection_off" data-i18n="Turn off injection">关闭注入
-                                                </option>
-                                                <option value="deep_system">@D ⚙</option>
-                                                <option value="deep_user">@D 👤</option>
-                                                <option value="deep_assistant">@D 🤖</option>
-                                            </select>
-                                            <label style="min-width: 60px; padding-left: 10px; " for="dataTable_deep"
-                                                data-i18n="Depth">深度：</label>
-                                            <input class="text_pole wideMax100px margin0" type="number"
-                                                id="dataTable_deep">
-                                        </div>
-                                    </div>
-
                                 </div>
 
                                 <!-- 分步填表 -->
@@ -231,7 +228,7 @@
                                     <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                 </div>
                                 <div class="inline-drawer-content" style="display: none; ">
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label" range-block justifyLeft>
                                         <input type="checkbox" id="use_main_api" checked><span
                                             data-i18n="Use main API">使用主API</span>
                                     </div>
@@ -252,11 +249,11 @@
                                     <!-- <div class="checkbox_label">
                                         <input type="checkbox" id="use_token_limit"><span data-i18n="Use token limit instead of chat history limit">用token代替聊天记录限制</span>
                                     </div> -->
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="ignore_user_sent" checked><span
                                             data-i18n="Only reference AI replies">只参考AI回复的消息</span>
                                     </div>
-                                    <div class="checkbox_label">
+                                    <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="bool_silent_refresh"><span
                                             data-i18n="Skip confirmation dialog after reorganizing">跳过总结后的确认弹窗</span>
                                     </div>
