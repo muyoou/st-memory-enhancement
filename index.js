@@ -113,7 +113,7 @@ export function convertOldTablesToNewSheets(oldTableList, targetPiece) {
         const newSheet = BASE.createChatSheet(cols, rows);
         newSheet.name = oldTable.tableName
         newSheet.domain = SheetBase.SheetDomain.chat
-        newSheet.type = newSheet.SheetType.dynamic
+        newSheet.type = SheetBase.SheetType.dynamic
         newSheet.enable = oldTable.enable
         newSheet.required = oldTable.Required
         newSheet.tochat = true
