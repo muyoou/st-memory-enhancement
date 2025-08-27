@@ -35,7 +35,7 @@ const formConfigs = {
                     // { value: 'option', text: '选项' },
                 ]
             },
-            { label: '列描述', description: '', type: 'textarea', rows: 4, dataKey: 'columnNote' },
+            //{ label: '列描述', description: '', type: 'textarea', rows: 4, dataKey: 'columnNote' },
         ],
     },
     row_header: {
@@ -43,7 +43,7 @@ const formConfigs = {
         formDescription: "设置行的标题和描述信息。",
         fields: [
             { label: '行标题', type: 'text', dataKey: 'value' },
-            { label: '行描述', description: '(给AI解释此行的作用)', type: 'textarea', rows: 4, dataKey: 'rowNote' },
+            //{ label: '行描述', description: '(给AI解释此行的作用)', type: 'textarea', rows: 4, dataKey: 'rowNote' },
         ],
     },
     cell: {
@@ -51,7 +51,7 @@ const formConfigs = {
         formDescription: "编辑单元格的具体内容。",
         fields: [
             { label: '单元格内容', type: 'textarea', dataKey: 'value' },
-            { label: '单元格描述', description: '(给AI解释此单元格内容的作用)', type: 'textarea', rows: 4, dataKey: 'cellPrompt' },
+            //{ label: '单元格描述', description: '(给AI解释此单元格内容的作用)', type: 'textarea', rows: 4, dataKey: 'cellPrompt' },
         ],
     },
     sheetConfig: {
