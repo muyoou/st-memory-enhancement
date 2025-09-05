@@ -39,7 +39,7 @@ export class Sheet extends SheetBase {
         // 集成单元格高亮逻辑（来源：chatSheetsDataView.cellHighlight）
         // 1) 获取上一轮的 hash_sheets（优先使用参数；若无参数且存在渲染上下文，则自动计算）
         let prevHashSheetsMap = lastCellsHashSheet;
-        if (!prevHashSheetsMap && typeof DERIVED?.any?.renderDeep === 'number' && DERIVED.any.renderDeep !== 0) {
+        if (prevHashSheetsMap === null && typeof DERIVED?.any?.renderDeep === 'number' && DERIVED.any.renderDeep !== 0) {
             try {
                 prevHashSheetsMap = BASE.getLastSheetsPiece(DERIVED.any.renderDeep - 1, 3, false)?.piece?.hash_sheets;
                 if (prevHashSheetsMap) prevHashSheetsMap = BASE.copyHashSheets(prevHashSheetsMap);
