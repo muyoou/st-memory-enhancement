@@ -178,6 +178,43 @@ async function importTableSet() {
                 BASE.refreshTempView(true) // 刷新模板视图
                 EDITOR.success('导入成功并已重置所选设置'); // 提示用户导入成功
 
+                // [新增] 若当前会话中的表数据“全部为空”，则清空 chat 域并用全局模板覆盖到 chat 域
+                try {
+                    const { piece } = USER.getChatPiece() || {};
+                    // 判定：若无载体则跳过（无法保存到聊天记录）
+                    if (piece) {
+                        const hashSheets = piece.hash_sheets;
+                        const allEmpty = (() => {
+                            if (!hashSheets || Object.keys(hashSheets).length === 0) return true; // 无数据视为全空
+                            return Object.values(hashSheets).every(rows => Array.isArray(rows) && rows.length <= 1);
+                        })();
+                        if (allEmpty) {
+                            // 清空 chat 域并用全局模板重建
+                            try { DERIVED.any.chatSheetMap = {}; } catch (_) {}
+                            // 删除聊天列表中所有 piece 的 hash_sheets
+                            try {
+                                const chatArr = USER.getContext()?.chat || [];
+                                for (const msg of chatArr) {
+                                    if (msg && Object.prototype.hasOwnProperty.call(msg, 'hash_sheets')) {
+                                        delete msg.hash_sheets;
+                                    }
+                                }
+                                USER.saveSettings && USER.saveSettings();
+                                USER.saveChat && USER.saveChat();
+                            } catch (_) {}
+                            // 在当前载体上用全局模板重建
+                            buildSheetsByTemplates(piece);
+                            // 刷新界面与系统消息
+                            BASE.refreshContextView();
+                            updateSystemMessageTableStatus(true);
+                            EDITOR.success('检测到表数据全空：已用全局模板覆盖到 chat 域');
+                        }
+                    }
+                } catch (e) {
+                    // 静默失败，不影响导入主流程
+                    console.warn('[Preset Import] 覆盖 chat 域模板时发生非致命错误：', e);
+                }
+
             } catch (error) {
                 EDITOR.error('JSON 文件解析失败，请检查文件格式是否正确。', error.message, error); // 提示 JSON 解析失败
                 console.error("文件读取或解析错误:", error); // 打印详细错误信息到控制台
