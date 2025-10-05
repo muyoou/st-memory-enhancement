@@ -14,6 +14,7 @@ import {executeTranslation} from "./services/translate.js";
 import applicationFunctionManager from "./services/appFuncManager.js"
 import {SheetBase} from "./core/table/base.js";
 import { Cell } from "./core/table/cell.js";
+import { initExternalDataAdapter } from './external-data-adapter.js';
 
 
 console.log("______________________记忆插件：开始加载______________________")
@@ -776,7 +777,7 @@ export async function undoSheets(deep) {
  * @description 更新表格视图，使用新的Sheet系统
  * @returns {Promise<*[]>}
  */
-async function updateSheetsView(mesId) {
+export async function updateSheetsView(mesId) {
     try{
        // 刷新表格视图
         console.log("========================================\n更新表格视图")
@@ -817,6 +818,14 @@ jQuery(async () => {
         ext_exportAllTablesAsJson,
         VERSION,
     };
+
+    // 初始化外部数据适配器
+    try {
+        initExternalDataAdapter({ debugMode: false });
+        console.log("______________________外部数据适配器：初始化成功______________________");
+    } catch (error) {
+        console.error("外部数据适配器初始化失败:", error);
+    }
 
     // 版本检查
     fetch("http://api.muyoo.com.cn/check-version", {
