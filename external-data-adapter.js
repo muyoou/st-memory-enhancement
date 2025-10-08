@@ -5,7 +5,7 @@
  * 设计原则：最小侵入性，不修改原项目核心逻辑，仅作为数据转发和格式适配层
  * 
  * @module external-data-adapter
- * @version 1.1.0
+ * @version 1.0.0
  * @author AI Assistant
  * @date 2025-10-05
  */
@@ -34,9 +34,9 @@ const logger = {
         console.warn(`[ExternalDataAdapter] ⚠️ ${message}`, ...args);
     },
     error: (message, ...args) => {
-        console。error(`[ExternalDataAdapter] ❌ ${message}`, ...args);
-        adapterState。lastError = { message, timestamp: new Date(), args };
-    }，
+        console.error(`[ExternalDataAdapter] ❌ ${message}`, ...args);
+        adapterState.lastError = { message, timestamp: new Date(), args };
+    },
     debug: (message, ...args) => {
         if (adapterState.debugMode) {
             console.log(`[ExternalDataAdapter] 🔍 ${message}`, ...args);
@@ -54,8 +54,8 @@ const validator = {
     checkTablesExist() {
         try {
             const sheets = BASE.getChatSheets();
-            if (!sheets || sheets。length === 0) {
-                return { valid: false， error: '未找到任何表格，请先在聊天中创建表格' };
+            if (!sheets || sheets.length === 0) {
+                return { valid: false, error: '未找到任何表格，请先在聊天中创建表格' };
             }
             const enabledSheets = sheets.filter(sheet => sheet.enable);
             if (enabledSheets.length === 0) {
@@ -84,7 +84,7 @@ const validator = {
         }
 
         return { valid: true };
-    }，
+    },
 
     /**
      * 验证 JSON 操作对象
@@ -233,14 +233,14 @@ const adapter = {
                     logger.warn('刷新表格视图失败', viewError);
                 }
 
-                adapterState。operationCount++;
-                logger。info(`✅ 操作成功执行 (总计: ${adapterState.operationCount})`);
+                adapterState.operationCount++;
+                logger.info(`✅ 操作成功执行 (总计: ${adapterState.operationCount})`);
                 return {
                     success: true,
-                    message: '数据处理成功'，
+                    message: '数据处理成功',
                     data: {
-                        operationsExecuted: matches.length，
-                        totalOperations: adapterState。operationCount
+                        operationsExecuted: matches.length,
+                        totalOperations: adapterState.operationCount
                     }
                 };
             } else {
@@ -248,7 +248,7 @@ const adapter = {
             }
 
         } catch (error) {
-            logger。error('处理 XML 数据时发生错误'， error);
+            logger.error('处理 XML 数据时发生错误', error);
             return { success: false, message: `错误: ${error.message}`, error };
         }
     },
@@ -273,7 +273,7 @@ const adapter = {
                               (jsonData.operations ? jsonData.operations : [jsonData]);
 
             if (operations.length === 0) {
-                return { success: false， message: '操作数组为空' };
+                return { success: false, message: '操作数组为空' };
             }
 
             // 转换为 matches 格式
@@ -285,7 +285,7 @@ const adapter = {
             if (result) {
                 // 关键修复1：保存聊天数据到文件，确保数据持久化
                 try {
-                    USER。saveChat();
+                    USER.saveChat();
                     logger.debug('聊天数据已保存到文件');
                 } catch (saveError) {
                     logger.warn('保存聊天数据失败', saveError);
@@ -294,7 +294,7 @@ const adapter = {
                 // 关键修复2：刷新表格视图，确保界面更新
                 try {
                     await updateSheetsView();
-                    logger。debug('表格视图已刷新');
+                    logger.debug('表格视图已刷新');
                 } catch (viewError) {
                     logger.warn('刷新表格视图失败', viewError);
                 }
@@ -310,14 +310,14 @@ const adapter = {
                     }
                 };
             } else {
-                return { success: false， message: '执行表格编辑操作失败，请查看控制台日志' };
+                return { success: false, message: '执行表格编辑操作失败，请查看控制台日志' };
             }
 
         } catch (error) {
             logger.error('处理 JSON 数据时发生错误', error);
             return { success: false, message: `错误: ${error.message}`, error };
         }
-    }，
+    },
 
     /**
      * 自动检测格式并处理数据
@@ -460,7 +460,7 @@ const tableDataAdapter = {
             }
 
             // 检查是否有聊天记录载体
-            const context = USER。getContext();
+            const context = USER.getContext();
             if (!context || !context.chat || context.chat.length === 0) {
                 return {
                     success: false,
@@ -469,35 +469,35 @@ const tableDataAdapter = {
             }
 
             // 应用JSON数据到表格
-            BASE。applyJsonToChatSheets(jsonData， importType);
+            BASE.applyJsonToChatSheets(jsonData, importType);
 
             // 保存聊天数据
             try {
-                USER。saveChat();
-                logger。debug('聊天数据已保存');
+                USER.saveChat();
+                logger.debug('聊天数据已保存');
             } catch (saveError) {
-                logger。warn('保存聊天数据失败'， saveError);
+                logger.warn('保存聊天数据失败', saveError);
             }
 
             // 刷新表格视图
             try {
                 await updateSheetsView();
-                logger。debug('表格视图已刷新');
+                logger.debug('表格视图已刷新');
             } catch (viewError) {
-                logger。warn('刷新表格视图失败'， viewError);
+                logger.warn('刷新表格视图失败', viewError);
             }
 
-            logger。info('✅ 表格数据导入成功');
+            logger.info('✅ 表格数据导入成功');
             return {
-                success: true，
+                success: true,
                 message: '表格数据导入成功'
             };
 
         } catch (error) {
-            logger。error('导入表格数据时发生错误'， error);
+            logger.error('导入表格数据时发生错误', error);
             return {
-                success: false，
-                message: `导入失败: ${error。message}`，
+                success: false,
+                message: `导入失败: ${error.message}`,
                 error
             };
         }
@@ -508,15 +508,15 @@ const tableDataAdapter = {
  * 导出适配器接口（用于 Node.js 环境或模块导入）
  */
 export const externalDataAdapter = {
-    processXmlData: adapter。processXmlData。bind(adapter)，
+    processXmlData: adapter.processXmlData.bind(adapter),
     processJsonData: adapter.processJsonData.bind(adapter),
-    processData: adapter。processData。bind(adapter)，
-    exportTableData: tableDataAdapter.exportTableData.bind(tableDataAdapter)，
-    importTableData: tableDataAdapter。importTableData。bind(tableDataAdapter)，
-    getState: () => ({ ...adapterState })，
+    processData: adapter.processData.bind(adapter),
+    exportTableData: tableDataAdapter.exportTableData.bind(tableDataAdapter),
+    importTableData: tableDataAdapter.importTableData.bind(tableDataAdapter),
+    getState: () => ({ ...adapterState }),
     setDebugMode: (enabled) => { adapterState.debugMode = enabled; },
-    getLastError: () => adapterState。lastError
+    getLastError: () => adapterState.lastError
 };
 
-export 默认 externalDataAdapter;
+export default externalDataAdapter;
 
