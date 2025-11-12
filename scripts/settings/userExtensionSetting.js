@@ -189,7 +189,7 @@ async function importTableSet() {
                             '是否替换掉当前聊天的模板（重要提示：替换会清空此聊天的旧表格数据且无法找回）',
                             EDITOR.POPUP_TYPE.CONFIRM,
                             '替换模板确认',
-                            { okButton: '清空并采用预设表格', cancelButton: '不替换' }
+                            { okButton: '清空旧表格数据并采用新预设表格', cancelButton: '不替换，将不能使用新预设' }
                         );
                         if (!confirmReplace) {
                             EDITOR.success && EDITOR.success('已取消模板替换');
