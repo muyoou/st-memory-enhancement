@@ -179,17 +179,31 @@ async function importTableSet() {
                 BASE.refreshTempView(true) // 刷新模板视图
                 EDITOR.success('导入成功并已重置所选设置'); // 提示用户导入成功
 
-                // [新增] 若当前会话中的表数据“全部为空”，则清空 chat 域并用全局模板覆盖到 chat 域
+                // 导入预设时可选清空 chat 域并用全局模板覆盖到 chat 域
                 try {
                     const { piece } = USER.getChatPiece() || {};
                     // 判定：若无载体则跳过（无法保存到聊天记录）
                     if (piece) {
-                        // 先征询用户确认再执行替换
-                        const confirmReplace = await EDITOR.callGenericPopup(
-                            '是否替换掉当前聊天的模板（重要提示：替换会清空此聊天的旧表格数据且无法找回）',
+                        // 若当前会话中的表数据全部为空，自动替换
+                        const chatArr = USER.getContext()?.chat || [];
+                        let isSheetEmpty = true;
+                        for (let i = chatArr.length - 1; i >= 0; i--) {
+                            if (chatArr[i] && Object.prototype.hasOwnProperty.call(chatArr[i], 'hash_sheets')) {
+                                for (const sheet_id in chatArr[i].hash_sheets) {
+                                    if (chatArr[i].hash_sheets[sheet_id].length > 1) {
+                                        isSheetEmpty = false;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                        // 若当前会话中的表数据非空，先征询用户确认再执行替换
+                        const confirmReplace = isSheetEmpty ? true : await EDITOR.callGenericPopup(
+                            '是否清空旧表格数据（无法找回），并替换为新表格预设的模板（包括表格结构）<br>仅限新旧表格预设模板一致时可不替换<br>若新旧模板不一致，例如更换为不同表格预设时，应选择替换，否则将不能正常使用新预设<br>若同一表格预设更新版本，应参见预设发布说明，模板一致时可不替换',
                             EDITOR.POPUP_TYPE.CONFIRM,
                             '替换模板确认',
-                            { okButton: '清空旧表格数据并采用新预设模板', cancelButton: '不替换，若新预设模板与旧表格不同时将不能正常使用新预设' }
+                            { okButton: '替换', cancelButton: '不替换' }
                         );
                         if (!confirmReplace) {
                             EDITOR.success && EDITOR.success('已取消模板替换');
@@ -197,7 +211,6 @@ async function importTableSet() {
                             BASE.sheetsData.context = {}; // 清空 chat 域并用全局模板重建
                             // 删除聊天列表中所有 piece 的 hash_sheets
                             try {
-                                const chatArr = USER.getContext()?.chat || [];
                                 for (const msg of chatArr) {
                                     if (msg && Object.prototype.hasOwnProperty.call(msg, 'hash_sheets')) {
                                         delete msg.hash_sheets;
