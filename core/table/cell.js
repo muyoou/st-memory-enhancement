@@ -105,7 +105,7 @@ export class Cell {
                 if (this.parent.type === SheetBase.SheetType.dynamic || this.parent.type === SheetBase.SheetType.fixed) {
                     this.element.textContent = 'i'
                 } else {
-                    this.element.textContent = this.data.value || rowIndex; // Row headers (1, 2, 3...)
+                    this.element.textContent = this.data.value || (rowIndex - 1); // Row headers (1, 2, 3...)
                 }
                 this.element.classList.add('sheet-header-cell-left');
             } else {
@@ -132,7 +132,7 @@ export class Cell {
                 this.element.textContent = this.data.value || ''; // Column headers (A, B, C...)
                 this.element.classList.add('sheet-header-cell-top');
             } else if (colIndex === 0) {
-                this.element.textContent = this.data.value || rowIndex; // Row headers (1, 2, 3...)
+                this.element.textContent = this.data.value || (rowIndex - 1); // Row headers (1, 2, 3...)
                 this.element.classList.add('sheet-header-cell-left');
                 // this.element.style.border = 'none';
                 // this.element.style.outline = 'none';
