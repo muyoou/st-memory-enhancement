@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.4'
+const VERSION = '2.2.5'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -854,8 +854,6 @@ jQuery(async () => {
             else {
                 $("#table_message_tip").html("插件已升级到" + VERSION + "最新版。如果插件对您有帮助，可以给我们的Github仓库一个星星支持下我们~ 交流&更新&Bug反馈群QQ 1030109849")
             }
-            //if (res.toastr) EDITOR.warning(res.toastrText)
-            //if (res.message) $("#table_message_tip").html(res.message)
         }
     })
 
