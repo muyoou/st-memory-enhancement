@@ -202,7 +202,7 @@ export class Sheet extends SheetBase {
             }
             BASE.sheetsData.context = sheets;
             if (!targetPiece) {
-                console.log("没用消息能承载hash_sheets数据，不予保存")
+                console.log("没有消息能承载hash_sheets数据，不予保存")
                 return this
             }
             if (!targetPiece.hash_sheets) targetPiece.hash_sheets = {};

@@ -43,7 +43,7 @@ export const USER = {
     },
     getChatPiece: (deep = 0, direction = 'up') => {
         const chat = APP.getContext().chat;
-        if (!chat || chat.length === 0 || deep >= chat.length) return  {piece: null, deep: -1};
+        if (!chat || chat.length <= 1 || deep >= chat.length) return  {piece: null, deep: -1};
         let index = chat.length - 1 - deep
         while (chat[index].is_user === true) {
             if(direction === 'up')index--
@@ -229,6 +229,16 @@ export const BASE = {
             if (chat[i].is_user === true) continue; // 跳过用户消息
             if (chat[i].hash_sheets) {
                 console.log("向上查询表格数据，找到表格数据", chat[i])
+                let isDataEmpty = true;// 检查是否空表格
+                for (const sheet_id in chat[i].hash_sheets) {
+                    if (chat[i].hash_sheets[sheet_id].length > 1) {
+                        isDataEmpty = false;
+                        break;
+                    }
+                }
+                if (isDataEmpty) {
+                    return { deep: i, piece: BASE.initHashSheet(true) }// 强制应用模板
+                }
                 return { deep: i, piece: chat[i] }
             }
             // 如果没有找到新系统的表格数据，则尝试查找旧系统的表格数据（兼容模式）
@@ -237,6 +247,16 @@ export const BASE = {
                 // 为了兼容旧系统，将旧数据转换为新的Sheet格式
                 console.log("找到旧表格数据", chat[i])
                 convertOldTablesToNewSheets(chat[i].dataTable, chat[i])
+                let isDataEmpty = true;// 检查是否空表格
+                for (const sheet_id in chat[i].hash_sheets) {
+                    if (chat[i].hash_sheets[sheet_id].length > 1) {
+                        isDataEmpty = false;
+                        break;
+                    }
+                }
+                if (isDataEmpty) {
+                    return { deep: i, piece: BASE.initHashSheet(true) }// 强制应用模板
+                }
                 return { deep: i, piece: chat[i] }
             }
         }
@@ -263,8 +283,8 @@ export const BASE = {
         if (!piece || !piece.hash_sheets) return
         return BASE.hashSheetsToSheets(piece.hash_sheets);
     },
-    initHashSheet() {
-        if (BASE.sheetsData.context.length === 0) {
+    initHashSheet(force = false) {
+        if (force || (BASE.sheetsData.context.length === 0)) {
             console.log("尝试从模板中构建表格数据")
             const {piece: currentPiece} = USER.getChatPiece()
             buildSheetsByTemplates(currentPiece)

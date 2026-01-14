@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.0'
+const VERSION = '2.2.1'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -85,7 +85,7 @@ export function buildSheetsByTemplates(targetPiece) {
         }
     })
     BASE.updateSelectBySheetStatus()
-    USER.saveChat()
+    if(targetPiece) USER.saveChat()
 }
 
 /**
