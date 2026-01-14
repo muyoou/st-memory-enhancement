@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.2'
+const VERSION = '2.2.3'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -79,7 +79,7 @@ export function buildSheetsByTemplates(targetPiece) {
         }
         try {
             const newSheet = BASE.createChatSheetByTemp(template);
-            newSheet.save(targetPiece);
+            newSheet.save(targetPiece, true);
         } catch (error) {
             EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, error.message, error);
         }
@@ -724,6 +724,19 @@ async function onChatChanged() {
     try {
         // 更新表格视图
         updateSheetsView();
+
+        let isDataEmpty = true;// 检查是否空表格
+        const chat = USER.getContext().chat.slice(-1)[0];
+        for (const sheet_id in chat.hash_sheets) {
+            if (chat.hash_sheets[sheet_id].length > 1) {
+                isDataEmpty = false;
+                break;
+            }
+        }
+        if (isDataEmpty) {
+            BASE.initHashSheet(true);// 强制应用模板
+            updateSheetsView();
+        }
 
         // 在聊天消息中渲染宏
         document.querySelectorAll('.mes_text').forEach(mes => {
