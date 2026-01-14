@@ -43,7 +43,7 @@ export const USER = {
     },
     getChatPiece: (deep = 0, direction = 'up') => {
         const chat = APP.getContext().chat;
-        if (!chat || chat.length <= 1 || deep >= chat.length) return  {piece: null, deep: -1};
+        if (!chat || chat.length === 0 || deep >= chat.length) return  {piece: null, deep: -1};
         let index = chat.length - 1 - deep
         while (chat[index].is_user === true) {
             if(direction === 'up')index--
