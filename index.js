@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.1'
+const VERSION = '2.2.2'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -339,7 +339,7 @@ export function executeTableEditActions(matches, referencePiece) {
     for (const EditAction of sortActions(tableEditActions)) {
         executeAction(EditAction, sheets)
     }
-    
+
     // 核心修复：确保修改被保存到当前最新的聊天片段中。
     const { piece: currentPiece } = USER.getChatPiece();
     if (!currentPiece) {
@@ -389,7 +389,7 @@ function executeAction(EditAction, sheets) {
             const cells = sheet.getCellsByRowIndex(lastestRow)
             if(!cells || !action.data) return
             cells.forEach((cell, index) => {
-                if (index === 0) return 
+                if (index === 0) return
                 cell.data.value = action.data[index - 1]
             })
         }
@@ -766,7 +766,7 @@ async function onMessageSwiped(chat_id) {
  */
 export async function undoSheets(deep) {
     const {piece, deep:findDeep} = BASE.getLastSheetsPiece(deep)
-    if(findDeep === -1) return 
+    if(findDeep === -1) return
     console.log("撤回表格数据", piece, findDeep)
     handleEditStrInMessage(piece, findDeep, true)
     updateSheetsView()
@@ -786,7 +786,7 @@ export async function updateSheetsView(mesId) {
         BASE.refreshContextView(mesId)
 
         // 更新系统消息中的表格状态
-        updateSystemMessageTableStatus(); 
+        updateSystemMessageTableStatus();
     }catch (error) {
         EDITOR.error("记忆插件：更新表格视图失败\n原因：", error.message, error)
     }
@@ -828,16 +828,21 @@ jQuery(async () => {
     }
 
     // 版本检查
-    fetch("http://api.muyoo.com.cn/check-version", {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientVersion: VERSION, user: USER.getContext().name1 })
+    fetch("https://raw.githubusercontent.com/muyoou/st-memory-enhancement/refs/heads/master/manifest.json", {
+        method: "GET",
+        cache: "no-cache"
     }).then(res => res.json()).then(res => {
-        if (res.success) {
-            if (!res.isLatest) {
+        if (res && res.version) {
+            if (res.version != VERSION) {
                 $("#tableUpdateTag").show()
                 $("#setting_button_new_tag").show() // 显示设置按钮的New标记
+                $("#table_message_tip").html("当前版本 (" + VERSION + ") 不是最新版本，请更新插件。交流&更新&Bug反馈群QQ 1030109849")
             }
-            if (res.toastr) EDITOR.warning(res.toastrText)
-            if (res.message) $("#table_message_tip").html(res.message)
+            else {
+                $("#table_message_tip").html("插件已升级到" + VERSION + "最新版。如果插件对您有帮助，可以给我们的Github仓库一个星星支持下我们~ 交流&更新&Bug反馈群QQ 1030109849")
+            }
+            //if (res.toastr) EDITOR.warning(res.toastrText)
+            //if (res.message) $("#table_message_tip").html(res.message)
         }
     })
 
@@ -937,6 +942,6 @@ jQuery(async () => {
     APP.eventSource.on(APP.event_types.MESSAGE_SWIPED, onMessageSwiped);
     APP.eventSource.on(APP.event_types.MESSAGE_DELETED, onChatChanged);
 
-    
+
     console.log("______________________记忆插件：加载完成______________________")
 });
