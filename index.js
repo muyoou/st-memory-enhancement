@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.5'
+const VERSION = '2.2.6'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -726,9 +726,9 @@ async function onChatChanged() {
         updateSheetsView();
 
         let isDataEmpty = true;// 检查是否空表格
-        const chat = USER.getContext().chat.slice(-1)[0];
-        for (const sheet_id in chat.hash_sheets) {
-            if (chat.hash_sheets[sheet_id].length > 1) {
+        const { piece } = BASE.getLastSheetsPiece();
+        for (const sheet_id in piece.hash_sheets) {
+            if (piece.hash_sheets[sheet_id].length > 1) {
                 isDataEmpty = false;
                 break;
             }

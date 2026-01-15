@@ -1,5 +1,5 @@
 <div align="center">
-<h1>✨ SillyTavern 酒馆记忆增强插件 ✨</h1>
+<h1>✨ SillyTavern 酒馆记忆增强表格插件 ✨</h1>
 
 <p>
     <b>🧠 记忆增强插件</b> - 专为 <a href="https://github.com/SillyTavern/SillyTavern">SillyTavern酒馆</a> 设计，旨在显著提升角色扮演中 AI 的长期记忆能力！
@@ -31,7 +31,7 @@
 </p>
 
 <p>
-    <b>🚀 最新版本: v2.0.3 🚀</b>
+    <b>🚀 最新版本: v2.2.6 🚀</b>
 </p>
 </div>
 

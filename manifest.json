@@ -1,11 +1,11 @@
 {
-    "display_name": "记忆增强插件",
+    "display_name": "记忆增强表格",
     "loading_order": 100,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "assets/styles/style.css",
     "author": "muyoo",
-    "version": "2.2.5",
+    "version": "2.2.6",
     "homePage": "https://github.com/muyoou/st-memory-enhancement"
 }
