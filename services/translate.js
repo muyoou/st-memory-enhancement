@@ -4,17 +4,47 @@ let _lang = undefined;
 let _translations = undefined;
 
 /**
+ * Normalize locale code to match available translation files
+ * @param {string} locale - Raw locale from SillyTavern (e.g., 'en', 'en-US', 'zh-CN')
+ * @returns {string} - Normalized locale code matching file names
+ */
+function normalizeLocale(locale) {
+    if (!locale) return 'zh-cn';
+    
+    const lowerLocale = locale.toLowerCase();
+    
+    // Map English variants to 'en'
+    if (lowerLocale.startsWith('en')) {
+        return 'en';
+    }
+    
+    // Map Chinese variants
+    if (lowerLocale === 'zh-tw' || lowerLocale === 'zh-hant' || lowerLocale === 'zh_tw') {
+        return 'zh-tw';
+    }
+    if (lowerLocale.startsWith('zh')) {
+        return 'zh-cn';
+    }
+    
+    // Return normalized locale (replace underscores with hyphens)
+    return lowerLocale.replace('_', '-');
+}
+
+/**
  * 异步获取翻译文件
  * @param {string} locale - 语言标识符 (e.g., 'en', 'zh-cn')
  * @returns {Promise<Object>} - 翻译对象
  */
 async function fetchTranslations(locale) {
     try {
-        const response = await fetch(`/scripts/extensions/third-party/st-memory-enhancement/assets/locales/${locale}.json`);
+        const normalizedLocale = normalizeLocale(locale);
+        console.log(`Loading translations for locale: ${locale} -> ${normalizedLocale}`);
+        
+        const response = await fetch(`/scripts/extensions/third-party/st-memory-enhancement/assets/locales/${normalizedLocale}.json`);
         if (!response.ok) {
-            console.warn(`Could not load translations for ${locale}, falling back to zh-cn`);
+            console.warn(`Could not load translations for ${normalizedLocale}, falling back to zh-cn`);
             // Fallback to Chinese if requested locale is not available
-            if (locale !== 'zh-cn') {
+            if (normalizedLocale !== 'zh-cn') {
                 return await fetchTranslations('zh-cn');
             }
             return {};
@@ -28,9 +58,11 @@ async function fetchTranslations(locale) {
 
 async function getTranslationsConfig() {
     if (_lang === undefined) {
-        _lang = applicationFunctionManager.getCurrentLocale();
+        const rawLocale = applicationFunctionManager.getCurrentLocale();
+        _lang = normalizeLocale(rawLocale);
+        console.log(`Detected locale: ${rawLocale} -> normalized: ${_lang}`);
     }
-    if (_lang === undefined) {
+    if (_lang === undefined || _lang === 'zh-cn') {
         _lang = 'zh-cn';
         return { translations: {}, lang: _lang };
     }
