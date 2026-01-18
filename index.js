@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________Memory Plugin: Start Loading______________________")
 
-const VERSION = '2.2.6'
+const VERSION = '2.2.7'
 
 const editErrorInfo = {
     forgotCommentTag: false,
