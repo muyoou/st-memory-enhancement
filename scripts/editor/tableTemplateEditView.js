@@ -4,7 +4,7 @@ import { PopupMenu } from '../../components/popupMenu.js';
 import { Form } from '../../components/formManager.js';
 import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
 import { compareDataDiff } from "../../utils/utility.js";
-import {SheetBase} from "../../core/table/base.js"
+import { SheetBase } from "../../core/table/base.js"
 import { Cell } from '../../core/table/cell.js';
 
 let drag = null;
@@ -15,75 +15,75 @@ let scope = 'chat'
 
 const formConfigs = {
     sheet_origin: {
-        formTitle: "编辑表格",
-        formDescription: "单表格的整体设置。",
+        formTitle: "Edit Table",
+        formDescription: "General settings for single table.",
         fields: [
 
         ]
     },
     column_header: {
-        formTitle: "编辑列",
-        formDescription: "设置列的标题和描述信息。",
+        formTitle: "Edit Column",
+        formDescription: "Set column title and description.",
         fields: [
-            { label: '列标题', type: 'text', dataKey: 'value' },
-            { label: '不允许值重复', type: 'checkbox', dataKey: 'valueIsOnly' },
+            { label: 'Column Title', type: 'text', dataKey: 'value' },
+            { label: 'Unique Values Only', type: 'checkbox', dataKey: 'valueIsOnly' },
             {
-                label: '数据类型', type: 'select', dataKey: 'columnDataType',
+                label: 'Data Type', type: 'select', dataKey: 'columnDataType',
                 options: [
-                    { value: 'text', text: '文本' },
-                    // { value: 'number', text: '数字' },
-                    // { value: 'option', text: '选项' },
+                    { value: 'text', text: 'Text' },
+                    // { value: 'number', text: 'Number' },
+                    // { value: 'option', text: 'Option' },
                 ]
             },
-            //{ label: '列描述', description: '', type: 'textarea', rows: 4, dataKey: 'columnNote' },
+            //{ label: 'Column Description', description: '', type: 'textarea', rows: 4, dataKey: 'columnNote' },
         ],
     },
     row_header: {
-        formTitle: "编辑行",
-        formDescription: "设置行的标题和描述信息。",
+        formTitle: "Edit Row",
+        formDescription: "Set row title and description.",
         fields: [
-            { label: '行标题', type: 'text', dataKey: 'value' },
-            //{ label: '行描述', description: '(给AI解释此行的作用)', type: 'textarea', rows: 4, dataKey: 'rowNote' },
+            { label: 'Row Title', type: 'text', dataKey: 'value' },
+            //{ label: 'Row Description', description: '(Explain row purpose to AI)', type: 'textarea', rows: 4, dataKey: 'rowNote' },
         ],
     },
     cell: {
-        formTitle: "编辑单元格",
-        formDescription: "编辑单元格的具体内容。",
+        formTitle: "Edit Cell",
+        formDescription: "Edit cell content.",
         fields: [
-            { label: '单元格内容', type: 'textarea', dataKey: 'value' },
-            //{ label: '单元格描述', description: '(给AI解释此单元格内容的作用)', type: 'textarea', rows: 4, dataKey: 'cellPrompt' },
+            { label: 'Cell Content', type: 'textarea', dataKey: 'value' },
+            //{ label: 'Cell Description', description: '(Explain cell purpose to AI)', type: 'textarea', rows: 4, dataKey: 'cellPrompt' },
         ],
     },
     sheetConfig: {
-        formTitle: "编辑表格属性",
-        formDescription: "设置表格的域、类型和名称。",
+        formTitle: "Edit Table Properties",
+        formDescription: "Set table domain, type and name.",
         fields: [
             /* {
-                label: '默认保存位置', type: 'select', dataKey: 'domain',
+                label: 'Default Save Location', type: 'select', dataKey: 'domain',
                 options: [
-                    // { value: 'global', text: `<i class="fa-solid fa-earth-asia"></i> Global（该模板储存于用户数据中）` },
-                    // { value: 'role', text: `<i class="fa-solid fa-user-tag"></i> Role（该模板储存于当前所选角色）` },
-                    { value: 'chat', text: `<i class="fa-solid fa-comment"></i> Chat（该模板储存于当前对话）` },
+                    // { value: 'global', text: `<i class="fa-solid fa-earth-asia"></i> Global (Stored in User Data)` },
+                    // { value: 'role', text: `<i class="fa-solid fa-user-tag"></i> Role (Stored in Current Character)` },
+                    { value: 'chat', text: `<i class="fa-solid fa-comment"></i> Chat (Stored in Current Chat)` },
                 ],
             }, */
             {
-                label: '类型', type: 'select', dataKey: 'type',
+                label: 'Type', type: 'select', dataKey: 'type',
                 options: [
-                    // { value: 'free', text: `<i class="fa-solid fa-table"></i> Free（AI 可以任意修改此表格）` },
-                    { value: 'dynamic', text: `<i class="fa-solid fa-arrow-down-wide-short"></i> Dynamic（AI 可进行插入列外的所有操作）` },
-                    // { value: 'fixed', text: `<i class="fa-solid fa-thumbtack"></i> Fixed（AI 无法删除或插入行与列）` },
-                    // { value: 'static', text: `<i class="fa-solid fa-link"></i> Static（该表对 AI 为只读）` }
+                    // { value: 'free', text: `<i class="fa-solid fa-table"></i> Free (AI can freely modify)` },
+                    { value: 'dynamic', text: `<i class="fa-solid fa-arrow-down-wide-short"></i> Dynamic (AI can do all except insert columns)` },
+                    // { value: 'fixed', text: `<i class="fa-solid fa-thumbtack"></i> Fixed (AI cannot insert/delete rows/cols)` },
+                    // { value: 'static', text: `<i class="fa-solid fa-link"></i> Static (Read-only for AI)` }
                 ],
             },
-            { label: '表格名', type: 'text', dataKey: 'name' },
-            { label: '表格说明（提示词）', type: 'textarea', rows: 6, dataKey: 'note', description: '(作为该表总体提示词，给AI解释此表格的作用)' },
-            { label: '是否必填', type: 'checkbox', dataKey: 'required' },
-            { label: '是否触发发送', type: 'checkbox', dataKey: 'triggerSend', },
-            { label: '触发发送深度', type: 'number', dataKey: 'triggerSendDeep' },
-            { label: '初始化提示词', type: 'textarea', rows: 4, dataKey: 'initNode', description: '（当该表格为必填，且表格为空时，会发送此提示词催促AI填表）' },
-            { label: '插入提示词', type: 'textarea', rows: 4, dataKey: 'insertNode', description: '' },
-            { label: '删除提示词', type: 'textarea', rows: 4, dataKey: 'deleteNode', description: '' },
-            { label: '更新提示词', type: 'textarea', rows: 4, dataKey: 'updateNode', description: '' },
+            { label: 'Table Name', type: 'text', dataKey: 'name' },
+            { label: 'Table Note (Prompt)', type: 'textarea', rows: 6, dataKey: 'note', description: '(General prompt for this table, explaining functionality to AI)' },
+            { label: 'Required', type: 'checkbox', dataKey: 'required' },
+            { label: 'Trigger Send', type: 'checkbox', dataKey: 'triggerSend', },
+            { label: 'Trigger Send Depth', type: 'number', dataKey: 'triggerSendDeep' },
+            { label: 'Init Prompt', type: 'textarea', rows: 4, dataKey: 'initNode', description: '(If required & empty, this prompt urges AI to fill table)' },
+            { label: 'Insert Prompt', type: 'textarea', rows: 4, dataKey: 'insertNode', description: '' },
+            { label: 'Delete Prompt', type: 'textarea', rows: 4, dataKey: 'deleteNode', description: '' },
+            { label: 'Update Prompt', type: 'textarea', rows: 4, dataKey: 'updateNode', description: '' },
         ],
     },
 };
@@ -162,7 +162,7 @@ function initializeSelect2Dropdown(dropdownElement) {
 
     $(dropdownElement).on('change', function (e, silent) {
         //if(silent || scope === 'chat') return
-        console.log("选择了",silent,$(this).val())
+        console.log("选择了", silent, $(this).val())
         if (silent) return
         setSelectedSheetUids($(this).val())
         updateSelectedSheetUids()
@@ -212,8 +212,8 @@ function bindSheetSetting(sheet, index) {
     titleBar.style.fontSize = '0.8rem';
     titleBar.style.fontWeight = 'normal';
 
-    // 表格基础设置按钮
-    const settingButton = $(`<i class="menu_button menu_button_icon fa-solid fa-wrench" style="cursor: pointer; height: 28px; width: 28px;" title="编辑表格属性"></i>`);
+    // Table Basic Settings Button
+    const settingButton = $(`<i class="menu_button menu_button_icon fa-solid fa-wrench" style="cursor: pointer; height: 28px; width: 28px;" title="Edit Table Properties"></i>`);
     settingButton.on('click', async () => {
         const initialData = {
             domain: sheet.domain,
@@ -229,24 +229,24 @@ function bindSheetSetting(sheet, index) {
             triggerSendDeep: sheet.triggerSendDeep
         };
         const formInstance = new Form(formConfigs.sheetConfig, initialData);
-        const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "保存", allowVerticalScrolling: true, cancelButton: "取消" });
+        const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "Save", allowVerticalScrolling: true, cancelButton: "Cancel" });
 
         await popup.show();
         if (popup.result) {
             const diffData = compareDataDiff(formInstance.result(), initialData)
             console.log(diffData)
             let needRerender = false
-            // 将比较数据差异的结果更新至表格
+            // Update table with data diff
             Object.keys(diffData).forEach(key => {
                 console.log(key)
                 if (['domain', 'type', 'name', 'required', 'triggerSend'].includes(key) && diffData[key] != null) {
-                    console.log("对比成功将更新" + key)
+                    console.log("Comparison success, updating " + key)
                     sheet[key] = diffData[key];
                     if (key === 'name') needRerender = true
                 } else if (['note', 'initNode', 'insertNode', 'deleteNode', 'updateNode'].includes(key) && diffData[key] != null) {
                     sheet.data[key] = diffData[key];
                 } else if (['triggerSendDeep'].includes(key) && diffData[key] != null) {
-                    console.log("对比成功将更新" + key)
+                    console.log("Comparison success, updating " + key)
                     sheet[key] = Math.max(0, Math.floor(diffData[key]));
                 }
             })
@@ -255,25 +255,25 @@ function bindSheetSetting(sheet, index) {
         }
     });
 
-    // 表格自定义样式按钮
-    const styleButton = $(`<i class="menu_button menu_button_icon fa-solid fa-wand-magic-sparkles" style="cursor: pointer; height: 28px; width: 28px;" title="编辑表格显示样式"></i>`);
+    // Table Custom Style Button
+    const styleButton = $(`<i class="menu_button menu_button_icon fa-solid fa-wand-magic-sparkles" style="cursor: pointer; height: 28px; width: 28px;" title="Edit Table Style"></i>`);
     styleButton.on('click', async () => {
         await openSheetStyleRendererPopup(sheet);
     })
     const nameSpan = $(`<span style="margin-left: 0px;">#${index} ${sheet.name ? sheet.name : 'Unnamed Table'}</span>`);
 
-    // 新增：发送到上下文的复选框
+    // New: Send to context checkbox
     const sendToContextCheckbox = $(`
         <label class="checkbox_label" style="margin-left: 10px; font-weight: normal; color: var(--text_primary);">
             <input type="checkbox" class="send_to_context_switch" ${sheet.sendToContext !== false ? 'checked' : ''} />
-            <span data-i18n="Send to context">发送到上下文</span>
+            <span data-i18n="Send to context">Send to context</span>
         </label>
     `);
 
-    sendToContextCheckbox.find('.send_to_context_switch').on('change', function() {
+    sendToContextCheckbox.find('.send_to_context_switch').on('change', function () {
         sheet.sendToContext = $(this).prop('checked');
         sheet.save();
-        console.log(`表格 "${sheet.name}" 的 sendToContext 状态已更新为: ${sheet.sendToContext}`);
+        console.log(`Table "${sheet.name}" sendToContext status updated to: ${sheet.sendToContext}`);
     });
 
     titleBar.appendChild(settingButton[0]);
@@ -294,7 +294,7 @@ async function templateCellDataEdit(cell) {
     });
 
 
-    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, { large: true, allowVerticalScrolling: true }, { okButton: "保存修改", cancelButton: "取消" });
+    const popup = new EDITOR.Popup(formInstance.renderForm(), EDITOR.POPUP_TYPE.CONFIRM, { large: true, allowVerticalScrolling: true }, { okButton: "Save", cancelButton: "Cancel" });
 
     await popup.show();
     if (popup.result) {
@@ -335,30 +335,30 @@ function bindCellClickEvent(cell) {
         const sheetType = cell.parent.type;
 
         if (rowIndex === 0 && colIndex === 0) {
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> Insert Column Right', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
             if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> Insert Row Below', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
             }
         } else if (rowIndex === 0) {
-            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async (e) => { await templateCellDataEdit(cell) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-left"></i> 向左插入列', (e) => { handleAction(cell, Cell.CellAction.insertLeftColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除列', (e) => { handleAction(cell, Cell.CellAction.deleteSelfColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> Edit Column', async (e) => { await templateCellDataEdit(cell) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-left"></i> Insert Column Left', (e) => { handleAction(cell, Cell.CellAction.insertLeftColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> Insert Column Right', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> Delete Column', (e) => { handleAction(cell, Cell.CellAction.deleteSelfColumn) });
         } else if (colIndex === 0) {
             // if (sheetType === cell.parent.SheetType.dynamic) {
             //     cell.element.delete();
             //     return;
             // }
 
-            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该行', async (e) => { await templateCellDataEdit(cell) });
+            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> Edit Row', async (e) => { await templateCellDataEdit(cell) });
             if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-up"></i> 向上插入行', (e) => { handleAction(cell, Cell.CellAction.insertUpRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除行', (e) => { handleAction(cell, Cell.CellAction.deleteSelfRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-up"></i> Insert Row Above', (e) => { handleAction(cell, Cell.CellAction.insertUpRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> Insert Row Below', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> Delete Row', (e) => { handleAction(cell, Cell.CellAction.deleteSelfRow) });
             }
         } else {
             if (sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async (e) => { await templateCellDataEdit(cell) });
+                cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> Edit Cell', async (e) => { await templateCellDataEdit(cell) });
             } else {
                 return;
             }
