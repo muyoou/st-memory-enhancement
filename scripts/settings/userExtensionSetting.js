@@ -7,7 +7,6 @@ import {filterTableDataPopup} from "../../data/pluginSetting.js";
 import {initRefreshTypeSelector} from "../runtime/absoluteRefresh.js";
 import {rollbackVersion} from "../../services/debugs.js";
 import {customSheetsStylePopup} from "../editor/customSheetsStyle.js";
-import {openAppHeaderTableDrawer} from "../renderer/appHeaderTableBaseDrawer.js";
 import {buildSheetsByTemplates} from "../../index.js"
 
 /**
@@ -49,8 +48,8 @@ function updateTableView() {
 `);
         // 设置点击事件
         $('#drawer_in_extension_list_button').on('click', () => {
-            // $('#table_drawer_icon').click()
-            openAppHeaderTableDrawer('database');
+            $('#table_drawer_icon').click()
+            $('#database_button').click();
         });
     } else {
         document.querySelector('#drawer_in_extension_list_button')?.remove();
