@@ -9,7 +9,7 @@ let _translations = undefined;
  * @returns {string} - Normalized locale code matching file names
  */
 function normalizeLocale(locale) {
-    if (!locale) return 'zh-cn';
+    if (!locale) return 'en';
     
     const lowerLocale = locale.toLowerCase();
     
@@ -42,10 +42,10 @@ async function fetchTranslations(locale) {
         
         const response = await fetch(`/scripts/extensions/third-party/st-memory-enhancement/assets/locales/${normalizedLocale}.json`);
         if (!response.ok) {
-            console.warn(`Could not load translations for ${normalizedLocale}, falling back to zh-cn`);
-            // Fallback to Chinese if requested locale is not available
-            if (normalizedLocale !== 'zh-cn') {
-                return await fetchTranslations('zh-cn');
+            console.warn(`Could not load translations for ${normalizedLocale}, falling back to en`);
+            // Fallback to English if requested locale is not available
+            if (normalizedLocale !== 'en') {
+                return await fetchTranslations('en');
             }
             return {};
         }
@@ -62,8 +62,8 @@ async function getTranslationsConfig() {
         _lang = normalizeLocale(rawLocale);
         console.log(`Detected locale: ${rawLocale} -> normalized: ${_lang}`);
     }
-    if (_lang === undefined || _lang === 'zh-cn') {
-        _lang = 'zh-cn';
+    if (_lang === undefined || _lang === 'en') {
+        _lang = 'en';
         return { translations: {}, lang: _lang };
     }
     if (_translations === undefined) {
@@ -120,7 +120,7 @@ function translateElementsBySelector(translations, selector, key) {
  */
 export async function translating(targetScope, source) {
     let { translations, lang } = await getTranslationsConfig();
-    if (lang === 'zh-cn') {
+    if (lang === 'en') {
         return source;
     }
 
@@ -177,7 +177,7 @@ export async function translating(targetScope, source) {
  */
 export async function switchLanguage(targetScope, source) {
     const { translations, lang } = await getTranslationsConfig()
-    if (lang === 'zh-cn') {
+    if (lang === 'en') {
         return source;
     }
 
@@ -189,7 +189,7 @@ export async function switchLanguage(targetScope, source) {
  */
 export async function executeTranslation() {
     const { translations, lang } = await getTranslationsConfig();
-    if (lang === 'zh-cn') {
+    if (lang === 'en') {
         return;
     }
 

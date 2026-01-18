@@ -6,7 +6,7 @@ import { USER } from "../core/manager.js";
 export function replaceUserTag(str) {
     if (str == null) return ''; // 处理 null 或 undefined
     if (typeof str !== 'string') {
-        console.warn('非字符串输入:', str);
+        console.warn('Non-string input:', str);
         str = String(str); // 强制转换为字符串
     }
     return str.replace(/<user>/g, USER.getContext().name1);
@@ -47,7 +47,7 @@ export function truncateAfterLastParenthesis(str) {
 export function parseLooseDict(str) {
     const result = {};
     const content = str.replace(/\s+/g, '').replace(/\\"/g, '"').slice(1, -1);
-    console.log("解析",content)
+    console.log("Parsing", content)
     let i = 0;
     const len = content.length;
 
@@ -78,7 +78,7 @@ export function parseLooseDict(str) {
             if (inString) {
                 // 如果遇到嵌套引号，替换为另一种
                 if (char === quoteChar) {
-                    if (content[i + 1] === ','||content[i + 1] == null) {
+                    if (content[i + 1] === ',' || content[i + 1] == null) {
                         i++; // 跳过结尾引号
                         break;
                     } else {
@@ -125,9 +125,9 @@ export function parseManualJson(jsonStr) {
 
     function parseValue() {
         skipWhitespace();
-        
+
         const char = str[index];
-        
+
         if (char === '{') {
             return parseObject();
         } else if (char === '[') {
@@ -246,7 +246,7 @@ export function parseManualJson(jsonStr) {
                 if (index >= str.length) {
                     throw new Error('意外的字符串结束');
                 }
-                
+
                 const nextChar = str[index];
                 switch (nextChar) {
                     case '"':
@@ -295,7 +295,7 @@ export function parseManualJson(jsonStr) {
 
     function parseNumber() {
         let numStr = '';
-        
+
         if (str[index] === '-') {
             numStr += str[index++];
         }
@@ -348,17 +348,17 @@ export function parseManualJson(jsonStr) {
     function skipWhitespace() {
         while (index < str.length && /\s/.test(str[index])) {
             index++;
-        } 
+        }
     }
 
     try {
         const result = parseValue();
         skipWhitespace();
-        
+
         if (index < str.length) {
             throw new Error(`解析完成后还有多余字符在位置 ${index}`);
         }
-        
+
         console.log('手动解析 JSON 成功:', result);
         return result;
     } catch (error) {

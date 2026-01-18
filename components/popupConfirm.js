@@ -1,4 +1,4 @@
-import {SYSTEM, USER} from "../core/manager.js";
+import { SYSTEM, USER } from "../core/manager.js";
 
 // Static map to track temporarily disabled popups by ID
 const disabledPopups = {};
@@ -33,7 +33,7 @@ export class PopupConfirm {
         this.toastElement = null;
         this.resolvePromise = null;
         this._text = '';
-        this.messageText = null; // 保存文本元素的引用
+        this.messageText = null; // Save reference to text element
         this.id = null; // To store the popup ID
     }
 
@@ -64,7 +64,7 @@ export class PopupConfirm {
         }
     }
 
-    // 添加text属性的getter和setter
+    // Add getter and setter for text property
     get text() {
         return this._text;
     }
@@ -110,7 +110,7 @@ export class PopupConfirm {
         // Create message container
         const messageEl = $('<div class="toast-message"></div>')[0];
         const messageIcon = $('<i class="fa-solid fa-code-branch""></i>')[0];
-        this.messageText = $('<span id="toast_message_text"></span>')[0]; // 保存为类属性
+        this.messageText = $('<span id="toast_message_text"></span>')[0]; // Save as class property
         messageEl.style.display = 'flex';
         messageEl.style.flexDirection = 'row';
         messageEl.style.alignItems = 'center';
@@ -124,7 +124,7 @@ export class PopupConfirm {
         messageIcon.style.padding = '0'
         messageIcon.style.margin = '0'
 
-        this.messageText.textContent = this._text; // 使用存储的text值
+        this.messageText.textContent = this._text; // Use stored text value
         messageEl.appendChild(messageIcon);
         messageEl.appendChild(this.messageText);
 
@@ -172,7 +172,7 @@ export class PopupConfirm {
         // Create "Don't Remind" button if text and id are provided
         if (dontRemindText && this.id) {
             const dontRemindBtn = document.createElement('button');
-            dontRemindBtn.textContent = dontRemindText; // e.g., "不再提示"
+            dontRemindBtn.textContent = dontRemindText; // e.g., "Don't Remind Again"
             dontRemindBtn.style.width = '100%';
             dontRemindBtn.style.padding = '3px 12px';
             dontRemindBtn.style.background = 'none';
@@ -185,11 +185,11 @@ export class PopupConfirm {
             dontRemindBtn.onclick = () => this._handleAction('dont_remind_selected');
             buttons.appendChild(dontRemindBtn);
         }
-        
+
         // Create "Always Confirm" button if text and id are provided
         if (alwaysConfirmText && this.id) {
             const alwaysConfirmBtn = document.createElement('button');
-            alwaysConfirmBtn.textContent = alwaysConfirmText; // e.g., "一直选是"
+            alwaysConfirmBtn.textContent = alwaysConfirmText; // e.g., "Always Yes"
             alwaysConfirmBtn.style.width = '100%';
             alwaysConfirmBtn.style.padding = '3px 12px';
             alwaysConfirmBtn.style.background = 'none';
@@ -206,7 +206,7 @@ export class PopupConfirm {
         this.toastElement.appendChild(messageEl);
         this.toastElement.appendChild(buttons);
         // this.toastContainer.appendChild(this.toastElement);
-        // 插入到容器的顶部而不是底部
+        // Insert to top of container instead of bottom
         this.toastContainer.insertBefore(this.toastElement, this.toastContainer.firstChild);
 
         // Trigger animation
@@ -222,7 +222,7 @@ export class PopupConfirm {
         });
     }
 
-    // 关闭弹窗 - this.close() can be called if an external force closes the popup.
+    // Close popup - this.close() can be called if an external force closes the popup.
     // _handleAction now manages the standard cleanup path.
     close() {
         this.cancelFrameUpdate();
@@ -251,19 +251,19 @@ export class PopupConfirm {
     }
 
     frameUpdate(callback) {
-        // 清理现有的动画循环
+        // Clear existing animation loop
         this.cancelFrameUpdate();
 
-        // 只在菜单显示时启动动画循环
+        // Start animation loop only when menu is displayed
         if (this.toastElement.style.display !== 'none') {
             const updateLoop = (timestamp) => {
-                // 如果菜单被隐藏，停止循环
+                // If menu is hidden, stop loop
                 if (this.toastElement.style.display === 'none') {
                     this.cancelFrameUpdate();
                     return;
                 }
 
-                callback(this, timestamp); // 添加 timestamp 参数以便更精确的动画控制
+                callback(this, timestamp); // Add timestamp parameter for more precise animation control
                 this._frameUpdateId = requestAnimationFrame(updateLoop);
             };
 
@@ -279,20 +279,20 @@ export class PopupConfirm {
     }
 }
 
-// 获取计算后的颜色值并确保完全不透明
+// Get computed color value and ensure fully opaque
 // function getSolidColor (target) {
 //     const colorValue = getComputedStyle(document.documentElement)
 //         .getPropertyValue(target).trim();
 //
-//     // 创建临时元素来解析颜色
+//     // Create temporary element to parse color
 //     const tempEl = document.createElement('div');
 //     tempEl.style.color = colorValue;
 //     document.body.appendChild(tempEl);
 //
-//     // 获取计算后的 RGB 值
+//     // Get computed RGB value
 //     const rgb = getComputedStyle(tempEl).color;
 //     document.body.removeChild(tempEl);
 //
-//     // 确保返回的是 rgb() 格式（不带 alpha）
+//     // Ensure return rgb() format (without alpha)
 //     return rgb.startsWith('rgba') ? rgb.replace(/,[^)]+\)/, ')') : rgb;
 // }
