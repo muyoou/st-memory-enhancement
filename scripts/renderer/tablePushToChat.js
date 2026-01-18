@@ -5,45 +5,45 @@ import { replaceUserTag } from "../../utils/stringUtil.js";
 
 
 /**
- * 将自定义样式替换为符合HTML格式的样式
- * @param {string} replace -自定义样式字符串
- * @param {string} _viewSheetsContainer -DOM元素，作为工作表的容器
- * @returns {string} -替换后的样式字符串
+ * Replace custom styles with HTML format styles
+ * @param {string} replace - Custom style string
+ * @param {string} _viewSheetsContainer - DOM element, container for sheets
+ * @returns {string} - Replaced style string
  */
 function divideCumstomReplace(replace, _viewSheetsContainer) {
     let viewSheetsContainer = '';
     const replaceContent = replace;
 
-    // 1. 提取完整的<style>和<script>标签
+    // 1. Extract complete <style> and <script> tags
     const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
     const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
 
     viewSheetsContainer += (replaceContent.match(styleRegex) || []).join('');
     viewSheetsContainer += (replaceContent.match(scriptRegex) || []).join('');
 
-    // 2. 清除标签（包括<style>和<script>）
+    // 2. Clear tags (including <style> and <script>)
     let dividedContent = replaceContent
         .replace(/<!DOCTYPE html[^>]*>/gi, '')
         .replace(/<html[^>]*>/gi, '')
         .replace(/<\/html>/gi, '')
         .replace(/<head[^>]*>/gi, '')
         .replace(/<\/head>/gi, '')
-        .replace(styleRegex, '')  // 新增：移除<style>标签
-        .replace(scriptRegex, ''); // 新增：移除<script>标签
+        .replace(styleRegex, '')  // Added: Remove <style> tags
+        .replace(scriptRegex, ''); // Added: Remove <script> tags
 
-    // 3. 将样式和脚本追加到容器
+    // 3. Append styles and scripts to container
     $(_viewSheetsContainer).append(viewSheetsContainer);
-    // console.log('分离后的函数内的样式数据:', dividedContent);
+    // console.log('Style data inside separated function:', dividedContent);
     return dividedContent;
 }
 
 /**
- *  穿插及嵌入渲染
- * @param {@table} tableRole -按同名行提取后的嵌套数组
- * @param {Array} insertMark -是否嵌入的标记
- * @param {Array} indexForTableRole -嵌套数组元素对应的索引
- * @param {Array} _sheets -表格
- * @param {HTMLElement} _viewSheetsContainer -DOM元素，作为工作表的容器
+ *  Interleaved and embedded rendering
+ * @param {@table} tableRole - Nested array extracted by same name row
+ * @param {Array} insertMark - Embedding mark
+ * @param {Array} indexForTableRole - Index corresponding to nested array elements
+ * @param {Array} _sheets - Tables
+ * @param {HTMLElement} _viewSheetsContainer - DOM element, container for sheets
  */
 function insertCustomRender(tableRole, insertMark, cycleMark, indexForTableRole, _sheets, _viewSheetsContainer) {
     let customStyle = '';
@@ -65,31 +65,31 @@ function insertCustomRender(tableRole, insertMark, cycleMark, indexForTableRole,
             customStyle += customContent;
         }
     }
-    // console.log("穿插及嵌入最终返回文本customStyle：" + customStyle);
-    const sheetContainer = document.createElement('div')    //DOM元素，作为工作表的容器
-    sheetContainer.innerHTML = replaceUserTag(customStyle) //替换掉自定义样式中的<user>标签
+    // console.log("Interleaved/embedded final return text customStyle:" + customStyle);
+    const sheetContainer = document.createElement('div')    // DOM element, container for sheets
+    sheetContainer.innerHTML = replaceUserTag(customStyle) // Replace <user> tag in custom style
     $(_viewSheetsContainer).append(sheetContainer)
 }
 
 
 /**
- * 使用自定义样式渲染工作表
- * @param {@table} sheet -工作表数据
- * @param {HTMLElement} _viewSheetsContainer -DOM元素，作为工作表的容器
+ * Render sheet using custom style
+ * @param {@table} sheet - Sheet data
+ * @param {HTMLElement} _viewSheetsContainer - DOM element, container for sheets
  */
 function ordinarycustomStyleRender(sheet, _viewSheetsContainer) {
-    // console.log('普通表格数据:', sheet.tableSheet);
-    const customStyle = parseSheetRender(sheet)             //使用 parseSheetRender 解析工作表
-    const sheetContainer = document.createElement('div')    //DOM元素，作为工作表的容器
-    sheetContainer.innerHTML = replaceUserTag(customStyle) //替换掉自定义样式中的<user>标签
+    // console.log('Normal table data:', sheet.tableSheet);
+    const customStyle = parseSheetRender(sheet)             // Use parseSheetRender to parse sheet
+    const sheetContainer = document.createElement('div')    // DOM element, container for sheets
+    sheetContainer.innerHTML = replaceUserTag(customStyle) // Replace <user> tag in custom style
     $(_viewSheetsContainer).append(sheetContainer)
 }
 
 /**
- * 使用默认样式渲染工作表
- * @param {*} index -工作表索引
- * @param {*} sheet -工作表数据
- * @param {*} _viewSheetsContainer -DOM元素，作为工作表的容器
+ * Render sheet using default style
+ * @param {*} index - Sheet index
+ * @param {*} sheet - Sheet data
+ * @param {*} _viewSheetsContainer - DOM element, container for sheets
  */
 function defaultStyleRender(index, sheet, _viewSheetsContainer) {
     const instance = sheet
@@ -365,10 +365,10 @@ function replaceTableToStatusTag(sheets) {
 }
 
 /**
- * 更新最后一条 System 消息的 <tableStatus> 标签内容
+ * Update <tableStatus> tag content in the last System message
  */
 export function updateSystemMessageTableStatus(force = false) {
-    console.log("更新最后一条 System 消息的 <tableStatus> 标签内容", USER.tableBaseSetting.isTableToChat)
+    console.log("Update <tableStatus> tag content in the last System message", USER.tableBaseSetting.isTableToChat)
     if (force === false) {
         if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isTableToChat === false) {
             window.document.querySelector('#tableStatusContainer')?.remove();
@@ -391,7 +391,7 @@ export function updateAlternateTable() {
 }
 
 /**
- * 新增代码，打开自定义表格推送渲染器弹窗
+ * Added code, open custom table push renderer popup
  * @returns {Promise<void>}
  */
 export async function openTableRendererPopup() {
@@ -399,7 +399,7 @@ export async function openTableRendererPopup() {
     const tableRendererPopup = new EDITOR.Popup(manager, EDITOR.POPUP_TYPE.TEXT, '', { large: true, wide: true, allowVerticalScrolling: true });
     const sheetsData = BASE.getLastSheetsPiece()?.piece.hash_sheets;
     if (!sheetsData) {
-        // console.warn("openTableRendererPopup: 未能获取到有效的 table 对象。");
+        // console.warn("openTableRendererPopup: Failed to get valid table object.");
         return;
     }
     const sheets = BASE.hashSheetsToSheets(sheetsData)[0];
