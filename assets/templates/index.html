@@ -2,9 +2,9 @@
     <div class="memory_enhancement_settings">
         <div class="inline-drawer">
             <div id="inline_drawer_header_content">
-                <b style="font-size: 1.1rem" data-i18n="Memory Enhancement (Tables)">记忆增强（表格）</b>
+                <b style="font-size: 1.1rem" data-i18n="Memory Enhancement (Tables)">Memory Enhancement (Tables)</b>
                 <span id="tableUpdateTag" style="cursor: pointer; background-color: #41b68188"
-                    data-i18n="Click to update">点我更新</span>
+                    data-i18n="Click to update">Click to update</span>
             </div>
 
             <div class="inline-drawer-content">
@@ -15,16 +15,17 @@
                             <div class="menu_button_icon menu_button interactable">
                                 <i class="fa-brands fa-github fa-lg"></i>
                                 <a href="https://github.com/muyoou/st-memory-enhancement/"
-                                    data-i18n="Project link">项目地址</a>
+                                    data-i18n="Project link">Project link</a>
                             </div>
                             <div class="menu_button_icon menu_button interactable">
                                 <i class="fa-solid fa-book"></i>
-                                <a href="https://muyoo.com.cn/wiki/memory/start.html" data-i18n="Read tutorial">阅读教程</a>
+                                <a href="https://muyoo.com.cn/wiki/memory/start.html" data-i18n="Read tutorial">Read
+                                    tutorial</a>
                             </div>
                             <div class="menu_button_icon menu_button interactable">
                                 <i class="fa-solid fa-list"></i>
                                 <a href="https://github.com/muyoou/st-memory-enhancement/releases"
-                                    data-i18n="Changelog">更新日志</a>
+                                    data-i18n="Changelog">Changelog</a>
                             </div>
                         </div>
                         <div class="menu_button_icon menu_button interactable" id="table_debug_log_button">
@@ -41,61 +42,63 @@
                     <div class="persona_management_left_column flex-container wide100p flexGap10"
                         style="padding: 10px 0; gap: 10px">
                         <div class="flex1 wide50p" style="min-width: 300px">
-                            <h4 class="standoutHeader" data-i18n="Plugin settings">插件设置</h4>
+                            <h4 class="standoutHeader" data-i18n="Plugin settings">Plugin settings</h4>
 
                             <!-- 基础设置 -->
                             <div>
-                                <h4 class="standoutHeader flex-container wide100p"
-                                    style="justify-content: space-between; align-items: center">
-                                    <div data-i18n="Import, export and reset plugin">导入导出与重置插件</div>
-                                    <div class="flex-container">
-                                        <div class="menu_button button-square-icon fa-solid fa-file-import"
-                                            id="table-set-import" title="导入表格预设"
-                                            data-i18n="[title]Import table presets"></div>
-                                        <!--                                        <input type="file" id="table-set-importFile" accept=".json" hidden>-->
-                                        <div class="menu_button button-square-icon fa-solid fa-file-export"
-                                            id="table-set-export" title="导出表格预设"
-                                            data-i18n="[title]Export table presets"></div>
-                                        <div class="menu_button button-square-icon fa-solid fa-undo" id="table-reset"
-                                            title="重置表格预设" data-i18n="[title]Reset table presets"></div>
-                                    </div>
+                                style="justify-content: space-between; align-items: center">
+                                <div data-i18n="Import, export and reset plugin">Import, export and reset plugin</div>
+                                <div class="flex-container">
+                                    <div class="menu_button button-square-icon fa-solid fa-file-import"
+                                        id="table-set-import" title="Import table presets"
+                                        data-i18n="[title]Import table presets"></div>
+                                    <!--                                        <input type="file" id="table-set-importFile" accept=".json" hidden>-->
+                                    <div class="menu_button button-square-icon fa-solid fa-file-export"
+                                        id="table-set-export" title="Export table presets"
+                                        data-i18n="[title]Export table presets"></div>
+                                    <div class="menu_button button-square-icon fa-solid fa-undo" id="table-reset"
+                                        title="Reset table presets" data-i18n="[title]Reset table presets"></div>
+                                </div>
                             </div>
 
-                            <h4 data-i18n="Plugin switches">插件开关</h4>
+                            <h4 data-i18n="Plugin switches">Plugin switches</h4>
                             <div class="checkbox_label range-block justifyLeft">
-                                <input type="checkbox" id="table_switch"><span data-i18n="Enable plugin">启用插件</span>
+                                <input type="checkbox" id="table_switch"><span data-i18n="Enable plugin">Enable
+                                    plugin</span>
                             </div>
                             <!--                                <div class="checkbox_label">-->
                             <!--                                    <input type="checkbox" id="table_switch_creator_mode"><span>创作者模式</span>-->
                             <!--                                </div>-->
                             <div class="checkbox_label range-block justifyLeft">
-                                <input type="checkbox" id="table_switch_debug_mode"><span
-                                    data-i18n="Debug mode">调试模式</span>
-                                <small class="toggle-description justifyLeft"
-                                    data-i18n="Debug mode description">(开启后会有一定性能损耗，仅用于代码开发调试)</small>
+                                <input type="checkbox" id="table_switch_debug_mode"><span data-i18n="Debug mode">Debug
+                                    mode</span>
+                                <small class="toggle-description justifyLeft" data-i18n="Debug mode description">(May
+                                    cause performance loss, for dev debug only)</small>
                             </div>
 
-                            <h4 data-i18n="Message template">消息模板</h4>
+                            <h4 data-i18n="Message template">Message template</h4>
                             <div style="padding-left: 5px;">
                                 <label for="dataTable_message_template"></label>
                                 <small class="toggle-description justifyLeft"
-                                    data-i18n="Message template description">(用于给AI说明怎么使用表格以及怎么修改表格，使用<code>{{tableData}}</code>宏指令来选择表格数据的插入位置)</small>
+                                    data-i18n="Message template description">(Used to instruct AI on how to use and
+                                    modify tables. Use <code>{{tableData}}</code> macro to select insertion
+                                    point)</small>
                                 <textarea id="dataTable_message_template" class="wide100p" rows="8"></textarea>
                             </div>
                             <!-- 高级设置选项 -->
                             <div style="padding-left: 5px;">
                                 <div style="display: flex; align-items: center;">
                                     <label for="dataTable_injection_mode" style="min-width: 50px"
-                                        data-i18n="Injection">注入：</label>
+                                        data-i18n="Injection">Injection:</label>
                                     <select id="dataTable_injection_mode">
-                                        <option value="injection_off" data-i18n="Turn off injection">关闭注入
+                                        <option value="injection_off" data-i18n="Turn off injection">Turn off injection
                                         </option>
                                         <option value="deep_system">@D ⚙</option>
                                         <option value="deep_user">@D 👤</option>
                                         <option value="deep_assistant">@D 🤖</option>
                                     </select>
                                     <label for="dataTable_deep" style="min-width: 60px; padding-left: 10px;"
-                                        data-i18n="Depth">深度：</label>
+                                        data-i18n="Depth">Depth:</label>
                                     <input id="dataTable_deep" class="text_pole" type="number">
                                 </div>
                             </div>
@@ -104,11 +107,11 @@
                             <!-- 表格预设 -->
                             <div>
                                 <!-- 预设设置 -->
-                                <h4 class="standoutHeader" data-i18n="Run strategy">运行策略</h4>
-                                <label for="fill_table_time" data-i18n="Render to">填表行为发生在：</label>
+                                <h4 class="standoutHeader" data-i18n="Run strategy">Run strategy</h4>
+                                <label for="fill_table_time" data-i18n="Render to">Fill table when:</label>
                                 <select id="fill_table_time" class="flex1" style="min-width: 100px">
-                                    <option value="chat">聊天的同时填表</option>
-                                    <option value="after">收到消息后再单独填表</option>
+                                    <option value="chat">While chatting</option>
+                                    <option value="after">After receiving message</option>
                                 </select>
 
 
@@ -117,11 +120,11 @@
                                     <!-- 分步填表 -->
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="table_read_switch"><span
-                                            data-i18n="AI read table switch">AI读表开关</span>
+                                            data-i18n="AI read table switch">AI read table switch</span>
                                     </div>
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="table_edit_switch"><span
-                                            data-i18n="AI edit table switch">AI改表开关</span>
+                                            data-i18n="AI edit table switch">AI edit table switch</span>
                                     </div>
                                 </div>
 
@@ -129,90 +132,98 @@
                                 <div id="step_by_step_options" style="padding-left: 20px; width: calc(100% - 20px);">
                                     <div class="checkbox_label" style="display: flex; align-items: center;">
                                         <input type="checkbox" id="step_by_step_use_main_api" checked><span
-                                            data-i18n="Use main API">使用主API</span>
+                                            data-i18n="Use main API">Use main API</span>
                                         <div class="menu_button menu_button_icon" id="trigger_step_by_step_button"
                                             style="margin-left: 10px;">
-                                            <i class="fa-solid fa-play"></i><a data-i18n="Fill now">立即填表</a>
+                                            <i class="fa-solid fa-play"></i><a data-i18n="Fill now">Fill now</a>
                                         </div>
-                                        <label for="separateReadContextLayers" style="margin-left: 10px;">上下文层数</label>
+                                        <label for="separateReadContextLayers" style="margin-left: 10px;">Context
+                                            layers</label>
                                         <input type="number" id="separateReadContextLayers" class="margin0 text_pole"
                                             style="width: 50px;" min="1" value="1" />
-                                        <label for="separateReadLorebook" style="margin-left: 10px;">读取世界书</label>
+                                        <label for="separateReadLorebook" style="margin-left: 10px;">Read World
+                                            Info</label>
                                         <input type="checkbox" id="separateReadLorebook" class="margin0" />
-                                        <small class="toggle-description justifyLeft">(不建议大Token卡使用)</small>
+                                        <small class="toggle-description justifyLeft">(Not recommended for large
+                                            context)</small>
                                     </div>
                                     <div style="padding-left: 5px; margin-bottom: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <label for="step_by_step_user_prompt"
-                                                data-i18n="settings.label.stepByStepUserPrompt">独立填表整体结构</label>
+                                                data-i18n="settings.label.stepByStepUserPrompt">Independent filling
+                                                structure</label>
                                             <div class="menu_button button-square-icon fa-solid fa-undo"
-                                                id="reset_step_by_step_user_prompt" title="重置为默认"
+                                                id="reset_step_by_step_user_prompt" title="Reset to default"
                                                 data-i18n="[title]Reset to default"></div>
                                         </div>
                                         <small class="toggle-description justifyLeft"
-                                            data-i18n="settings.hint.stepByStepUserPrompt">(独立填表时，请求将以此结构发送，请保持可被json解析)</small>
+                                            data-i18n="settings.hint.stepByStepUserPrompt">(Sent as this structure
+                                            during independent filling, keep JSON parsable)</small>
                                         <textarea id="step_by_step_user_prompt"
                                             class="text_pole settings_textarea wide100p" rows="8"
-                                            placeholder="输入独立填表提示词"></textarea>
+                                            placeholder="Enter independent filling prompt"></textarea>
                                     </div>
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="confirm_before_execution" checked><span
-                                            data-i18n="Confirm before execution">执行时确认</span>
+                                            data-i18n="Confirm before execution">Confirm before execution</span>
                                         <small class="toggle-description justifyLeft"
-                                            data-i18n="Confirm before execution description">(独立填表流程遇到检查节点时会弹出确认框)</small>
+                                            data-i18n="Confirm before execution description">(Show confirmation dialog
+                                            when checkpoints are met)</small>
                                     </div>
 
                                     <div class="inline-drawer wide100p">
                                         <div class="inline-drawer-toggle inline-drawer-header">
-                                            <b><span data-i18n="Custom independent API">自定义独立API</span></b>
+                                            <b><span data-i18n="Custom independent API">Custom independent
+                                                    API</span></b>
                                             <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                         </div>
                                         <div class="inline-drawer-content"
                                             style="display: none; padding-left: 20px; width: calc(100% - 20px)">
-                                            <!-- 自定义API设置 -->
+                                            <!-- Custom API Settings -->
                                             <input type="text" id="custom_api_url" class="text_pole"
-                                                placeholder="API URL（请以/v1结尾）">
+                                                placeholder="API URL (end with /v1)">
                                             <input type="password" id="custom_api_key" class="text_pole"
-                                                placeholder="API Key(多个key用逗号隔开)">
+                                                placeholder="API Key (comma separated)">
                                             <input type="text" id="custom_model_name" class="text_pole"
-                                                placeholder="Model Name（模型名称，可手动输入或自动获取）">
+                                                placeholder="Model Name (manual input or auto fetch)">
                                             <div class="range-block justifyLeft">
                                                 <select id="model_selector" class="text_pole">
-                                                    <option value="">请先获取模型列表</option>
+                                                    <option value="">Please fetch model list first</option>
                                                 </select>
                                                 <div class="menu_button menu_button_icon" id="fetch_models_button">
-                                                    <a>获取模型列表</a>
+                                                    <a>Fetch models</a>
                                                 </div>
                                                 <div class="menu_button menu_button_icon" id="table_test_api_button"
                                                     style="margin-left: 5px;">
-                                                    <a>测试</a>
+                                                    <a>Test</a>
                                                 </div>
                                             </div>
                                             <div class="flex-container slider-container"
                                                 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                                                 <label
                                                     style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;"
-                                                    data-i18n="Custom API temperature setting">自定义API温度设定：<span
-                                                        id="custom_temperature_value">1.0</span></label>
+                                                    data-i18n="Custom API temperature setting">Custom API
+                                                    temperature:<span id="custom_temperature_value">1.0</span></label>
                                                 <input type="range" id="custom_temperature" min="0.1" max="2.0"
                                                     step="0.1" value="1.0" style="flex-grow: 1;">
                                             </div>
 
-                                            <!-- 代理设置 -->
+                                            <!-- Proxy Settings -->
                                             <div class="inline-drawer wide100p">
                                                 <div class="inline-drawer-toggle inline-drawer-header">
-                                                    <b><span data-i18n="Proxy settings">代理设置<span
-                                                                style="color: red">(未完成，不能用，请留空)</span></b>
+                                                    <b><span data-i18n="Proxy settings">Proxy settings<span
+                                                                style="color: red">(Not finished, do not use, leave
+                                                                empty)</span></b>
                                                     <div class="fa-solid inline-drawer-icon interactable up fa-circle-chevron-up"
                                                         tabindex="0"></div>
                                                 </div>
                                                 <div class="inline-drawer-content"
                                                     style="display: none; padding-left: 20px; width: calc(100% - 20px)">
                                                     <input type="text" id="table_proxy_address" class="text_pole"
-                                                        placeholder="代理地址 (例如：http://127.0.0.1:7890)"
+                                                        placeholder="Proxy address (e.g., http://127.0.0.1:7890)"
                                                         data-i18n="[placeholder]Proxy address (e.g., http://127.0.0.1:7890)">
                                                     <input type="password" id="table_proxy_key" class="text_pole"
-                                                        placeholder="代理密钥 (可选)"
+                                                        placeholder="Proxy key (optional)"
                                                         data-i18n="[placeholder]Proxy key (optional)">
                                                 </div>
                                             </div>
@@ -221,16 +232,16 @@
                                 </div>
                             </div>
 
-                            <!-- 重新整理表格 -->
+                            <!-- Reorganize Tables -->
                             <div class="inline-drawer wide100p">
                                 <div class="inline-drawer-toggle inline-drawer-header">
-                                    <b><span data-i18n="Reorganize tables">表格总结/整理</span></b>
+                                    <b><span data-i18n="Reorganize tables">Table Summary/Reorganization</span></b>
                                     <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                 </div>
                                 <div class="inline-drawer-content" style="display: none; ">
                                     <div class="checkbox_label" range-block justifyLeft>
                                         <input type="checkbox" id="use_main_api" checked><span
-                                            data-i18n="Use main API">使用主API</span>
+                                            data-i18n="Use main API">Use main API</span>
                                     </div>
 
                                     <!-- 高级设置选项 -->
@@ -240,45 +251,46 @@
                                     </div> -->
                                     <div class="flex-container slider-container"
                                         style="margin: 5px; padding-bottom: 10px" id="token_limit_container">
-                                        <label><span data-i18n="Token limit">Token限制：</span><code
+                                        <label><span data-i18n="Token limit">Token limit:</span><code
                                                 id="rebuild_token_limit_value">10000</code></label>
                                         <input type="range" id="rebuild_token_limit" min="1000" max="100000" step="1000"
                                             value="10000" style="width: calc(100% - 20px);">
                                     </div>
-                                    <!-- 屏蔽选项，改为默认token限制 -->
+                                    <!-- Blocking options, changed to default token limit -->
                                     <!-- <div class="checkbox_label">
-                                        <input type="checkbox" id="use_token_limit"><span data-i18n="Use token limit instead of chat history limit">用token代替聊天记录限制</span>
+                                        <input type="checkbox" id="use_token_limit"><span data-i18n="Use token limit instead of chat history limit">Use token limit instead of message count</span>
                                     </div> -->
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="ignore_user_sent" checked><span
-                                            data-i18n="Only reference AI replies">只参考AI回复的消息</span>
+                                            data-i18n="Only reference AI replies">Only reference AI replies</span>
                                     </div>
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="bool_silent_refresh"><span
-                                            data-i18n="Skip confirmation dialog after reorganizing">跳过总结后的确认弹窗</span>
+                                            data-i18n="Skip confirmation dialog after reorganizing">Skip confirmation
+                                            after summary</span>
                                     </div>
 
                                     <div class="flex-container" style="flex-wrap: nowrap; padding-top: 10px;">
-                                        <b style="width: 170px;">总结模板</b>
+                                        <b style="width: 170px;">Summary template</b>
                                         <select id="rebuild--select">
                                         </select>
                                         <div class="rebuild--add menu_button menu_button_icon fa-solid fa-pencil"
-                                            id="rebuild--set-rename" title="编辑总结模板"></div>
+                                            id="rebuild--set-rename" title="Edit summary template"></div>
                                         <div class="rebuild--add menu_button menu_button_icon fa-solid fa-plus"
-                                            id="rebuild--set-new" title="创建总结模板"></div>
+                                            id="rebuild--set-new" title="Create summary template"></div>
                                         <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-import"
-                                            id="rebuild--set-import" title="导入总结模板"></div>
+                                            id="rebuild--set-import" title="Import summary template"></div>
                                         <input type="file" id="rebuild--set-importFile" accept=".json" hidden>
                                         <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-export"
-                                            id="rebuild--set-export" title="导出总结模板"></div>
+                                            id="rebuild--set-export" title="Export summary template"></div>
                                         <div class="rebuild--del menu_button menu_button_icon fa-solid fa-trash redWarningBG"
-                                            id="rebuild--set-delete" title="删除此模板"></div>
+                                            id="rebuild--set-delete" title="Delete this template"></div>
                                     </div>
 
                                     <div style="display: flex; width: calc(100% - 20px);">
                                         <div class="menu_button menu_button_icon" id="table_clear_up">
                                             <i class="fa-solid fa-repeat"></i><a
-                                                data-i18n="Reorganize tables now">立即整理表格</a>
+                                                data-i18n="Reorganize tables now">Reorganize table now</a>
                                         </div>
                                     </div>
                                 </div>
@@ -287,11 +299,13 @@
 
                             <!-- 表格推送至对话 -->
                             <div class="flex1 wide100p">
-                                <h4 class="standoutHeader" data-i18n="Frontend table (status bar)">前端表格（状态栏）</h4>
+                                <h4 class="standoutHeader" data-i18n="Frontend table (status bar)">Frontend Table
+                                    (Status Bar)</h4>
                                 <!--                            <b class="table_setting_category_header">表格推送至对话</b><div style="height: 10px;"></div>-->
                                 <div class="checkbox_label range-block justifyLeft">
                                     <input type="checkbox" id="show_settings_in_extension_menu" checked><span
-                                        data-i18n="Access tables from extensions menu">从扩展菜单进入表格</span>
+                                        data-i18n="Access tables from extensions menu">Access from extensions
+                                        menu</span>
                                 </div>
                                 <!--                                <div class="checkbox_label range-block justifyLeft unfinished">-->
                                 <!--                                    <input type="checkbox" id="show_drawer_in_extension_list" checked><span>在扩展列表显示表格设置</span>-->
@@ -299,16 +313,18 @@
 
                                 <div class="checkbox_label range-block justifyLeft">
                                     <input type="checkbox" id="table_to_chat"><span
-                                        data-i18n="Render table view in conversation">表格视图渲染到对话</span>
+                                        data-i18n="Render table view in conversation">Render table to chat</span>
                                     <small class="toggle-description justifyLeft"
-                                        data-i18n="Render table view in conversation description">(启用后会在对话框中显示自定义表格)</small>
+                                        data-i18n="Render table view in conversation description">(Show custom table in
+                                        chat)</small>
                                 </div>
 
                                 <div class="checkbox_label range-block justifyLeft">
                                     <input type="checkbox" id="alternate_switch" checked><span
-                                        data-i18n="Render table view in alternate model">穿插模式</span>
+                                        data-i18n="Render table view in alternate model">Interleaved mode</span>
                                     <small class="toggle-description justifyLeft"
-                                        data-i18n="Render table view in alternate model description">(启用后会在对话框中开启穿插渲染模式)</small>
+                                        data-i18n="Render table view in alternate model description">(Enable interleaved
+                                        rendering in chat)</small>
                                 </div>
 
 
@@ -320,58 +336,67 @@
                                     </div> -->
 
                                     <div class="checkbox_label range-block justifyLeft">
-                                        <label for="table_to_chat_mode" data-i18n="Render to">渲染至</label>
+                                        <label for="table_to_chat_mode" data-i18n="Render to">Render to</label>
                                         <select id="table_to_chat_mode" class="flex1" style="min-width: 100px">
-                                            <option value="context_bottom" data-i18n="Bottom of context">上下文底部
+                                            <option value="context_bottom" data-i18n="Bottom of context">Bottom of
+                                                context
                                             </option>
-                                            <option value="last_message" data-i18n="Inside last message">最后一条消息内部
+                                            <option value="last_message" data-i18n="Inside last message">Inside last
+                                                message
                                             </option>
                                             <!--                                            <option value="macro">自定义位置（宏）</option>-->
                                         </select>
                                         <small id="table_to_chat_is_micro_d" class="toggle-description justifyLeft"
-                                            data-i18n="Use custom display location">使用 <code>{{sheetsView}}</code>
-                                            自定义显示位置</small>
+                                            data-i18n="Use custom display location">Use <code>{{sheetsView}}</code>
+                                            for custom position</small>
                                     </div>
 
                                     <div class="menu_button menu_button_icon" id="dataTable_to_chat_button"
                                         style="margin-top: 10px">
                                         <i class="fa-solid fa-wand-magic-sparkles"></i><a
-                                            data-i18n="Edit style of tables rendered in conversation">编辑渲染至对话的样式</a>
+                                            data-i18n="Edit style of tables rendered in conversation">Edit render
+                                            style</a>
                                     </div>
                                 </div>
 
-                                <!-- 高级设置 -->
+                                <!-- Advanced Settings -->
                                 <div class="inline-drawer wide100p">
                                     <div class="inline-drawer-toggle inline-drawer-header">
-                                        <b><span data-i18n="Advanced rendering settings">高级渲染设置</span></b>
+                                        <b><span data-i18n="Advanced rendering settings">Advanced rendering
+                                                settings</span></b>
                                         <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down">
                                         </div>
                                     </div>
                                     <div class="inline-drawer-content"
                                         style="display: none; padding-left: 20px; width: calc(100% - 20px)">
-                                        <!-- 高级设置选项 -->
+                                        <!-- Advanced Options -->
                                         <div class="checkbox_label range-block justifyLeft">
-                                            <label for="table_cell_width_mode" data-i18n="Render to">单元格显示</label>
+                                            <label for="table_cell_width_mode" data-i18n="Render to">Cell
+                                                display</label>
                                             <select id="table_cell_width_mode" class="flex1" style="min-width: 100px">
-                                                <option value="single_line">不换行</option>
-                                                <option value="wide1_cell">宽</option>
-                                                <option value="wide1_2_cell">半宽</option>
-                                                <option value="wide1_4_cell">1/4宽</option>
+                                                <option value="single_line">No line break</option>
+                                                <option value="wide1_cell">Wide</option>
+                                                <option value="wide1_2_cell">Half width</option>
+                                                <option value="wide1_4_cell">1/4 width</option>
                                             </select>
                                             <small id="table_to_chat_is_micro_d"
-                                                class="toggle-description justifyLeft">所有位置表格的单元格显示方式</small>
+                                                class="toggle-description justifyLeft">Cell display mode for all
+                                                tables</small>
                                         </div>
                                         <div class="checkbox_label range-block justifyLeft">
                                             <input type="checkbox" id="high_performance_sheets_render"><span
-                                                data-i18n="Disable dynamic effects in table plugin">禁用表格插件内的动态效果</span>
+                                                data-i18n="Disable dynamic effects in table plugin">Disable dynamic
+                                                effects</span>
                                             <small class="toggle-description justifyLeft"
-                                                data-i18n="Disable dynamic effects description">(如果插件启用后出现运行时卡顿，可以尝试开启)</small>
+                                                data-i18n="Disable dynamic effects description">(Try enabling if lag
+                                                occurs)</small>
                                         </div>
                                         <div class="checkbox_label range-block justifyLeft">
                                             <input type="checkbox" id="gpu_assist_sheets_render"><span
-                                                data-i18n="Disable GPU table rendering">禁用GPU渲染表格</span>
+                                                data-i18n="Disable GPU table rendering">Disable GPU rendering</span>
                                             <small class="toggle-description justifyLeft"
-                                                data-i18n="Disable GPU table rendering description">(手动禁用GPU渲染表格)</small>
+                                                data-i18n="Disable GPU table rendering description">(Manually disable
+                                                GPU rendering)</small>
                                         </div>
                                     </div>
                                 </div>

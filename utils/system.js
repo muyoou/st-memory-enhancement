@@ -19,8 +19,8 @@ export class taskTiming {
     log() {
         const currentTime = new Date();
         const duration = currentTime - this.task.startTime;
-        this.timer ++;
-        console.log(`${this.id} [${this.timer}] 任务耗时: ${duration}ms`);
+        this.timer++;
+        console.log(`${this.id} [${this.timer}] Task duration: ${duration}ms`);
     }
 
     end() {
