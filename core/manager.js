@@ -30,7 +30,33 @@ export const USER = {
     getSettings: () => APP.power_user,
     getExtensionSettings: () => APP.extension_settings,
     saveSettings: () => APP.saveSettings(),
-    saveChat: () => APP.saveChat(),
+    saveChat: () => {
+        // --- 修复逻辑开始 ---
+        try {
+            // 检查 selected_group 是否存在（不为 null/undefined 则是群组）
+            // 这里的 APP 指向 appFuncManager
+            const isGroup = !!APP.selected_group;
+            
+            if (isGroup) {
+                console.log("[ST-Memory] 检测到群组 (selected_group active)，调用 saveGroupChat");
+                
+                if (typeof APP.saveGroupChat === 'function') {
+                    return APP.saveGroupChat();
+                } 
+                // 最后的兜底
+                if (typeof saveGroupChat === 'function') {
+                    return saveGroupChat();
+                }
+                console.error("[ST-Memory] 无法找到 saveGroupChat 函数！");
+            }
+        } catch (e) {
+            console.warn("[ST-Memory] 保存逻辑判断出错:", e);
+        }
+        // --- 修复逻辑结束 ---
+
+        // 默认单人保存
+        return APP.saveChat();
+    },
     getContext: () => APP.getContext(),
     isSwipe:()=>
     {
