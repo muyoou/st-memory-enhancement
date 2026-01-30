@@ -26,7 +26,7 @@ const formConfigs = {
         formDescription: "设置列的标题和描述信息。",
         fields: [
             { label: '列标题', type: 'text', dataKey: 'value' },
-            { label: '不允许值重复', type: 'checkbox', dataKey: 'valueIsOnly' },
+            //{ label: '不允许值重复', type: 'checkbox', dataKey: 'valueIsOnly' },
             {
                 label: '数据类型', type: 'select', dataKey: 'columnDataType',
                 options: [
