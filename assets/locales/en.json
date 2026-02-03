@@ -1,5 +1,30 @@
 {
     "index.html": "______________________________________________________________________________________________________________________________________________",
+    "表格整理": "Reorganize tables",
+    "时空表格": "Spacetime Table",
+    "日期": "Date",
+    "时间": "Time",
+    "地点（当前描写）": "Location (Current Description)",
+    "此地角色": "Characters Here",
+    "角色姓名": "Character Name",
+    "外貌特征": "Physical Features",
+    "性格": "Personality",
+    "职业": "Occupation",
+    "兴趣爱好": "Hobbies",
+    "喜欢的（作品、角色、物品等）": "Liked Things",
+    "居住地": "Residence",
+    "其他重要信息": "Other Info",
+    "与<user>的关系": "Relationship with <user>",
+    "对<user>的态度": "Attitude towards <user>",
+    "对<user>的好感度": "Affinity towards <user>",
+    "任务": "Task",
+    "预计耗时": "Duration",
+    "事件概要": "Event Summary",
+    "情感": "Emotion",
+    "持有者": "Owner",
+    "物品描述": "Item Description",
+    "物品名称": "Item Name",
+    "重要原因": "Reason for Importance",
     "Memory Enhancement (Tables)": "Memory Enhancement (Tables)",
     "Click to update": "Click to update",
     "Project link": "Project link",
@@ -60,15 +85,11 @@
     "Disable dynamic effects description": "(If you experience lag when the plugin is enabled, try enabling this)",
     "Disable GPU table rendering": "Disable GPU table rendering",
     "Disable GPU table rendering description": "(Manually disable GPU rendering for tables)",
-
-
     "appHeaderTableDrawer.html": "______________________________________________________________________________________________________________________________________________",
     "[title]Event table": "Event table",
     "Data": "Data",
     "Template": "Template",
     "Settings": "Settings",
-
-
     "manager.html": "______________________________________________________________________________________________________________________________________________",
     "managerDescription": "This is a table for storing data. The model can update the table based on the provided prompts and use the data in the table as a reference for generating the next conversation.",
     "[title]View table data statistics": "View table data statistics",
@@ -78,15 +99,11 @@
     "[title]Import table": "Import table",
     "[title]Export table": "Export table",
     "[title]Clear table": "Clear table",
-
-
     "editor.html": "______________________________________________________________________________________________________________________________________________",
     "editorDescription": "This is the data table editor interface. You can use the following tools to edit and manage table data.",
     "Scope:": "Scope:",
     "ScopeGlobal": "Global",
     "[title]New table template": "New table template",
-
-
     "customSheetStyle.html": "______________________________________________________________________________________________________________________________________________",
     "customTableStyleTitle": "Custom Table Style",
     "customTableStyleDesc": "Customize the display style of the table. When the style content is empty, the original table is displayed by default.<br>Supports defining structure and style using HTML and CSS, and uses <code>\\$\\w\\s+</code> to locate cells.<br>For example, <code>$A0</code> represents the 1st column, 1st row (header), and <code>$A1</code> represents the 1st column, 2nd row (first row of table content).",
@@ -95,15 +112,12 @@
     "pushToChatDesc": "(When enabled, the style in the preview below for this table will be pushed to the conversation)",
     "replacementStyleLabel": "Replacement Style:",
     "stylePreviewLabel": "Style Preview:",
-
-
     "customPushSheetsToChatStyle.html (includes reused keys from customSheetStyle.html)": "______________________________________________________________________________________________________________________________________________",
     "presetLabel": "Preset",
     "presetDefault": "Default",
     "insertLastMessageLabel": "Insert into the last message",
     "insertLastMessageDesc": "(Insert at the bottom of the last message block instead of the bottom of the context)",
     "regexReplaceLabel": "Use regex to replace content in the conversation:",
-
     "___defaultSettings___": "______________________________________________________________________________________________________________________________________________",
     "__defaultSettings__": {
         "isExtensionAble": true,
@@ -254,9 +268,6 @@
             }
         ]
     },
-
     "___profile_prompts___": "______________________________________________________________________________________________________________________________________________",
-    "__profile_prompts__": {
-
-    }
+    "__profile_prompts__": {}
 }

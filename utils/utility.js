@@ -40,7 +40,7 @@ export function readonly(obj, propertyName, getter) {
     Object.defineProperty(obj, propertyName, {
         get: getter,
         set(value) {
-            throw new Error(`${propertyName} 属性是只读的，不允许写入。`);
+            throw new Error(`${propertyName} property is read-only and cannot be written to.`);
         }
     });
 }
@@ -94,7 +94,7 @@ export function generateRandomNumber(length = 12, forceLength = true) {
 //random一个唯一id加密用
 export function generateUid() {
     const rid = `st-${Date.now()}-${generateRandomString(32)}`;
-    console.log('生成的唯一ID:', rid);
+    console.log('Generated Unique ID:', rid);
     return rid;
 }
 
