@@ -502,7 +502,7 @@ async function renderSheetsDOM(mesId = -1) {
     const sheets = BASE.hashSheetsToSheets(piece.hash_sheets);
     sheets.forEach((sheet) => {
         sheet.hashSheet = sheet.hashSheet.filter((row) => {
-            return (sheet.cells.get(row[0]).isDeleted !== true);
+            return (sheet.cells.get(row[0])?.isDeleted !== true);
         })
         sheet.cells.forEach((cell) => {
             cell.isDeleted = false;
