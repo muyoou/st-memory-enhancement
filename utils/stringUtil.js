@@ -82,7 +82,7 @@ export function parseLooseDict(str) {
             if (inString) {
                 // 如果遇到嵌套引号，替换为另一种
                 if (char === quoteChar) {
-                    if (content[i + 1] === ','||content[i + 1] == null) {
+                    if (content[i + 1] === ',' || content[i + 1] === '，' || content[i + 1] == null) {
                         i++; // 跳过结尾引号
                         break;
                     } else {
@@ -111,7 +111,7 @@ export function parseLooseDict(str) {
         result[key] = value.trim().replace(/,/g, '/'); // 替换逗号
 
         // 跳过分隔符和空格
-        while (i < len && (content[i] === ',' || content[i] === ' ')) {
+        while (i < len && (content[i] === ',' || content[i] === '，' || content[i] === ' ')) {
             i++;
         }
     }
