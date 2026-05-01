@@ -183,13 +183,11 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         }
 
         // Use EDITOR.generateRaw for non-array input
-        const response = await EDITOR.generateRaw(
-            finalUserPrompt,
-            '',
-            false,
-            false,
-            finalSystemPrompt,
-        );
+        const response = await EDITOR.generateRaw({
+            prompt: finalUserPrompt,
+            systemPrompt: finalSystemPrompt,
+            trimNames: false,
+        });
         loadingToast.close();
         return suspended ? 'suspended' : response;
         // --- End: Original logic ---
