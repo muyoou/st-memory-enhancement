@@ -316,6 +316,39 @@ export function cellClickEditModeEvent(cell) {
     cell.on('click', async (event) => {
         event.stopPropagation();
         event.preventDefault();
+
+        const sheet = cell.parent;
+        const element = event.currentTarget;
+        const rowElement = element.parentElement;
+
+        if (sheet.currentHighlightedCell === element) {
+            return;
+        }
+
+        // 备份当前cell的style，以便在失焦时恢复
+        const originalCellStyle = element.style.cssText;
+        const originalRowStyle = rowElement ? rowElement.style.cssText : '';
+
+        // 高亮cell
+        //element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
+        //element.style.color = 'var(--SmartThemeQuoteColor)';
+        element.style.outline = '2px solid var(--SmartThemeQuoteColor)';
+        element.style.zIndex = '999';
+        if (rowElement) {
+            rowElement.style.outline = '2px dashed var(--SmartThemeQuoteColor)';
+        }
+        sheet.currentHighlightedCell = element;
+
+        // 失焦
+        const onBlur = () => {
+            element.style.cssText = originalCellStyle;
+            if (rowElement) {
+                rowElement.style.cssText = originalRowStyle;
+            }
+            element.removeEventListener('blur', onBlur); // 执行一次后自动销毁监听器
+        };
+
+        element.addEventListener('blur', onBlur);
     })
 }
 
@@ -354,7 +387,7 @@ function cellClickEvent(cell) {
         const element = event.currentTarget;
         const rowElement = element.parentElement;
         if (sheet.currentPopupMenu) {
-            if (sheet.currentPopupCell === element) {
+            if (sheet.currentHighlightedCell === element) {
                 return;
             }
             sheet.currentPopupMenu.destroy();
@@ -407,14 +440,14 @@ function cellClickEvent(cell) {
         $(viewSheetsContainer).append(menuElement);
 
         // 高亮cell
-        element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
-        element.style.color = 'var(--SmartThemeQuoteColor)';
+        //element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
+        //element.style.color = 'var(--SmartThemeQuoteColor)';
         element.style.outline = '2px solid var(--SmartThemeQuoteColor)';
         element.style.zIndex = '999';
         if (rowElement) {
             rowElement.style.outline = '2px dashed var(--SmartThemeQuoteColor)';
         }
-        sheet.currentPopupCell = element;
+        sheet.currentHighlightedCell = element;
 
         const originalDestroy = menu.destroy;
         menu.destroy = function () {
@@ -422,8 +455,8 @@ function cellClickEvent(cell) {
             if (rowElement) {
                 rowElement.style.cssText = originalRowStyle;
             }
-            if (sheet.currentPopupCell === element) {
-                sheet.currentPopupCell = null;
+            if (sheet.currentHighlightedCell === element) {
+                sheet.currentHighlightedCell = null;
             }
             if (originalDestroy) {
                 originalDestroy.call(this);

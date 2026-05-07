@@ -330,7 +330,7 @@ function bindCellClickEvent(cell) {
         const element = event.currentTarget;
         const rowElement = element.parentElement;
         if (sheet.currentPopupMenu) {
-            if (sheet.currentPopupCell === element) {
+            if (sheet.currentHighlightedCell === element) {
                 return;
             }
             sheet.currentPopupMenu.destroy();
@@ -387,14 +387,14 @@ function bindCellClickEvent(cell) {
         popupY += rect.height / drag.scale + 3;
 
         // 高亮cell
-        element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
-        element.style.color = 'var(--SmartThemeQuoteColor)';
+        //element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
+        //element.style.color = 'var(--SmartThemeQuoteColor)';
         element.style.outline = '2px solid var(--SmartThemeQuoteColor)';
         element.style.zIndex = '999';
         if (rowElement) {
             rowElement.style.outline = '2px dashed var(--SmartThemeQuoteColor)';
         }
-        sheet.currentPopupCell = element;
+        sheet.currentHighlightedCell = element;
 
         const originalDestroy = menu.destroy;
         menu.destroy = function () {
@@ -402,8 +402,8 @@ function bindCellClickEvent(cell) {
             if (rowElement) {
                 rowElement.style.cssText = originalRowStyle;
             }
-            if (sheet.currentPopupCell === element) {
-                sheet.currentPopupCell = null;
+            if (sheet.currentHighlightedCell === element) {
+                sheet.currentHighlightedCell = null;
             }
             if (originalDestroy) {
                 originalDestroy.call(this);
