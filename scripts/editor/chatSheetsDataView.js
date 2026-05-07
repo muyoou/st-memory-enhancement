@@ -350,15 +350,22 @@ function cellClickEvent(cell) {
         // 重新获取hash
         BASE.getLastestSheets()
 
-        if (cell.parent.currentPopupMenu) {
-            cell.parent.currentPopupMenu.destroy();
-            cell.parent.currentPopupMenu = null;
+        const sheet = cell.parent;
+        const element = event.currentTarget;
+        const rowElement = element.parentElement;
+        if (sheet.currentPopupMenu) {
+            if (sheet.currentPopupCell === element) {
+                return;
+            }
+            sheet.currentPopupMenu.destroy();
+            sheet.currentPopupMenu = null;
+            await Promise.resolve();
         }
-        cell.parent.currentPopupMenu = new PopupMenu();
+        sheet.currentPopupMenu = new PopupMenu();
 
-        const menu = cell.parent.currentPopupMenu;
+        const menu = sheet.currentPopupMenu;
         const [rowIndex, colIndex] = cell.position;
-        const sheetType = cell.parent.type;
+        const sheetType = sheet.type;
 
         if (rowIndex === 0 && colIndex === 0) {
             menu.add('<i class="fa-solid fa-bars-staggered"></i> 批量行编辑', () => batchEditMode(cell));
@@ -385,10 +392,9 @@ function cellClickEvent(cell) {
 
         }, 0)
 
-        const element = event.target
-
         // 备份当前cell的style，以便在菜单关闭时恢复
-        const style = element.style.cssText;
+        const originalCellStyle = element.style.cssText;
+        const originalRowStyle = rowElement ? rowElement.style.cssText : '';
 
         // 获取单元格位置
         const rect = element.getBoundingClientRect();
@@ -403,12 +409,27 @@ function cellClickEvent(cell) {
         // 高亮cell
         element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
         element.style.color = 'var(--SmartThemeQuoteColor)';
-        element.style.outline = '1px solid var(--SmartThemeQuoteColor)';
+        element.style.outline = '2px solid var(--SmartThemeQuoteColor)';
         element.style.zIndex = '999';
+        if (rowElement) {
+            rowElement.style.outline = '2px dashed var(--SmartThemeQuoteColor)';
+        }
+        sheet.currentPopupCell = element;
 
-        menu.show(menuLeft, menuTop).then(() => {
-            element.style.cssText = style;
-        })
+        const originalDestroy = menu.destroy;
+        menu.destroy = function () {
+            element.style.cssText = originalCellStyle;
+            if (rowElement) {
+                rowElement.style.cssText = originalRowStyle;
+            }
+            if (sheet.currentPopupCell === element) {
+                sheet.currentPopupCell = null;
+            }
+            if (originalDestroy) {
+                originalDestroy.call(this);
+            }
+        };
+        menu.show(menuLeft, menuTop);
         menu.frameUpdate((menu) => {
             // 重新定位菜单
             const rect = element.getBoundingClientRect();

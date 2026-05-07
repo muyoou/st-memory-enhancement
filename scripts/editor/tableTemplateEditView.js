@@ -325,48 +325,59 @@ function handleAction(cell, action) {
 function bindCellClickEvent(cell) {
     cell.on('click', async (event) => {
         event.stopPropagation();
-        if (cell.parent.currentPopupMenu) {
-            cell.parent.currentPopupMenu.destroy();
-            cell.parent.currentPopupMenu = null;
-        }
-        cell.parent.currentPopupMenu = new PopupMenu();
 
+        const sheet = cell.parent;
+        const element = event.currentTarget;
+        const rowElement = element.parentElement;
+        if (sheet.currentPopupMenu) {
+            if (sheet.currentPopupCell === element) {
+                return;
+            }
+            sheet.currentPopupMenu.destroy();
+            sheet.currentPopupMenu = null;
+            await Promise.resolve();
+        }
+        sheet.currentPopupMenu = new PopupMenu();
+
+        const menu = sheet.currentPopupMenu;
         const [rowIndex, colIndex] = cell.position;
-        const sheetType = cell.parent.type;
+        const sheetType = sheet.type;
 
         if (rowIndex === 0 && colIndex === 0) {
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
             if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
+                menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
             }
         } else if (rowIndex === 0) {
-            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async (e) => { await templateCellDataEdit(cell) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-left"></i> 向左插入列', (e) => { handleAction(cell, Cell.CellAction.insertLeftColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
-            cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除列', (e) => { handleAction(cell, Cell.CellAction.deleteSelfColumn) });
+            menu.add('<i class="fa fa-i-cursor"></i> 编辑该列', async (e) => { await templateCellDataEdit(cell) });
+            menu.add('<i class="fa fa-arrow-left"></i> 向左插入列', (e) => { handleAction(cell, Cell.CellAction.insertLeftColumn) });
+            menu.add('<i class="fa fa-arrow-right"></i> 向右插入列', (e) => { handleAction(cell, Cell.CellAction.insertRightColumn) });
+            menu.add('<i class="fa fa-trash-alt"></i> 删除列', (e) => { handleAction(cell, Cell.CellAction.deleteSelfColumn) });
         } else if (colIndex === 0) {
-            // if (sheetType === cell.parent.SheetType.dynamic) {
+            // if (sheetType === sheet.SheetType.dynamic) {
             //     cell.element.delete();
             //     return;
             // }
 
-            cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该行', async (e) => { await templateCellDataEdit(cell) });
+            menu.add('<i class="fa fa-i-cursor"></i> 编辑该行', async (e) => { await templateCellDataEdit(cell) });
             if (sheetType === SheetBase.SheetType.free || sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-up"></i> 向上插入行', (e) => { handleAction(cell, Cell.CellAction.insertUpRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
-                cell.parent.currentPopupMenu.add('<i class="fa fa-trash-alt"></i> 删除行', (e) => { handleAction(cell, Cell.CellAction.deleteSelfRow) });
+                menu.add('<i class="fa fa-arrow-up"></i> 向上插入行', (e) => { handleAction(cell, Cell.CellAction.insertUpRow) });
+                menu.add('<i class="fa fa-arrow-down"></i> 向下插入行', (e) => { handleAction(cell, Cell.CellAction.insertDownRow) });
+                menu.add('<i class="fa fa-trash-alt"></i> 删除行', (e) => { handleAction(cell, Cell.CellAction.deleteSelfRow) });
             }
         } else {
             if (sheetType === SheetBase.SheetType.static) {
-                cell.parent.currentPopupMenu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async (e) => { await templateCellDataEdit(cell) });
+                menu.add('<i class="fa fa-i-cursor"></i> 编辑该单元格', async (e) => { await templateCellDataEdit(cell) });
             } else {
                 return;
             }
         }
 
-        const element = event.target
         // 备份当前cell的style，以便在菜单关闭时恢复
-        const style = element.style.cssText;
+        const originalCellStyle = element.style.cssText;
+        const originalRowStyle = rowElement ? rowElement.style.cssText : '';
+
+        // 获取单元格位置
         const rect = element.getBoundingClientRect();
         const dragSpaceRect = drag.dragSpace.getBoundingClientRect();
         let popupX = rect.left - dragSpaceRect.left;
@@ -375,15 +386,32 @@ function bindCellClickEvent(cell) {
         popupY /= drag.scale;
         popupY += rect.height / drag.scale + 3;
 
+        // 高亮cell
         element.style.backgroundColor = 'var(--SmartThemeUserMesBlurTintColor)';
         element.style.color = 'var(--SmartThemeQuoteColor)';
-        element.style.outline = '1px solid var(--SmartThemeQuoteColor)';
+        element.style.outline = '2px solid var(--SmartThemeQuoteColor)';
         element.style.zIndex = '999';
+        if (rowElement) {
+            rowElement.style.outline = '2px dashed var(--SmartThemeQuoteColor)';
+        }
+        sheet.currentPopupCell = element;
 
-        drag.add('menu', cell.parent.currentPopupMenu.renderMenu());
-        cell.parent.currentPopupMenu.show(popupX, popupY).then(() => {
-            element.style.cssText = style;
-        });
+        const originalDestroy = menu.destroy;
+        menu.destroy = function () {
+            element.style.cssText = originalCellStyle;
+            if (rowElement) {
+                rowElement.style.cssText = originalRowStyle;
+            }
+            if (sheet.currentPopupCell === element) {
+                sheet.currentPopupCell = null;
+            }
+            if (originalDestroy) {
+                originalDestroy.call(this);
+            }
+        };
+
+        drag.add('menu', menu.renderMenu());
+        menu.show(popupX, popupY);
     });
 }
 
