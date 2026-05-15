@@ -131,7 +131,9 @@ async function exportTable() {
     const url = URL.createObjectURL(blob);
     const downloadLink = document.createElement('a');
     downloadLink.href = url;
-    downloadLink.download = 'table_data.json'; // 默认文件名
+    const chatId = USER.getContext().chatId;
+    const round = USER.getContext().chat.length - 1;
+    downloadLink.download = `${chatId}_${round}_table_data.json`;
     document.body.appendChild(downloadLink); // 必须添加到 DOM 才能触发下载
     downloadLink.click();
     document.body.removeChild(downloadLink); // 下载完成后移除
