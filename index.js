@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.14'
+const VERSION = '2.2.15'
 
 const editErrorInfo = {
     forgotCommentTag: false,
