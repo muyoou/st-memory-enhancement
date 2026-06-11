@@ -33,7 +33,7 @@ const editErrorInfo = {
  */
 function fixUnescapedSingleQuotes(value) {
     if (typeof value === 'string') {
-        return value.replace(/\\'/g, "'");
+        return value.replace(/\'/g, "'");
     }
     if (typeof value === 'object' && value !== null) {
         for (const key in value) {
@@ -341,12 +341,12 @@ export function executeTableEditActions(matches, referencePiece) {
     }
 
     // 核心修复：确保修改被保存到当前最新的聊天片段中。
-    const { piece: currentPiece } = USER.getChatPiece();
-    if (!currentPiece) {
+    const chatPieceObj = USER.getChatPiece();
+    if (!chatPieceObj || !chatPieceObj.piece) {
         console.error("executeTableEditActions: 无法获取当前聊天片段，保存操作失败。");
         return false;
     }
-    sheets.forEach(sheet => sheet.save(currentPiece, true))
+    sheets.forEach(sheet => sheet.save(chatPieceObj.piece, true))
 
     console.log("聊天模板：", BASE.sheetsData.context)
     console.log("测试总chat", USER.getContext().chat)

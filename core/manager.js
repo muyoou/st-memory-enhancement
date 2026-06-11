@@ -221,18 +221,18 @@ export const BASE = {
     },
     saveChatSheets(saveToPiece = true) {
         if(saveToPiece){
-            const {piece} = USER.getChatPiece()
-            if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
-            BASE.getChatSheets(sheet => sheet.save(piece, true))
+            const chatPieceObj = USER.getChatPiece();
+            if(!chatPieceObj || !chatPieceObj.piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
+            BASE.getChatSheets(sheet => sheet.save(chatPieceObj.piece, true))
         }else BASE.getChatSheets(sheet => sheet.save(undefined, true))
         USER.saveChat()
     },
     reSaveAllChatSheets(sheets) {
         BASE.sheetsData.context = []
-        const {piece} = USER.getChatPiece()
-        if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
+        const chatPieceObj = USER.getChatPiece();
+        if(!chatPieceObj || !chatPieceObj.piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         sheets.forEach(sheet => {
-            sheet.save(piece, true)
+            sheet.save(chatPieceObj.piece, true)
         })
         updateSelectBySheetStatus()
         BASE.refreshTempView(true)
@@ -292,7 +292,8 @@ export const BASE = {
     initHashSheet(force = false) {
         if (force || (BASE.sheetsData.context.length === 0)) {
             console.log("尝试从模板中构建表格数据")
-            const {piece: currentPiece} = USER.getChatPiece()
+            const chatPieceObj = USER.getChatPiece();
+            const currentPiece = chatPieceObj ? chatPieceObj.piece : null;
             buildSheetsByTemplates(currentPiece)
             if (currentPiece?.hash_sheets) {
                 // console.log('使用模板创建了新的表格数据', currentPiece)
