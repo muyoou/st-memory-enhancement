@@ -5,11 +5,11 @@
     <b>🧠 记忆增强插件</b> - 专为 <a href="https://github.com/SillyTavern/SillyTavern">SillyTavern酒馆</a> 设计，旨在显著提升角色扮演中 AI 的长期记忆能力！
 
 <p>
-    <a href="https://muyoo.com.cn/wiki/memory/">⚙️ 快速安装/更新</a>
+    <a href="https://muyoo.com.cn/memory/">⚙️ 快速安装/更新</a>
     |
-    <a href="https://muyoo.com.cn/wiki/memory/start.html">🔄 使用教程</a>
+    <a href="https://muyoo.com.cn/memory/doc/start">🔄 使用教程</a>
     |
-    <a href="https://muyoo.com.cn/wiki/memory/installFaq.html">🔍 问题自查</a>
+    <a href="https://muyoo.com.cn/memory/doc/installFaq">🔍 问题自查</a>
 </p>
 
 <p>
