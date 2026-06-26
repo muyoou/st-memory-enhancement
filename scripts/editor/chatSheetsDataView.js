@@ -628,6 +628,18 @@ async function initTableView(mesId) {
         renderSheetsDOM(prevDeep);
     })
 
+    // 点击跳转按钮
+    $(document).on('click', '#table_jump_button', function () {
+        const inputVal = $('#table_jump_input').val();
+        const deep = inputVal === "" ? USER.getContext().chat.length - 1: Number(inputVal);
+        const { deep: prevDeep } = BASE.getLastSheetsPiece(Math.abs(deep), 20, deep < 0);
+        if (prevDeep === -1) {
+            EDITOR.error("没有更多的表格数据了")
+            return
+        }
+        renderSheetsDOM(prevDeep);
+    })
+
     // 点击后表按钮
     $(document).on('click', '#table_next_button', function () {
         const deep = DERIVED.any.renderDeep;

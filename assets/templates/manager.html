@@ -64,13 +64,21 @@
         </div>
     </div>
     <hr />
-    <div style="display: flex; justify-content: space-between; ">
-        <div style="display: flex; justify-content: center" id="table_prev_button" title="前表">
-            <i class="menu_button menu_button_icon fa-solid">&lt; 前表</i>
+    <div style="display: flex; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 5px">
+            <div id="table_prev_button" title="前表">
+                <i class="menu_button menu_button_icon fa-solid">&lt; 前表</i>
+            </div>
+            <input type="number" id="table_jump_input" placeholder="层数" class="text_pole" style="width: 60px; margin: 0px 0px; padding: 2px 5px; box-sizing: border-box; text-align: center;">
+            <div id="table_jump_button" title="跳转">
+                <i class="menu_button menu_button_icon fa-solid">跳转</i>
+            </div>
+            <div id="table_next_button" title="后表">
+                <i class="menu_button menu_button_icon fa-solid">后表 &gt;</i>
+            </div>
         </div>
-        <div id="table_indicator">现在是最新表格</div>
-        <div style="display: flex; justify-content: center" id="table_next_button" title="后表">
-            <i class="menu_button menu_button_icon fa-solid">后表 &gt;</i>
+        <div id="table_indicator" style="flex: 1; text-align: center;">
+            现在是最新表格
         </div>
     </div>
     <hr />
