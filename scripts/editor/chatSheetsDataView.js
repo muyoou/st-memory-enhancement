@@ -7,6 +7,7 @@ import { PopupMenu } from "../../components/popupMenu.js";
 import { openTableStatisticsPopup } from "./tableStatistics.js";
 import { openCellHistoryPopup } from "./cellHistory.js";
 import { openSheetStyleRendererPopup } from "./sheetStyleEditor.js";
+import { initTableDirectoryControls, refreshTableDirectory } from "./tableDirectory.js";
 import { Cell } from "../../core/table/cell.js";
 
 let tablePopup = null
@@ -495,6 +496,10 @@ export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _ce
         console.log("渲染：", instance)
         const sheetContainer = document.createElement('div')
         const sheetTitleText = document.createElement('h3')
+        sheetContainer.classList.add('table-directory-sheet-container')
+        sheetContainer.dataset.sheetUid = sheet.uid
+        sheetTitleText.dataset.tableDirectorySheetTitle = sheet.uid
+        sheetTitleText.classList.add('table-directory-sheet-title')
         sheetContainer.style.overflowX = 'none'
         sheetContainer.style.overflowY = 'auto'
         sheetTitleText.innerText = `#${index} ${sheet.name}`
@@ -571,6 +576,7 @@ async function renderSheetsDOM(mesId = -1) {
     $(viewSheetsContainer).empty()
     viewSheetsContainer.style.paddingBottom = '150px'
     renderEditableSheetsDOM(sheets, viewSheetsContainer, DERIVED.any.isRenderLastest ? undefined : () => { })
+    refreshTableDirectory()
     $("#table_indicator").text(DERIVED.any.isRenderLastest ? "现在是可修改的活动表格" : `现在是第${deep}轮对话中的旧表格，不可被更改`)
     task.log()
 }
@@ -579,6 +585,7 @@ let initializedTableView = null
 async function initTableView(mesId) {
     initializedTableView = $(await SYSTEM.getTemplate('manager')).get(0);
     viewSheetsContainer = initializedTableView.querySelector('#tableContainer');
+    initTableDirectoryControls()
     // setTableEditTips($(initializedTableView).find('#tableEditTips'));    // 确保在 table_manager_container 存在的情况下查找 tableEditTips
 
     // 设置编辑提示

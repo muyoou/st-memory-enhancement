@@ -82,6 +82,10 @@ export class Cell {
     initCellRender(rowIndex = -1, colIndex = -1) {
         this.element = document.createElement('td');
         this.element.className = 'sheet-cell';
+        this.element.dataset.cellUid = this.uid || '';
+        this.element.dataset.sheetUid = this.parent?.uid || '';
+        this.element.dataset.rowIndex = String(rowIndex);
+        this.element.dataset.colIndex = String(colIndex);
         this.renderCell(rowIndex, colIndex);
 
         return this.element;

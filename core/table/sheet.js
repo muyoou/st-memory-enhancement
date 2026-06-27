@@ -67,6 +67,8 @@ export class Sheet extends SheetBase {
         // DOM 构建
         this.element = document.createElement('table');
         this.element.classList.add('sheet-table', 'tableDom');
+        this.element.dataset.sheetUid = this.uid;
+        this.element.dataset.sheetName = this.name || '';
         this.element.style.position = 'relative';
         this.element.style.display = 'flex';
         this.element.style.flexDirection = 'column';
