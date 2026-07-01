@@ -203,7 +203,7 @@ function collectSearchResults(keyword) {
                         type: 'cell',
                         sheetUid: sheet.uid,
                         cell: cell.element,
-                        title: `${sheetName} / 第 ${rowIndex} 行 / ${columnHeader}`,
+                        title: `${sheetName} / 第 ${rowIndex - 1} 行 / ${columnHeader}`,
                         meta: value,
                     });
                 }
