@@ -95,11 +95,7 @@ function highlightElement(element) {
 }
 
 function jumpToResult(result) {
-    const title = document.querySelector(`#tableContainer [data-table-directory-sheet-title="${result.sheetUid}"]`);
-    highlightElement(title);
-
-    if (!result.cell) return;
-    const target = document.querySelector(`#tableContainer [data-cell-uid="${result.cell?.dataset.cellUid}"]`);
+    const target = result.cell ? document.querySelector(`#tableContainer [data-cell-uid="${result.cell?.dataset.cellUid}"]`) : document.querySelector(`#tableContainer [data-table-directory-sheet-title="${result.sheetUid}"]`);
     target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     highlightElement(target);
 }
