@@ -141,7 +141,11 @@ function createGroup(title, results) {
     groupTitle.textContent = `${title} (${results.length})`;
     group.appendChild(groupTitle);
 
-    results.forEach(result => group.appendChild(createResultItem(result)));
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'table-directory-group-items';
+    results.forEach(result => itemsContainer.appendChild(createResultItem(result)));
+    group.appendChild(itemsContainer);
+
     return group;
 }
 

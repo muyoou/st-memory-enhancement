@@ -189,12 +189,12 @@ td.selected {
     right: 24px;
     z-index: 4000;
     display: none;
-    width: max-content;
-    min-width: 360px;
+    width: 380px;
+    min-width: 280px;
     max-width: none;
     max-height: min(72vh, 720px);
     resize: both;
-    overflow: auto;
+    overflow: hidden;
     padding: 12px;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 12px;
@@ -244,24 +244,36 @@ td.selected {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    overflow-y: auto;
-    padding-right: 4px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .table-directory-result-group {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-height: 0;
+    flex: 0 1 auto;
 }
 
 .table-directory-group-title {
-    position: sticky;
-    top: 0;
-    padding: 4px 2px;
+    padding: 6px 2px;
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--SmartThemeEmColor);
-    background: var(--SmartThemeBlurTintColor);
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.table-directory-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    flex: 0 1 auto;
+    padding-right: 4px;
 }
 
 .table-directory-result-item {
@@ -286,18 +298,18 @@ td.selected {
 }
 
 .table-directory-result-title {
-    overflow: hidden;
     font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-all;
+    overflow-wrap: break-word;
 }
 
 .table-directory-result-meta {
-    overflow: hidden;
     font-size: 0.82rem;
     opacity: 0.78;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-all;
+    overflow-wrap: break-word;
 }
 
 .table-directory-empty {
@@ -330,6 +342,7 @@ td.selected {
         bottom: 0;
         left: 0;
         width: 100vw;
+        max-width: 100vw;
         max-height: 78vh;
         border-right: none;
         border-bottom: none;
