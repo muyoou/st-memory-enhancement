@@ -95,15 +95,13 @@ function highlightElement(element) {
 }
 
 function jumpToResult(result) {
-    const sheet = getRenderingSheets().find(item => item.uid === result.sheetUid);
-    if (!sheet) return;
-
-    const target = result.cell || sheet.element;
-    target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    highlightElement(target);
-
-    const title = document.querySelector(`[data-table-directory-sheet-title="${CSS.escape(result.sheetUid)}"]`);
+    const title = document.querySelector(`#tableContainer [data-table-directory-sheet-title="${result.sheetUid}"]`);
     highlightElement(title);
+
+    if (!result.cell) return;
+    const target = document.querySelector(`#tableContainer [data-cell-uid="${result.cell?.dataset.cellUid}"]`);
+    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    highlightElement(target);
 }
 
 function createResultItem(result) {
