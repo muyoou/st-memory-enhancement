@@ -151,13 +151,17 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         }
 
         console.log('主API请求的多消息数组:', messages); // Log the actual array
-        // Use TavernHelper.generateRaw with the array, enabling streaming
+        // 修复：不再依赖「酒馆助手 TavernHelper」插件(未安装时 ReferenceError)。
+        // 改用酒馆自带的 generateRaw，其 prompt 参数原生支持 chat 消息数组，
+        // 未传 api 时默认走当前主 API(main_api)，即「主API」语义。
+        if (typeof EDITOR.generateRaw !== 'function') {
+            throw new Error("当前酒馆版本过低，无法通过主API发送分步填表请求，请更新酒馆后重试");
+        }
 
-        if(!TavernHelper) throw new Error("酒馆助手未安装，总结功能依赖于酒馆助手插件，请安装后刷新");
-
-        const response = await TavernHelper.generateRaw({
-            ordered_prompts: messages, // Pass the array directly
-            should_stream: true,      // Re-enable streaming
+        const response = await EDITOR.generateRaw({
+            prompt: messages,
+            systemPrompt: '',
+            trimNames: false, // 不要修剪命名，避免误删表格操作指令
         });
         loadingToast.close();
         return suspended ? 'suspended' : response;
