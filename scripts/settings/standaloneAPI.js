@@ -391,6 +391,10 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
                 // Pass empty system_prompt if promptData is array, otherwise pass the original systemPrompt string
                 system_prompt: Array.isArray(promptData) ? "" : systemPrompt,
                 temperature: USER.tableBaseSetting.custom_temperature,
+                // 修复 #162/#193：将用户配置的输出上限接入 max_tokens。
+                // 旧代码未传 max_tokens，导致 LLMApiService 永远使用默认 63000，
+                // 在输出窗口较小的模型上（如 GPT-4.1-nano、部分 DeepSeek）会直接报 API 错误。
+                max_tokens: Number(USER.tableBaseSetting.custom_max_tokens) || 4096,
                 table_proxy_address: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address,
                 table_proxy_key: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_key
             });

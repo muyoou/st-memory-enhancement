@@ -301,7 +301,12 @@ export const BASE = {
         }
         const hash_sheets = {}
         BASE.sheetsData.context.forEach(sheet => {
-            hash_sheets[sheet.uid] = [sheet.hashSheet[0].map(hash => hash)]
+            // 修复：hashSheet 为空数组时 hashSheet[0] 为 undefined，会抛 “Cannot read properties of undefined (reading 'map')”
+            if (sheet.hashSheet && Array.isArray(sheet.hashSheet) && sheet.hashSheet.length > 0 && Array.isArray(sheet.hashSheet[0])) {
+                hash_sheets[sheet.uid] = [sheet.hashSheet[0].map(hash => hash)]
+            } else {
+                hash_sheets[sheet.uid] = []
+            }
         })
         return { hash_sheets }
     }

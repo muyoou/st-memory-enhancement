@@ -17,6 +17,7 @@
     "Debug mode description": "(Enabling will cause some performance loss, only for code development debugging)",
     "Custom independent API": "Custom independent API",
     "Custom API temperature setting": "Custom API temperature setting",
+    "Custom API max output tokens setting": "Custom API max output tokens setting",
     "Run strategy": "Run strategy",
     "AI read table switch": "AI read table switch",
     "AI edit table switch": "AI edit table switch",
@@ -60,15 +61,11 @@
     "Disable dynamic effects description": "(If you experience lag when the plugin is enabled, try enabling this)",
     "Disable GPU table rendering": "Disable GPU table rendering",
     "Disable GPU table rendering description": "(Manually disable GPU rendering for tables)",
-
-
     "appHeaderTableDrawer.html": "______________________________________________________________________________________________________________________________________________",
     "[title]Event table": "Event table",
     "Data": "Data",
     "Template": "Template",
     "Settings": "Settings",
-
-
     "manager.html": "______________________________________________________________________________________________________________________________________________",
     "managerDescription": "This is a table for storing data. The model can update the table based on the provided prompts and use the data in the table as a reference for generating the next conversation.",
     "[title]View table data statistics": "View table data statistics",
@@ -78,15 +75,11 @@
     "[title]Import table": "Import table",
     "[title]Export table": "Export table",
     "[title]Clear table": "Clear table",
-
-
     "editor.html": "______________________________________________________________________________________________________________________________________________",
     "editorDescription": "This is the data table editor interface. You can use the following tools to edit and manage table data.",
     "Scope:": "Scope:",
     "ScopeGlobal": "Global",
     "[title]New table template": "New table template",
-
-
     "customSheetStyle.html": "______________________________________________________________________________________________________________________________________________",
     "customTableStyleTitle": "Custom Table Style",
     "customTableStyleDesc": "Customize the display style of the table. When the style content is empty, the original table is displayed by default.<br>Supports defining structure and style using HTML and CSS, and uses <code>\\$\\w\\s+</code> to locate cells.<br>For example, <code>$A0</code> represents the 1st column, 1st row (header), and <code>$A1</code> represents the 1st column, 2nd row (first row of table content).",
@@ -95,15 +88,12 @@
     "pushToChatDesc": "(When enabled, the style in the preview below for this table will be pushed to the conversation)",
     "replacementStyleLabel": "Replacement Style:",
     "stylePreviewLabel": "Style Preview:",
-
-
     "customPushSheetsToChatStyle.html (includes reused keys from customSheetStyle.html)": "______________________________________________________________________________________________________________________________________________",
     "presetLabel": "Preset",
     "presetDefault": "Default",
     "insertLastMessageLabel": "Insert into the last message",
     "insertLastMessageDesc": "(Insert at the bottom of the last message block instead of the bottom of the context)",
     "regexReplaceLabel": "Use regex to replace content in the conversation:",
-
     "___defaultSettings___": "______________________________________________________________________________________________________________________________________________",
     "__defaultSettings__": {
         "isExtensionAble": true,
@@ -123,7 +113,7 @@
         "confirm_before_execution": true,
         "use_main_api": true,
         "custom_temperature": 1.0,
-        "custom_max_tokens": 2048,
+        "custom_max_tokens": 4096,
         "custom_top_p": 1,
         "bool_ignore_del": true,
         "ignore_user_sent": false,
@@ -254,9 +244,6 @@
             }
         ]
     },
-
     "___profile_prompts___": "______________________________________________________________________________________________________________________________________________",
-    "__profile_prompts__": {
-
-    }
+    "__profile_prompts__": {}
 }

@@ -5,6 +5,9 @@ import { reloadCurrentChat } from "/script.js"
 import {getTablePrompt,initTableData, undoSheets} from "../../index.js"
 
 let toBeExecuted = [];
+// 修复 #210：防止同一个分步填表流程被多次触发（如多条消息渲染/其他插件重复触发事件），
+// 导致叠出多个执行命令的确认弹窗与多份通知。流程进行中时忽略新的触发。
+let stepByStepBusy = false;
 
 /**
  * 初始化两步总结所需的数据
@@ -77,6 +80,12 @@ function MarkChatAsWaiting(chat, swipeUid) {
 export async function TableTwoStepSummary(mode) {
     if (mode!=="manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) return
 
+    // 防止并发触发：流程（含确认弹窗与执行）进行中时忽略新的调用，避免叠出多个确认窗
+    if (stepByStepBusy) {
+        console.log('分步填表流程已在进行中，忽略本次触发。');
+        return;
+    }
+
     // 获取需要执行的两步总结
     const {piece: todoPiece} = USER.getChatPiece()
 
@@ -85,38 +94,48 @@ export async function TableTwoStepSummary(mode) {
         EDITOR.error('未找到待填表的对话片段，请检查当前对话是否正确。');
         return;
     }
-    let todoChats = todoPiece.mes;
+    // 修复 #210：尽早计算并保存 swipeUid / currentPiece，供后续取消与成功路径使用。
+    // 旧代码在弹窗“取消”分支与 manualSummaryChat 成功路径引用了不存在的变量，会抛 ReferenceError。
+    const currentPiece = todoPiece;
+    const swipeUid = getSwipeUid(currentPiece);
+    const todoChats = todoPiece.mes;
 
     console.log('待填表的对话片段:', todoChats);
 
-    // 检查是否开启执行前确认
-    const popupContentHtml = `<p>累计 ${todoChats.length} 长度的文本，是否开始独立填表？</p>`;
-    // 移除了模板选择相关的HTML和逻辑
+    stepByStepBusy = true;
+    try {
+        // 检查是否开启执行前确认
+        const popupContentHtml = `<p>累计 ${todoChats.length} 长度的文本，是否开始独立填表？</p>`;
+        // 移除了模板选择相关的HTML和逻辑
 
-    const popupId = 'stepwiseSummaryConfirm';
-    const confirmResult = await newPopupConfirm(
-        popupContentHtml,
-        "取消",
-        "执行填表",
-        popupId,
-        "不再提示", // dontRemindText: Permanently disables the popup
-        "一直选是"  // alwaysConfirmText: Confirms for the session
-    );
+        const popupId = 'stepwiseSummaryConfirm';
+        const confirmResult = await newPopupConfirm(
+            popupContentHtml,
+            "取消",
+            "执行填表",
+            popupId,
+            "不再提示", // dontRemindText: Permanently disables the popup
+            "一直选是"  // alwaysConfirmText: Confirms for the session
+        );
 
-    console.log('newPopupConfirm result for stepwise summary:', confirmResult);
+        console.log('newPopupConfirm result for stepwise summary:', confirmResult);
 
-    if (confirmResult === false) {
-        console.log('用户取消执行独立填表: ', `(${todoChats.length}) `, toBeExecuted);
-        MarkChatAsWaiting(currentPiece, swipeUid);
-    } else {
-        // This block executes if confirmResult is true OR 'dont_remind_active'
-        if (confirmResult === 'dont_remind_active') {
-            console.log('独立填表弹窗已被禁止，自动执行。');
-            EDITOR.info('已选择“一直选是”，操作将在后台自动执行...'); // <--- 增加后台执行提示
-        } else { // confirmResult === true
-            console.log('用户确认执行独立填表 (或首次选择了“一直选是”并确认)');
+        if (confirmResult === false) {
+            console.log('用户取消执行独立填表: ', `(${todoChats.length}) `, toBeExecuted);
+            MarkChatAsWaiting(currentPiece, swipeUid);
+        } else {
+            // This block executes if confirmResult is true OR 'dont_remind_active'
+            if (confirmResult === 'dont_remind_active') {
+                console.log('独立填表弹窗已被禁止，自动执行。');
+                EDITOR.info('已选择“一直选是”，操作将在后台自动执行...'); // <--- 增加后台执行提示
+            } else { // confirmResult === true
+                console.log('用户确认执行独立填表 (或首次选择了“一直选是”并确认)');
+            }
+            // await 以保持 stepByStepBusy 贯穿整个执行期，防止执行过程中再次触发导致重复流程
+            await manualSummaryChat(todoChats, confirmResult, swipeUid);
         }
-        manualSummaryChat(todoChats, confirmResult);
+    } finally {
+        stepByStepBusy = false;
     }
 }
 
@@ -127,8 +146,9 @@ export async function TableTwoStepSummary(mode) {
  * 2. 执行：以恢复后的干净状态为基础，调用标准增量更新流程，向AI请求新的操作并执行。
  * @param {Array} todoChats - 需要用于填表的聊天记录。
  * @param {string|boolean} confirmResult - 用户的确认结果。
+ * @param {string} [swipeUid] - 当前 swipe 的唯一标识，用于标记已执行的父级 chat（修复 #210 引用未定义变量）。
  */
-export async function manualSummaryChat(todoChats, confirmResult) {
+export async function manualSummaryChat(todoChats, confirmResult, swipeUid = '') {
     // 步骤一：检查是否需要执行“撤销”操作
     // 首先获取当前的聊天片段，以判断表格状态
     const { piece: initialPiece } = USER.getChatPiece();

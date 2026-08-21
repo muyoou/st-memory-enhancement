@@ -197,6 +197,18 @@
                                                 <input type="range" id="custom_temperature" min="0.1" max="2.0"
                                                     step="0.1" value="1.0" style="flex-grow: 1;">
                                             </div>
+                                            <!-- 修复 #162/#193：自定义 API 输出 token 上限（max_tokens） -->
+                                            <div class="flex-container"
+                                                style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                                                <label
+                                                    style="min-width: 140px; margin: 0; white-space: nowrap; flex-shrink: 0;"
+                                                    data-i18n="Custom API max output tokens setting">自定义API输出上限
+                                                    (max_tokens)：</label>
+                                                <input type="number" id="custom_max_tokens" class="text_pole" min="128"
+                                                    max="128000" step="128" style="width: 160px; flex-shrink: 0;"
+                                                    data-i18n="[placeholder]Max output tokens for custom API">
+                                                <small style="color: var(--SmartThemeEmColor);">输出 token 上限，过大或超过模型输出窗口会导致 API 报错。留空则自动使用默认值。</small>
+                                            </div>
 
                                             <!-- 代理设置 -->
                                             <div class="inline-drawer wide100p">

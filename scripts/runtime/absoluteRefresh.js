@@ -44,6 +44,15 @@ function validateActions(actions) {
 
 function confirmTheOperationPerformed(content) {
     console.log('content:', content);
+    // 修复 #203/#168：AI 返回的整理结果可能缺 columns / content 或行不是数组，
+    // 直接 .map 会报 “Cannot read properties of undefined (reading 'map')”。
+    const safeContent = (Array.isArray(content) ? content : []).map(t => ({
+        tableName: t?.tableName ?? '未命名表格',
+        columns: Array.isArray(t?.columns) ? t.columns.map(c => String(c ?? '')) : [],
+        content: Array.isArray(t?.content)
+            ? t.content.map(row => Array.isArray(row) ? row.map(c => String(c ?? '')) : [])
+            : [],
+    }));
     return `
 <div class="wide100p padding5 dataBankAttachments">
     <div class="refresh-title-bar">
@@ -54,7 +63,7 @@ function confirmTheOperationPerformed(content) {
     </div>
     <div id="tableRefresh" class="refresh-scroll-content">
         <div>
-            <div class="operation-list-container"> ${content.map(table => {
+            <div class="operation-list-container"> ${safeContent.map(table => {
         return `
 <h3 class="operation-list-title">${table.tableName}</h3>
 <div class="operation-list">
@@ -389,7 +398,14 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 if (piece) {
                     for (const index in cleanContentTable) {
                         let sheet;
-                        const table = cleanContentTable[index];
+                        const rawTable = cleanContentTable[index];
+                        if (!rawTable || typeof rawTable !== 'object') continue;
+                        // 修复 #203/#168：对缺列/缺行的响应做归一化，避免展开 undefined 崩溃
+                        const columns = Array.isArray(rawTable.columns) ? rawTable.columns.map(c => String(c ?? '')) : [];
+                        const content = Array.isArray(rawTable.content)
+                            ? rawTable.content.map(row => Array.isArray(row) ? row.map(c => String(c ?? '')) : [])
+                            : [];
+                        const table = { ...rawTable, columns, content };
                         if (table.tableUid){
                             sheet = BASE.getChatSheet(table.tableUid)
                         }else if(table.tableIndex !== undefined) {
