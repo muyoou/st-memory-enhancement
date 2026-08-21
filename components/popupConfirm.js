@@ -254,21 +254,25 @@ export class PopupConfirm {
         // 清理现有的动画循环
         this.cancelFrameUpdate();
 
-        // 只在菜单显示时启动动画循环
-        if (this.toastElement.style.display !== 'none') {
-            const updateLoop = (timestamp) => {
-                // 如果菜单被隐藏，停止循环
-                if (this.toastElement.style.display === 'none') {
-                    this.cancelFrameUpdate();
-                    return;
-                }
-
-                callback(this, timestamp); // 添加 timestamp 参数以便更精确的动画控制
-                this._frameUpdateId = requestAnimationFrame(updateLoop);
-            };
-
-            this._frameUpdateId = requestAnimationFrame(updateLoop);
+        // 修复：toastElement 可能为 null（静默模式下 createLoadingToast 不创建 toast，
+        // 或旧实例已被 close() 后 300ms 清理置空），此时直接访问 .style 会抛
+        // "Cannot read properties of null (reading 'style')"。
+        if (!this.toastElement || this.toastElement.style.display === 'none') {
+            return;
         }
+
+        const updateLoop = (timestamp) => {
+            // 如果菜单被隐藏或元素已被清理，停止循环
+            if (!this.toastElement || this.toastElement.style.display === 'none') {
+                this.cancelFrameUpdate();
+                return;
+            }
+
+            callback(this, timestamp); // 添加 timestamp 参数以便更精确的动画控制
+            this._frameUpdateId = requestAnimationFrame(updateLoop);
+        };
+
+        this._frameUpdateId = requestAnimationFrame(updateLoop);
     }
 
     cancelFrameUpdate() {

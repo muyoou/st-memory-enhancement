@@ -142,7 +142,9 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         });
 
         let startTime = Date.now();
-        if (loadingToast) {
+        // 修复：静默模式下 createLoadingToast 不创建 toast，旧实例 toastElement 可能为 null，
+        // 直接调用 frameUpdate 会抛 "Cannot read properties of null (reading 'style')"。
+        if (loadingToast?.toastElement) {
             loadingToast.frameUpdate(() => {
                 if (loadingToast) {
                     loadingToast.text = `正在使用【主API】(多消息)重新生成完整表格: ${((Date.now() - startTime) / 1000).toFixed(1)}秒`;
@@ -186,7 +188,8 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         });
 
         let startTime = Date.now();
-        if (loadingToast) {
+        // 修复：静默模式下 createLoadingToast 不创建 toast，旧实例 toastElement 可能为 null
+        if (loadingToast?.toastElement) {
             loadingToast.frameUpdate(() => {
                 if (loadingToast) {
                     loadingToast.text = `正在使用【主API】重新生成完整表格: ${((Date.now() - startTime) / 1000).toFixed(1)}秒`;
