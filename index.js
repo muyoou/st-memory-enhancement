@@ -213,6 +213,69 @@ export function getTablePromptByPiece(piece, isPureData = false) {
 }
 
 /**
+ * 拆分参数：将括号内的参数文本拆分为原始参数 token（数字、引号字符串、{...} 对象）
+ * 正确处理：嵌套括号、转义引号、全角/半角引号、对象中的字符串与花括号
+ * @param {string} argsPart 括号内的参数文本
+ * @returns {string[]} 原始参数 token 数组
+ */
+function parseArgs(argsPart) {
+    const args = [];
+    let i = 0;
+    const len = argsPart.length;
+    const isSep = c => c === ',' || c === '，' || c === ' ' || c === '\t' || c === '\n' || c === '\r';
+    const isQuote = c => c === '"' || c === "'" || c === '“';
+
+    while (i < len) {
+        while (i < len && isSep(argsPart[i])) i++;
+        if (i >= len) break;
+        const char = argsPart[i];
+
+        if (char === '{') {
+            // 读取对象，跟踪字符串与嵌套花括号
+            const start = i;
+            let depth = 0;
+            let inStr = false;
+            let quote = null;
+            let escaped = false;
+            while (i < len) {
+                const c = argsPart[i];
+                if (inStr) {
+                    if (escaped) escaped = false;
+                    else if (c === '\\') escaped = true;
+                    else if (c === quote) inStr = false;
+                } else {
+                    if (isQuote(c)) { inStr = true; quote = c === '“' ? '”' : c; }
+                    else if (c === '{') depth++;
+                    else if (c === '}') { depth--; if (depth === 0) { i++; break; } }
+                }
+                i++;
+            }
+            args.push(argsPart.slice(start, i));
+        } else if (isQuote(char)) {
+            // 引号字符串
+            const start = i;
+            const q = char === '“' ? '”' : char;
+            i++;
+            let escaped = false;
+            while (i < len) {
+                const c = argsPart[i];
+                if (escaped) escaped = false;
+                else if (c === '\\') escaped = true;
+                else if (c === q) { i++; break; }
+                i++;
+            }
+            args.push(argsPart.slice(start, i));
+        } else {
+            // 数字或裸词
+            const start = i;
+            while (i < len && !isSep(argsPart[i])) i++;
+            args.push(argsPart.slice(start, i));
+        }
+    }
+    return args;
+}
+
+/**
  * 将匹配到的整体字符串转化为单个语句的数组
  * @param {string[]} matches 匹配到的整体字符串
  * @returns 单条执行语句数组
@@ -220,37 +283,56 @@ export function getTablePromptByPiece(piece, isPureData = false) {
 function handleTableEditTag(matches) {
     const functionRegex = /(updateRow|insertRow|deleteRow)\(/g;
     let A = [];
-    let match;
-    let positions = [];
-    matches.forEach(input => {
+    for (const input of matches) {
+        functionRegex.lastIndex = 0; // 重置正则状态，避免跨输入残留
+        let match;
+        const positions = [];
         while ((match = functionRegex.exec(input)) !== null) {
             positions.push({
-                index: match.index,
-                name: match[1].replace("Row", "") // 转换成 update/insert/delete
+                start: match.index,
+                name: match[1].replace("Row", ""), // 转换成 update/insert/delete
+                afterParen: match.index + match[0].length, // '(' 之后的起点
             });
         }
 
-        // 合并函数片段和位置
-        for (let i = 0; i < positions.length; i++) {
-            const start = positions[i].index;
-            const end = i + 1 < positions.length ? positions[i + 1].index : input.length;
-            const fullCall = input.slice(start, end);
-            const lastParenIndex = fullCall.lastIndexOf(")");
+        for (let p = 0; p < positions.length; p++) {
+            const pos = positions[p];
+            const sliceEnd = p + 1 < positions.length ? positions[p + 1].start : input.length;
 
-            if (lastParenIndex !== -1) {
-                const sliced = fullCall.slice(0, lastParenIndex); // 去掉最后一个 )
-                const argsPart = sliced.slice(sliced.indexOf("(") + 1);
-                const args = argsPart.match(/("[^"]*"|\{.*\}|[0-9]+)/g)?.map(s => s.trim());
-                if(!args) continue
-                A.push({
-                    type: positions[i].name,
-                    param: args,
-                    index: positions[i].index,
-                    length: end - start
-                });
+            // 从 '(' 之后开始，找到与之匹配的 ')'（尊重字符串与转义、嵌套括号）
+            let j = pos.afterParen;
+            let depth = 1;
+            let inStr = false;
+            let quote = null;
+            let escaped = false;
+            while (j < sliceEnd && depth > 0) {
+                const c = input[j];
+                if (inStr) {
+                    if (escaped) escaped = false;
+                    else if (c === '\\') escaped = true;
+                    else if (c === quote) inStr = false;
+                } else {
+                    if (c === '"' || c === "'" || c === '“') { inStr = true; quote = c === '“' ? '”' : c; }
+                    else if (c === '(') depth++;
+                    else if (c === ')') depth--;
+                }
+                j++;
             }
+
+            // 未找到匹配右括号时，退回使用函数边界作为结尾
+            const argsEnd = depth > 0 ? sliceEnd : j - 1;
+            const argsPart = input.slice(pos.afterParen, Math.max(pos.afterParen, argsEnd));
+
+            const args = parseArgs(argsPart);
+            if (args.length === 0) continue;
+            A.push({
+                type: pos.name,
+                param: args,
+                index: pos.start,
+                length: (depth > 0 ? sliceEnd : j) - pos.start,
+            });
         }
-    });
+    }
     return A;
 }
 
@@ -725,16 +807,29 @@ async function onChatChanged() {
         // 更新表格视图
         updateSheetsView();
 
-        let isDataEmpty = true;// 检查是否空表格
-        const { piece } = BASE.getLastSheetsPiece();
-        for (const sheet_id in piece.hash_sheets) {
-            if (piece.hash_sheets[sheet_id].length > 1) {
-                isDataEmpty = false;
+        // 修复 #186：判断“整个聊天是否真的没有任何表格数据”，而不是只看最新一条 message。
+        // 旧逻辑：只要最新 piece 的 hash_sheets 全是表头（length<=1）就强制 initHashSheet(true)，
+        // 会在切换聊天分支时把分支里存在但停留在旧消息中的表格数据整个清空重来。
+        let hasAnyTableData = false;
+        const chat = USER.getContext().chat;
+        for (const msg of chat) {
+            if (msg.hash_sheets) {
+                for (const sheet_id in msg.hash_sheets) {
+                    if (msg.hash_sheets[sheet_id].length > 1) {
+                        hasAnyTableData = true;
+                        break;
+                    }
+                }
+                if (hasAnyTableData) break;
+            }
+            // 兼容旧版表格数据
+            if (msg.dataTable) {
+                hasAnyTableData = true;
                 break;
             }
         }
-        if (isDataEmpty) {
-            BASE.initHashSheet(true);// 强制应用模板
+        if (!hasAnyTableData) {
+            BASE.initHashSheet(true); // 仅当整段聊天都没有任何表格数据（全新聊天）时才应用模板
             updateSheetsView();
         }
 

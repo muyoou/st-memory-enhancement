@@ -238,9 +238,17 @@ export class Sheet extends SheetBase {
     getTableText(index, customParts = ['title', 'node', 'headers', 'rows', 'editRules']) {
         console.log('获取表格内容提示词', this)
         if (this.triggerSend && this.triggerSendDeep < 1) return ''; // 如果触发深度=0，则不发送，可以用作信息一览表
+        // 修复：损坏/空结构（hashSheet 为空、无首行、origin 单元格缺失）时提前返回，避免后续取 .data 抛错
+        if (!this.hashSheet || !Array.isArray(this.hashSheet) || this.hashSheet.length === 0 ||
+            !Array.isArray(this.hashSheet[0]) || this.hashSheet[0].length === 0 || !this.source || !this.source.data) {
+            console.warn(`[Memory Enhancement] getTableText: 表格 "${this.name}" (${this.uid}) 结构异常，跳过生成提示词。`);
+            return '';
+        }
         const title = `* ${index}:${this.name}\n`;
         const node = this.source.data.note && this.source.data.note !== '' ? '【说明】' + this.source.data.note + '\n' : '';
-        const headers = "rowIndex," + this.getCellsByRowIndex(0).slice(1).map((cell, index) => index + ':' + cell.data.value).join(',') + '\n';
+        // 修复：空表/仅表头时 getCellsByRowIndex(0) 可能返回 null，直接 .slice 会抛错
+        const headerCells = this.getCellsByRowIndex(0);
+        const headers = "rowIndex," + (headerCells && headerCells.length > 0 ? headerCells.slice(1).map((cell, index) => index + ':' + cell.data.value).join(',') : '') + '\n';
         let rows = this.getSheetCSV()
         const editRules = this.#getTableEditRules() + '\n';
         // 新增触发式表格内容发送，检索聊天内容的角色名
@@ -369,6 +377,12 @@ export class Sheet extends SheetBase {
      * 初始化hashSheet，只保留表头
      */
     initHashSheet() {
+        // 修复：hashSheet 为空时 hashSheet[0] 为 undefined，直接 .map 会抛错
+        if (!this.hashSheet || !Array.isArray(this.hashSheet) || this.hashSheet.length === 0 || !Array.isArray(this.hashSheet[0])) {
+            this.hashSheet = [];
+            this.markPositionCacheDirty();
+            return;
+        }
         this.hashSheet = [this.hashSheet[0].map(uid => uid)];
         this.markPositionCacheDirty();
     }

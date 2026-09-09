@@ -124,6 +124,17 @@ export class SheetBase {
         const newHashSheet = Array.from({ length: rows }, (_, i) => Array.from({ length: cols }, (_, j) => {
             const value = valueSheet[i][j] || '';
             const cellType = this.getCellTypeByPosition(i, j);
+            // 修复 #211：origin 单元格(0,0) 承载着模板属性（note/initNode/insertNode/updateNode/deleteNode）。
+            // 直接按 value 匹配可能因 data.value 为 undefined/空串 而匹配不上，导致新建空 origin 单元格，
+            // 使“整理/总结”后聊天域模板属性被清空。这里优先复用已有的 sheet_origin 单元格。
+            if (cellType === Cell.CellType.sheet_origin) {
+                const existingOrigin = this.cellHistory.find(c =>
+                    c.type === Cell.CellType.sheet_origin && !usedCellUids.includes(c.uid));
+                if (existingOrigin) {
+                    usedCellUids.push(existingOrigin.uid);
+                    return existingOrigin.uid;
+                }
+            }
             // 如果存在相同值的单元格，则复用该单元格，但排除已使用的单元格
             const oldCell = this.findCellByValue(valueSheet[i][j] || '', cellType, usedCellUids)
             if (oldCell) {

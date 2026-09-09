@@ -506,6 +506,12 @@ function InitBinging() {
         $('#custom_temperature_value').text(value);
         USER.tableBaseSetting.custom_temperature = Number(value);
     });
+    // 修复 #162/#193：自定义 API 输出上限（max_tokens）
+    $('#custom_max_tokens').on('input', function() {
+        const value = $(this).val();
+        USER.tableBaseSetting.custom_max_tokens = value === '' ? 0 : Number(value);
+        USER.saveSettings && USER.saveSettings();
+    });
 
     // 代理地址
     $('#table_proxy_address').on('input', function() {
@@ -576,6 +582,9 @@ export function renderSetting() {
     $('#rebuild_token_limit_value').text(USER.tableBaseSetting.rebuild_token_limit_value);
     $('#custom_temperature').val(USER.tableBaseSetting.custom_temperature);
     $('#custom_temperature_value').text(USER.tableBaseSetting.custom_temperature);
+    // 修复 #162/#193：回填自定义 API 输出上限
+    const maxTokens = USER.tableBaseSetting.custom_max_tokens;
+    $('#custom_max_tokens').val(maxTokens && maxTokens > 0 ? maxTokens : '');
     // Load step-by-step user prompt
     $('#step_by_step_user_prompt').val(USER.tableBaseSetting.step_by_step_user_prompt || '');
     // 分步填表读取的上下文层数

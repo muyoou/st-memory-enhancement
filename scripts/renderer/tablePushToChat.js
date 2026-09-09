@@ -402,7 +402,9 @@ export async function openTableRendererPopup() {
         // console.warn("openTableRendererPopup: 未能获取到有效的 table 对象。");
         return;
     }
-    const sheets = BASE.hashSheetsToSheets(sheetsData)[0];
+    // 修复：原代码 `const sheets = BASE.hashSheetsToSheets(sheetsData)[0];` 只取了第一张表，
+    // 且后续 for-of 迭代的是单个 Sheet 对象（不可迭代）会抛错。这里改为迭代全部表格。
+    const sheets = BASE.hashSheetsToSheets(sheetsData);
     let sheetElements = '';
     for (let sheet of sheets) {
         if (!sheet.tochat) continue;

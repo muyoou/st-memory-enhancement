@@ -46,77 +46,95 @@ export function truncateAfterLastParenthesis(str) {
  */
 export function parseLooseDict(str) {
     const result = {};
-    const content = str.replace(/\s+/g, '').replace(/\\"/g, '"').slice(1, -1);
-    console.log("解析",content)
+    if (typeof str !== 'string') return result;
+
+    let content = str.trim();
+    if (content.startsWith('{') && content.endsWith('}')) content = content.slice(1, -1);
+
     let i = 0;
     const len = content.length;
 
-    while (i < len) {
-        // 读取 key
-        let key = '';
-        while (i < len && content[i] !== ':') {
-            key += content[i++];
-        }
-        key = key.trim().replace(/^["'“]|["'”]$/g, ''); // 去除引号
-        i++; // 跳过冒号
+    const isSep = c => c === ',' || c === '，' || c === ' ' || c === '\t' || c === '\n' || c === '\r';
+    const skipSeparators = () => {
+        while (i < len && isSep(content[i])) i++;
+    };
 
-        // 读取 value
+    while (i < len) {
+        skipSeparators();
+        if (i >= len) break;
+
+        // ---- 读取 key ----
+        let key = '';
+        const kf = content[i];
+        if (kf === '"' || kf === "'" || kf === '“') {
+            const kq = kf === '“' ? '”' : kf;
+            i++;
+            while (i < len && content[i] !== kq) { key += content[i++]; }
+            i++; // 跳过结束引号
+        } else {
+            while (i < len && content[i] !== ':' && content[i] !== '：') { key += content[i++]; }
+        }
+        key = key.trim().replace(/^["'\u201c]|["'\u201d]$/g, ''); // 去除半角/全角引号（含单引号）
+
+        // 跳过到 ':' 并越过它
+        while (i < len && content[i] !== ':' && content[i] !== '：') i++;
+        i++; // 跳过冒号
+        skipSeparators();
+
+        // ---- 读取 value ----
         let value = '';
+        const vf = content[i];
         let quoteChar = null;
         let inString = false;
-
-        // 判断起始引号（可以没有）
-        if (content[i] === '"' || content[i] === "'") {
-            quoteChar = content[i];
-            inString = true;
-            i++;
-        } else if (content[i] === '“') {
-            quoteChar = '”';
-            inString = true;
-            i++;
-        }
+        if (vf === '"' || vf === "'") { quoteChar = vf; inString = true; i++; }
+        else if (vf === '“') { quoteChar = '”'; inString = true; i++; }
 
         while (i < len) {
             const char = content[i];
-
             if (inString) {
-                // 如果遇到嵌套引号，替换为另一种
-                if (char === quoteChar) {
-                    if (content[i + 1] === ',' || content[i + 1] === '，' || content[i + 1] == null) {
-                        i++; // 跳过结尾引号
-                        break;
-                    } else {
-                        if (char === '"') {
-                            value +=  "'"
-                        } else if (char === "'") {
-                            value +=  '"'
-                        } else {
-                            value += char
-                        }
-                        i++;
+                // 处理转义字符：\" \' \\ 保留字面量
+                if (char === '\\' && i + 1 < len) {
+                    const next = content[i + 1];
+                    if (next === quoteChar || next === '\\') {
+                        value += next;
+                        i += 2;
                         continue;
                     }
+                    value += char;
+                    i++;
+                    continue;
                 }
-
+                if (char === quoteChar) {
+                    // 只有后随分隔符/结尾时才视为真正的结束引号
+                    const nn = content[i + 1];
+                    if (nn === ',' || nn === '，' || nn === '}' || nn == null ||
+                        nn === ' ' || nn === '\t' || nn === '\n' || nn === '\r') {
+                        i++;
+                        break;
+                    }
+                    // 否则视为嵌套引号，转换为另一种引号提高可读性（兼容旧逻辑）
+                    if (char === '"') value += "'";
+                    else if (char === "'") value += '"';
+                    else value += char;
+                    i++;
+                    continue;
+                }
                 value += char;
             } else {
-                // 无引号字符串，直到逗号结束
-                if (char === ',') break;
+                // 无引号字符串，直到逗号/结束括号
+                if (char === ',' || char === '，' || char === '}') break;
                 value += char;
             }
-
             i++;
         }
 
-        result[key] = value.trim().replace(/,/g, '/'); // 替换逗号
+        // 逗号替换为斜杠（保留值内的正常空格，仅压缩逗号后的分隔空白）
+        result[key] = value.trim().replace(/[，,]\s*/g, '/');
 
         // 跳过分隔符和空格
-        while (i < len && (content[i] === ',' || content[i] === '，' || content[i] === ' ')) {
-            i++;
-        }
+        while (i < len && (content[i] === ',' || content[i] === '，' || content[i] === ' ' ||
+            content[i] === '\t' || content[i] === '\n' || content[i] === '\r')) i++;
     }
-    console.log('解析后的对象:', result);
-
     return result;
 }
 

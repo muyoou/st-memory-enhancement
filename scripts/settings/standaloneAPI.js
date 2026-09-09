@@ -142,7 +142,9 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         });
 
         let startTime = Date.now();
-        if (loadingToast) {
+        // 修复：静默模式下 createLoadingToast 不创建 toast，旧实例 toastElement 可能为 null，
+        // 直接调用 frameUpdate 会抛 "Cannot read properties of null (reading 'style')"。
+        if (loadingToast?.toastElement) {
             loadingToast.frameUpdate(() => {
                 if (loadingToast) {
                     loadingToast.text = `正在使用【主API】(多消息)重新生成完整表格: ${((Date.now() - startTime) / 1000).toFixed(1)}秒`;
@@ -151,16 +153,28 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         }
 
         console.log('主API请求的多消息数组:', messages); // Log the actual array
-        // Use TavernHelper.generateRaw with the array, enabling streaming
+        // 优先使用「酒馆助手 TavernHelper」插件(支持流式，体验最佳)；
+        // 未安装时回退到酒馆自带 generateRaw(非流式，不依赖任何插件，不会 ReferenceError)。
+        if (typeof TavernHelper?.generateRaw === 'function') {
+            const response = await TavernHelper.generateRaw({
+                ordered_prompts: messages, // Pass the array directly
+                should_stream: true,      // Re-enable streaming
+            });
+            loadingToast.close();
+            return suspended ? 'suspended' : response;
+        }
 
-        if(!TavernHelper) throw new Error("酒馆助手未安装，总结功能依赖于酒馆助手插件，请安装后刷新");
+        if (typeof EDITOR.generateRaw === 'function') {
+            const response = await EDITOR.generateRaw({
+                prompt: messages,
+                systemPrompt: '',
+                trimNames: false, // 不要修剪命名，避免误删表格操作指令
+            });
+            loadingToast.close();
+            return suspended ? 'suspended' : response;
+        }
 
-        const response = await TavernHelper.generateRaw({
-            ordered_prompts: messages, // Pass the array directly
-            should_stream: true,      // Re-enable streaming
-        });
-        loadingToast.close();
-        return suspended ? 'suspended' : response;
+        throw new Error("当前酒馆未安装「酒馆助手」(TavernHelper)插件且版本过低，无法通过主API发送分步填表请求，请安装酒馆助手或更新酒馆。");
         // --- End: Processing for array input ---
 
     } else { // Correctly placed ELSE block
@@ -174,7 +188,8 @@ export async function handleMainAPIRequest(systemPrompt, userPrompt, isSilent = 
         });
 
         let startTime = Date.now();
-        if (loadingToast) {
+        // 修复：静默模式下 createLoadingToast 不创建 toast，旧实例 toastElement 可能为 null
+        if (loadingToast?.toastElement) {
             loadingToast.frameUpdate(() => {
                 if (loadingToast) {
                     loadingToast.text = `正在使用【主API】重新生成完整表格: ${((Date.now() - startTime) / 1000).toFixed(1)}秒`;
@@ -391,6 +406,10 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
                 // Pass empty system_prompt if promptData is array, otherwise pass the original systemPrompt string
                 system_prompt: Array.isArray(promptData) ? "" : systemPrompt,
                 temperature: USER.tableBaseSetting.custom_temperature,
+                // 修复 #162/#193：将用户配置的输出上限接入 max_tokens。
+                // 旧代码未传 max_tokens，导致 LLMApiService 永远使用默认 63000，
+                // 在输出窗口较小的模型上（如 GPT-4.1-nano、部分 DeepSeek）会直接报 API 错误。
+                max_tokens: Number(USER.tableBaseSetting.custom_max_tokens) || 4096,
                 table_proxy_address: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_address,
                 table_proxy_key: USER.IMPORTANT_USER_PRIVACY_DATA.table_proxy_key
             });
