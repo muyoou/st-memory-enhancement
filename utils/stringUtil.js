@@ -128,8 +128,8 @@ export function parseLooseDict(str) {
             i++;
         }
 
-        // 逗号替换为斜杠（保留值内的正常空格，仅压缩逗号后的分隔空白）
-        result[key] = value.trim().replace(/[，,]\s*/g, '/');
+        // 压缩逗号后的分隔空白
+        result[key] = value.trim().replace(/(?<=[，,])\s*/g, '');
 
         // 跳过分隔符和空格
         while (i < len && (content[i] === ',' || content[i] === '，' || content[i] === ' ' ||
